@@ -68,6 +68,7 @@ int VideoProcess::SetChnMode(int grp, int chn, const SIZE_S &size)
 {
     int ret;
     VPSS_CHN_MODE_S mode;
+    memset(&mode, 0, sizeof(mode));
     mode.enChnMode = VPSS_CHN_MODE_USER;
     mode.u32Width = size.u32Width;
     mode.u32Height = size.u32Height;
@@ -82,35 +83,17 @@ int VideoProcess::SetChnMode(int grp, int chn, const SIZE_S &size)
     return KSuccess;
 }
 
-int VideoProcess::SetEncodeChnSize(const SIZE_S &size)
+int VideoProcess::SetChnSize(int chn, const SIZE_S &size)
 {
     if (!init_)
         return KUnInitialized;
 
     int ret;
-    ret = SetChnMode(params_.grp, VPSS_ENCODE_CHN, size);
+    ret = SetChnMode(params_.grp, chn, size);
     if (ret != KSuccess)
         return ret;
 
     return KSuccess;
-}
-
-int VideoProcess::SetPIPChnSize(const SIZE_S &size)
-{
-    if (!init_)
-        return KUnInitialized;
-
-    int ret;
-    ret = SetChnMode(params_.grp, VPSS_PIP_CHN, size);
-    if (ret != KSuccess)
-        return ret;
-
-    return KSuccess;
-}
-
-int VideoProcess::GetGrp() const
-{
-    return params_.grp;
 }
 
 void VideoProcess::Close()

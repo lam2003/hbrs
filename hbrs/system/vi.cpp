@@ -169,16 +169,6 @@ int VideoInput::Initialize(const Params &params)
     return KSuccess;
 }
 
-int VideoInput::GetDev() const
-{
-    return params_.dev;
-}
-
-int VideoInput::GetChn() const
-{
-    return params_.chn;
-}
-
 void VideoInput::Close()
 {
     if (!init_)

@@ -1,4 +1,5 @@
 #include "common/global.h"
+#include "system/vm.h"
 
 #pragma once
 
@@ -16,20 +17,16 @@ struct Params
 
 } // namespace vi
 
-class VideoInput
+class VideoInput : public Module<vi::Params>
 {
 public:
     explicit VideoInput();
 
     virtual ~VideoInput();
 
-    int Initialize(const vi::Params &params);
+    int Initialize(const vi::Params &params) override;
 
-    void Close();
-
-    int GetDev() const;
-
-    int GetChn() const;
+    void Close() override;
 
 protected:
     static int StartDev(int dev, CaptureMode mode);

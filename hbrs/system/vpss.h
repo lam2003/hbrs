@@ -24,15 +24,11 @@ public:
 
     virtual ~VideoProcess();
 
-    int Initialize(const vpss::Params &params);
+    int Initialize(const vpss::Params &params) override;
 
-    void Close();
+    void Close() override;
 
-    int SetEncodeChnSize(const SIZE_S &size);
-
-    int SetPIPChnSize(const SIZE_S &size);
-
-    int GetGrp() const;
+    int SetChnSize(int chn,const SIZE_S &size);
 
 protected:
     static int SetChnMode(int grp, int chn, const SIZE_S &size);

@@ -17,6 +17,7 @@ public:
 };
 } // namespace rs
 
+#define VPSS_MAIN_SCREEN_GRP 10
 #define VPSS_ENCODE_CHN 1
 #define VPSS_PIP_CHN 2
 
