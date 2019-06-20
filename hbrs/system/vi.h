@@ -4,23 +4,32 @@
 
 namespace rs
 {
+
+namespace vi
+{
+struct Params
+{
+    int dev;
+    int chn;
+    CaptureMode mode;
+};
+
+} // namespace vi
+
 class VideoInput
 {
 public:
-    struct Params
-    {
-        int dev;
-        int chn;
-        CaptureMode mode;
-    };
-
     explicit VideoInput();
 
     virtual ~VideoInput();
 
-    int Initialize(const Params &params);
+    int Initialize(const vi::Params &params);
 
     void Close();
+
+    int GetDev() const;
+
+    int GetChn() const;
 
 protected:
     static int StartDev(int dev, CaptureMode mode);
@@ -30,7 +39,7 @@ protected:
     static int StartChn(int chn, CaptureMode mode);
 
 private:
-    Params params_;
+    vi::Params params_;
     bool init_;
 
     static const VI_DEV_ATTR_S DevAttr_7441_BT1120_720P;

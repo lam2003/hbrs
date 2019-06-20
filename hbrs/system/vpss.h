@@ -1,23 +1,30 @@
 #pragma once
 
 #include "common/global.h"
+#include "system/vm.h"
 
 namespace rs
 {
-class VideoProcess
-{
-public:
-    struct Params
-    {
-        CaptureMode mode;
-        int grp;
-    };
 
+namespace vpss
+{
+struct Params
+{
+    int grp;
+    CaptureMode mode;
+};
+
+} // namespace vpss
+
+class VideoProcess : public Module<vpss::Params>
+{
+
+public:
     explicit VideoProcess();
 
     virtual ~VideoProcess();
 
-    int Initialize(const Params &params);
+    int Initialize(const vpss::Params &params);
 
     void Close();
 
@@ -25,14 +32,13 @@ public:
 
     int SetPIPChnSize(const SIZE_S &size);
 
+    int GetGrp() const;
+
 protected:
     static int SetChnMode(int grp, int chn, const SIZE_S &size);
 
 private:
-    Params params_;
+    vpss::Params params_;
     bool init_;
-
-    static const int VpssEncodeChn;
-    static const int VpssPIPChn;
 };
 } // namespace rs

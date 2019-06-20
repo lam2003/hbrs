@@ -4,6 +4,8 @@
 namespace rs
 {
 
+using namespace mpp;
+
 MPPSystem::MPPSystem() : init_(false) {}
 
 MPPSystem::~MPPSystem()
@@ -159,4 +161,72 @@ int MPPSystem::ConfigMem()
 
     return KSuccess;
 }
+
+static int Bind(MPP_CHN_S *src_chn, MPP_CHN_S *dst_chn)
+{
+    int ret;
+    ret = HI_MPI_SYS_Bind(src_chn, dst_chn);
+    if (ret != KSuccess)
+    {
+        log_e("HI_MPI_SYS_Bind failed with %#x", ret);
+        return KSDKError;
+    }
+    return KSuccess;
+}
+
+static int UnBind(MPP_CHN_S *src_chn, MPP_CHN_S *dst_chn)
+{
+    int ret;
+    ret = HI_MPI_SYS_UnBind(src_chn, dst_chn);
+    if (ret != KSuccess)
+    {
+        log_e("HI_MPI_SYS_UnBind failed with %#x", ret);
+        return KSDKError;
+    }
+    return KSuccess;
+}
+
+int MPPSystem::Bind(const VideoInput &vi, const VideoProcess &vpss)
+{
+ log_d("bind [vi][%d:%d] to [vpss][%d]", vi.GetDev(), vi.GetChn(), vpss.GetGrp());
+
+    int ret;
+    MPP_CHN_S src_chn, dst_chn;
+    src_chn.s32DevId = 0;
+    src_chn.s32ChnId = vi.GetChn();
+    src_chn.enModId = HI_ID_VIU;
+    dst_chn.s32DevId = vpss.GetGrp();
+    dst_chn.s32ChnId = 0;
+    dst_chn.enModId = HI_ID_VPSS;
+    ret = rs::Bind(&src_chn, &dst_chn);
+    if (ret != KSuccess)
+        return ret;
+
+   
+    return KSuccess;
+}
+
+int MPPSystem::UnBind(const VideoInput &vi, const VideoProcess &vpss)
+{
+    int ret;
+    MPP_CHN_S src_chn, dst_chn;
+    src_chn.s32DevId = 0;
+    src_chn.s32ChnId = vi.GetChn();
+    src_chn.enModId = HI_ID_VIU;
+    dst_chn.s32DevId = vpss.GetGrp();
+    dst_chn.s32ChnId = 0;
+    dst_chn.enModId = HI_ID_VPSS;
+    ret = rs::UnBind(&src_chn, &dst_chn);
+    if (ret != KSuccess)
+        return ret;
+    return KSuccess;
+}
+
+// template <typename ModuleA, typename ModuleB>
+// void MPPSystem::Bind(const Module<typename ModuleA::Params> &l, int ldev, int lchn, const Module<typename ModuleB::Params> &r, int rdev, int rchn)
+// {
+//     int ret;
+//     MPP_CHN_S src_chn, dest_chn;
+
+// }
 } // namespace rs

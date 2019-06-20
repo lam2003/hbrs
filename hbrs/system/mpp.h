@@ -1,25 +1,35 @@
 #pragma once
 
 #include "common/global.h"
+#include "system/vi.h"
+#include "system/vpss.h"
 
 namespace rs
 {
-class MPPSystem
+
+namespace mpp
+{
+struct Params
+{
+    CaptureMode mode;
+    int block_num;
+};
+} // namespace mpp
+
+class MPPSystem : public Module<mpp::Params>
 {
 public:
-    struct Params
-    {
-        CaptureMode mode;
-        int block_num;
-    };
-
     static MPPSystem *Instance();
 
     virtual ~MPPSystem();
 
-    int Initialize(const Params &params);
+    int Initialize(const mpp::Params &params);
 
     void Close();
+
+    static int Bind(const VideoInput &vi, const VideoProcess &vpss);
+
+    static int UnBind(const VideoInput &vi, const VideoProcess &vpss);
 
 protected:
     static int ConfigVB(CaptureMode mode, int block_num);
@@ -34,7 +44,7 @@ private:
     explicit MPPSystem();
 
 private:
-    Params params_;
+    mpp::Params params_;
     bool init_;
 };
 } // namespace rs

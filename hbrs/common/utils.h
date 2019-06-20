@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include "common/global.h"
 
 namespace rs
@@ -26,6 +27,14 @@ public:
         }
 
         return size;
+    }
+
+    static uint64_t GetSteadyMilliSeconds()
+    {
+        using namespace std::chrono;
+        auto now = steady_clock::now();
+        auto now_since_epoch = now.time_since_epoch();
+        return duration_cast<milliseconds>(now_since_epoch).count();
     }
 };
 } // namespace rs

@@ -4,10 +4,9 @@
 namespace rs
 {
 
-const int VideoProcess::VpssEncodeChn = 1;
-const int VideoProcess::VpssPIPChn = 2;
+using namespace vpss;
 
-VideoProcess::VideoProcess()
+VideoProcess::VideoProcess() : init_(false)
 {
 }
 
@@ -30,9 +29,9 @@ int VideoProcess::Initialize(const Params &params)
     attr.u32MaxW = size.u32Width;
     attr.bDrEn = HI_FALSE;
     attr.bDbEn = HI_FALSE;
-    attr.bIeEn = HI_TRUE;
-    attr.bNrEn = HI_TRUE;
-    attr.bHistEn = HI_TRUE;
+    attr.bIeEn = HI_FALSE;
+    attr.bNrEn = HI_FALSE;
+    attr.bHistEn = HI_FALSE;
     attr.enDieMode = VPSS_DIE_MODE_AUTO;
     attr.enPixFmt = RS_PIXEL_FORMAT;
 
@@ -40,14 +39,6 @@ int VideoProcess::Initialize(const Params &params)
     if (ret != KSuccess)
     {
         log_e("HI_MPI_VPSS_CreateGrp failed with %#x", ret);
-        return KSDKError;
-    }
-
-    VPSS_GRP_PARAM_S param;
-    ret = HI_MPI_VPSS_SetGrpParam(params_.grp, &param);
-    if (ret != KSuccess)
-    {
-        log_e("HI_MPI_VPSS_SetGrpParam failed with %#x", ret);
         return KSDKError;
     }
 
@@ -68,17 +59,19 @@ int VideoProcess::Initialize(const Params &params)
         return KSDKError;
     }
 
+    init_ = true;
+
     return KSuccess;
 }
 
 int VideoProcess::SetChnMode(int grp, int chn, const SIZE_S &size)
 {
     int ret;
-
     VPSS_CHN_MODE_S mode;
     mode.enChnMode = VPSS_CHN_MODE_USER;
     mode.u32Width = size.u32Width;
     mode.u32Height = size.u32Height;
+    mode.bDouble = HI_FALSE;
     mode.enPixelFormat = RS_PIXEL_FORMAT;
     ret = HI_MPI_VPSS_SetChnMode(grp, chn, &mode);
     if (ret != KSuccess)
@@ -95,8 +88,7 @@ int VideoProcess::SetEncodeChnSize(const SIZE_S &size)
         return KUnInitialized;
 
     int ret;
-
-    ret = SetChnMode(params_.grp, VpssEncodeChn, size);
+    ret = SetChnMode(params_.grp, VPSS_ENCODE_CHN, size);
     if (ret != KSuccess)
         return ret;
 
@@ -109,12 +101,16 @@ int VideoProcess::SetPIPChnSize(const SIZE_S &size)
         return KUnInitialized;
 
     int ret;
-
-    ret = SetChnMode(params_.grp, VpssPIPChn, size);
+    ret = SetChnMode(params_.grp, VPSS_PIP_CHN, size);
     if (ret != KSuccess)
         return ret;
 
     return KSuccess;
+}
+
+int VideoProcess::GetGrp() const
+{
+    return params_.grp;
 }
 
 void VideoProcess::Close()

@@ -30,6 +30,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+//system
+#include <unistd.h>
 //logger
 #include <elog.h>
 //self
