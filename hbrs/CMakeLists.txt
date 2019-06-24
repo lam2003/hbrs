@@ -4,6 +4,7 @@ add_executable(3531 ${SOURCES})
 
 target_link_libraries(3531 
 easylogger
+jsoncpp
 libmpi.a
 libhdmi.a
 libVoiceEngine.a

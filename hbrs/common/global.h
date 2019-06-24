@@ -31,8 +31,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 //system
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
 #include <unistd.h>
-//logger
+//3rdparty
 #include <elog.h>
 //self
 #include "common/video_define.h"

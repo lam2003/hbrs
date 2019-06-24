@@ -24,3 +24,6 @@ public:
 #define VO_HD_DEV 0
 #define VO_CVBS_DEV 3
 #define VO_VIR_DEV 10
+
+#define VO_VIR_MODE CAPTURE_MODE_1080P
+#define PCIV_WINDOW_SIZE 7340032

@@ -1,6 +1,10 @@
 #pragma once
 
 #include <chrono>
+#include <string>
+
+#include <json/json.h>
+
 #include "common/global.h"
 
 namespace rs
@@ -177,6 +181,23 @@ public:
         auto now = steady_clock::now();
         auto now_since_epoch = now.time_since_epoch();
         return duration_cast<milliseconds>(now_since_epoch).count();
+    }
+
+    static std::string ToStr(const Json::Value &json)
+    {
+        Json::FastWriter w;
+        std::string value = w.write(json);
+        return value.substr(0, value.size() - 1);
+    }
+
+    static bool ToJson(const std::string &str, Json::Value &root)
+    {
+        if (str.empty())
+            return false;
+        Json::Reader reader(Json::Features::strictMode());
+        if (!reader.parse(str, root))
+            return false;
+        return true;
     }
 };
 } // namespace rs

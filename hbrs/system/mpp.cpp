@@ -92,10 +92,13 @@ int MPPSystem::ConfigVB(CaptureMode mode, int block_num)
     conf.u32MaxPoolCnt = 128;
     conf.astCommPool[0].u32BlkSize = blk_size;
     conf.astCommPool[0].u32BlkCnt = block_num;
+
     conf.astCommPool[1].u32BlkSize = blk_size;
     conf.astCommPool[1].u32BlkCnt = block_num;
     strcpy(conf.astCommPool[1].acMmzName, "ddr1");
 
+    conf.astCommPool[2].u32BlkSize = PCIV_WINDOW_SIZE;
+    conf.astCommPool[2].u32BlkCnt = 2;
     ret = HI_MPI_VB_SetConf(&conf);
     if (ret != KSuccess)
     {
@@ -122,7 +125,7 @@ void MPPSystem::ConfigLogger()
                                      ELOG_FMT_LINE | ELOG_FMT_FUNC);
     elog_set_fmt(ELOG_LVL_WARN, ELOG_FMT_LVL | ELOG_FMT_TIME);
     elog_set_fmt(ELOG_LVL_INFO, ELOG_FMT_LVL | ELOG_FMT_TIME);
-    elog_set_fmt(ELOG_LVL_DEBUG, ELOG_FMT_ALL & ~ELOG_FMT_FUNC);
+    elog_set_fmt(ELOG_LVL_DEBUG, ELOG_FMT_LVL | ELOG_FMT_TIME);
     elog_set_fmt(ELOG_LVL_VERBOSE, ELOG_FMT_ALL & ~ELOG_FMT_FUNC);
     elog_set_text_color_enabled(true);
     elog_start();
@@ -161,7 +164,5 @@ int MPPSystem::ConfigMem()
 
     return KSuccess;
 }
-
-
 
 } // namespace rs

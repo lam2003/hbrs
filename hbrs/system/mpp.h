@@ -17,16 +17,16 @@ struct Params
 };
 } // namespace mpp
 
-class MPPSystem : public Module<mpp::Params>
+class MPPSystem
 {
 public:
     static MPPSystem *Instance();
 
     virtual ~MPPSystem();
 
-    int Initialize(const mpp::Params &params) override;
+    int Initialize(const mpp::Params &params);
 
-    void Close() override;
+    void Close();
 
     static int Bind(MPP_CHN_S *src_chn, MPP_CHN_S *dst_chn)
     {
@@ -95,7 +95,6 @@ protected:
 
     static int ConfigMem();
 
-private:
     explicit MPPSystem();
 
 private:
