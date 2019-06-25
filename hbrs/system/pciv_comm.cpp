@@ -6,11 +6,11 @@ namespace rs
 
 using namespace pciv;
 
-const int PCIVComm::MsgPortBase = 100;
-const int PCIVComm::MaxPortNum = 3;
-const int PCIVComm::CommCMDPort = 0;
-const int PCIVComm::TransReadPort = 1;
-const int PCIVComm::TransWritePort = 2;
+const int32_t PCIVComm::MsgPortBase = 100;
+const int32_t PCIVComm::MaxPortNum = 3;
+const int32_t PCIVComm::CommCMDPort = 0;
+const int32_t PCIVComm::TransReadPort = 1;
+const int32_t PCIVComm::TransWritePort = 2;
 
 PCIVComm *PCIVComm::Instance()
 {
@@ -27,26 +27,26 @@ PCIVComm::~PCIVComm()
     Close();
 }
 
-int PCIVComm::Initialize()
+int32_t PCIVComm::Initialize()
 {
     if (init_)
         return KInitialized;
 
-    int ret;
+    int32_t ret;
 
     ret = EnumChip(local_id_, remote_ids_);
     if (ret != KSuccess)
         return ret;
 
     remote_fds_.resize(PCIV_MAX_CHIPNUM);
-    for (int i = 0; i < PCIV_MAX_CHIPNUM; i++)
+    for (int32_t i = 0; i < PCIV_MAX_CHIPNUM; i++)
     {
         remote_fds_[i].resize(MaxPortNum);
-        for (int j = 0; j < MaxPortNum; j++)
+        for (int32_t j = 0; j < MaxPortNum; j++)
             remote_fds_[i][j] = -1;
     }
 
-    for (int remote_id : remote_ids_)
+    for (int32_t remote_id : remote_ids_)
     {
         ret = OpenPort(remote_id, CommCMDPort, remote_fds_);
         if (ret != KSuccess)
@@ -72,10 +72,10 @@ void PCIVComm::Close()
     if (!init_)
         return;
     remote_fds_.resize(PCIV_MAX_CHIPNUM);
-    for (int i = 0; i < PCIV_MAX_CHIPNUM; i++)
+    for (int32_t i = 0; i < PCIV_MAX_CHIPNUM; i++)
     {
         remote_fds_[i].resize(MaxPortNum);
-        for (int j = 0; j < MaxPortNum; j++)
+        for (int32_t j = 0; j < MaxPortNum; j++)
             if (remote_fds_[i][j] != -1)
                 close(remote_fds_[i][j]);
     }
@@ -83,12 +83,12 @@ void PCIVComm::Close()
     init_ = false;
 }
 
-int PCIVComm::WaitConn(int remote_id)
+int32_t PCIVComm::WaitConn(int32_t remote_id)
 {
-    int ret;
+    int32_t ret;
 
     const char *dev = "/dev/mcc_userdev";
-    int fd = open(dev, O_RDWR);
+    int32_t fd = open(dev, O_RDWR);
     if (fd <= 0)
     {
         log_e("open %s failed,%s", dev, strerror(errno));
@@ -116,12 +116,12 @@ int PCIVComm::WaitConn(int remote_id)
     return KSuccess;
 }
 
-int PCIVComm::OpenPort(int remote_id, int port, std::vector<std::vector<int>> &remote_fds)
+int32_t PCIVComm::OpenPort(int32_t remote_id, int32_t port, std::vector<std::vector<int32_t>> &remote_fds)
 {
-    int ret;
+    int32_t ret;
 
     const char *dev = "/dev/mcc_userdev";
-    int fd = open(dev, O_RDWR | O_NONBLOCK);
+    int32_t fd = open(dev, O_RDWR | O_NONBLOCK);
     if (fd <= 0)
     {
         log_e("open %s failed,%s", dev, strerror(errno));
@@ -146,12 +146,12 @@ int PCIVComm::OpenPort(int remote_id, int port, std::vector<std::vector<int>> &r
     return KSuccess;
 }
 
-int PCIVComm::EnumChip(int &local_id, std::vector<int> &remote_ids)
+int32_t PCIVComm::EnumChip(int32_t &local_id, std::vector<int32_t> &remote_ids)
 {
-    int ret;
+    int32_t ret;
 
     const char *dev = "/dev/mcc_userdev";
-    int fd = open(dev, O_RDWR);
+    int32_t fd = open(dev, O_RDWR);
     if (fd < 0)
     {
         log_e("open %s failed,%s", dev, strerror(errno));
@@ -180,7 +180,7 @@ int PCIVComm::EnumChip(int &local_id, std::vector<int> &remote_ids)
     }
 
     remote_ids.clear();
-    for (int i = 0; i < HISI_MAX_MAP_DEV; i++)
+    for (int32_t i = 0; i < HISI_MAX_MAP_DEV; i++)
     {
         if (attr.remote_id[i] != -1)
             remote_ids.push_back(attr.remote_id[i]);
@@ -200,26 +200,27 @@ int PCIVComm::EnumChip(int &local_id, std::vector<int> &remote_ids)
     return KSuccess;
 }
 
-int PCIVComm::Send(int remote_id, int port, uint8_t *data, int len)
+int32_t PCIVComm::Send(int32_t remote_id, int32_t port, uint8_t *data, int32_t len)
 {
     if (!init_)
         return KUnInitialized;
 
-    int ret;
-    int fd = remote_fds_[remote_id][port];
+    int32_t ret;
+    int32_t fd = remote_fds_[remote_id][port];
 
-    int rest_len = len;
-    int offset = 0;
+    int32_t rest_len = len;
+    int32_t offset = 0;
 
     while (rest_len)
     {
     again:
-        ret = write(fd, data + offset, len);
+
+        ret = write(fd, data + offset, rest_len);
         if (ret < 0 && errno == EINTR)
         {
             goto again;
         }
-        else
+        else if (ret < 0)
         {
             log_e("write failed,%s", strerror(errno));
             return KSystemError;
@@ -230,32 +231,32 @@ int PCIVComm::Send(int remote_id, int port, uint8_t *data, int len)
     return KSuccess;
 }
 
-int PCIVComm::Recv(int remote_id, int port, uint8_t *data, int len)
+int32_t PCIVComm::Recv(int32_t remote_id, int32_t port, uint8_t *data, int32_t len)
 {
     if (!init_)
         return KUnInitialized;
-    int ret;
-    int fd = remote_fds_[remote_id][port];
+    int32_t ret;
+    int32_t fd = remote_fds_[remote_id][port];
     ret = read(fd, data, len);
     return ret;
 }
 
-const std::vector<int> &PCIVComm::GetRemoteIds()
+const std::vector<int32_t> &PCIVComm::GetRemoteIds()
 {
     return remote_ids_;
 }
 
-int PCIVComm::GetTransReadPort()
+int32_t PCIVComm::GetTransReadPort()
 {
     return TransReadPort;
 }
 
-int PCIVComm::GetTransWritePort()
+int32_t PCIVComm::GetTransWritePort()
 {
     return TransWritePort;
 }
 
-int PCIVComm::GetCMDPort()
+int32_t PCIVComm::GetCMDPort()
 {
     return CommCMDPort;
 }

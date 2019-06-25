@@ -11,7 +11,7 @@
 #include "common/utils.h"
 #include "system/pciv_trans.h"
 
-int main(int argc, char **argv)
+int32_t main(int32_t argc, char **argv)
 {
 	rs::MPPSystem::Instance()->Initialize({CAPTURE_MODE_720P, 10});
 
@@ -41,7 +41,7 @@ int main(int argc, char **argv)
 	// rs::MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(1, 1, 0, 0);
 
 	// std::thread([]() {
-	// 	int ret;
+	// 	int32_t ret;
 	// 	VIDEO_FRAME_INFO_S frame;
 	// 	ret = HI_MPI_VPSS_SetDepth(0, 1, 1);
 	// 	if (ret != KSuccess)
@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 	// 		printf("fuck\n\n\n");
 	// 		return;
 	// 	}
-	// 	// int i = 300;
+	// 	// int32_t i = 300;
 	// 	while (true)
 	// 	{
 
@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 	// 	.detach();
 
 	// std::thread([]() {
-	// 	int ret;
+	// 	int32_t ret;
 	// 	VIDEO_FRAME_INFO_S frame;
 	// 	ret = HI_MPI_VPSS_SetDepth(0, 2, 1);
 	// 	if (ret != KSuccess)
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 	// 		printf("fuck\n\n\n");
 	// 		return;
 	// 	}
-	// 	// int i = 300;
+	// 	// int32_t i = 300;
 	// 	while (true)
 	// 	{
 
@@ -110,23 +110,29 @@ int main(int argc, char **argv)
 
 	rs::PCIVComm::Instance()->Initialize();
 
-	rs::PCIVTrans::Instance()->Initialize(rs::PCIVComm::Instance());
+	// rs::PCIVTrans::Instance()->Initialize(rs::PCIVComm::Instance());
+
+	rs::pciv::Msg msg;
+	msg.type = 888;
+
+	while(msg.type--)
+	rs::PCIVComm::Instance()->Send(1,rs::PCIVComm::Instance()->GetTransWritePort(),reinterpret_cast<uint8_t *>(&msg),sizeof(msg));
 
 	// rs::PCIVComm::Instance()->Close();
 
-	rs::PCIVTrans::Instance()->Close();
-	rs::PCIVTrans::Instance()->Initialize(rs::PCIVComm::Instance());
+	// rs::PCIVTrans::Instance()->Close();
+	// rs::PCIVTrans::Instance()->Initialize(rs::PCIVComm::Instance());
 
 
 // rs::PCIVComm::Instance()->Initialize();
 
-	// int dd;
-	// std::vector<int> dds;
+	// int32_t dd;
+	// std::vector<int32_t> dds;
 	// rs::PCIVComm::EnumChip(dd, dds);
 
 	// printf("%d\n", dd);
 
-	// for (int i = 0; i < dds.size(); i++)
+	// for (int32_t i = 0; i < dds.size(); i++)
 	// {
 	// 	printf("%d\t", dds[i]);
 	// }

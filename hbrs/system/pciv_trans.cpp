@@ -34,11 +34,27 @@ void PCIVTrans::Close()
         threads_[i] = nullptr;
     }
     threads_.clear();
+    video_sinks_.clear();
 
     init_ = false;
 }
 
-int PCIVTrans::Initialize(pciv::Context *ctx)
+void PCIVTrans::UnpackAndSendStream(uint8_t *data, int32_t len, const std::vector<VideoSink<VDEC_STREAM_S> *> &video_sinks)
+{
+    VDEC_STREAM_S st;
+    for (uint8_t *cur_pos = data; cur_pos < data + len;)
+    {
+        StreamInfo *stream_info = reinterpret_cast<StreamInfo *>(cur_pos);
+        st.pu8Addr = cur_pos + sizeof(StreamInfo);
+        st.u32Len = stream_info->len;
+        st.u64PTS = stream_info->pts;
+        for (VideoSink<VDEC_STREAM_S> *sink : video_sinks)
+            sink->OnFrame(st, stream_info->vdec_chn);
+        cur_pos += (sizeof(StreamInfo) + stream_info->align_len);
+    }
+}
+
+int32_t PCIVTrans::Initialize(pciv::Context *ctx)
 {
     if (init_)
         return KInitialized;
@@ -46,16 +62,15 @@ int PCIVTrans::Initialize(pciv::Context *ctx)
     ctx_ = ctx;
 
     run_ = true;
-    const std::vector<int> &remote_ids = ctx_->GetRemoteIds();
-    for (int remote_id : remote_ids)
+    const std::vector<int32_t> &remote_ids = ctx_->GetRemoteIds();
+    for (int32_t remote_id : remote_ids)
     {
         static std::mutex g_Mux;
         std::shared_ptr<std::thread> thr = std::make_shared<std::thread>([this, remote_id]() {
-            int ret;
+            int32_t ret;
 
             uint32_t phy_addr[1];
             uint8_t *vir_addr;
-            uint8_t tmp_buf[1024];
 
             {
                 std::unique_lock<std::mutex> lock(g_Mux);
@@ -76,6 +91,7 @@ int PCIVTrans::Initialize(pciv::Context *ctx)
             }
 
             Msg msg;
+            uint8_t tmp_buf[1024];
             Buffer<allocator_1k> msg_buf;
             while (run_)
             {
@@ -109,19 +125,29 @@ int PCIVTrans::Initialize(pciv::Context *ctx)
 
                     PosInfo *pos_info = reinterpret_cast<PosInfo *>(msg.data);
 
-                    uint8_t *data = vir_addr + pos_info->start_pos;
-                    uint32_t len = pos_info->end_pos - pos_info->start_pos;
-
-                    VDEC_STREAM_S st;
-                    for (uint8_t *cur_pos = data; cur_pos < data + len;)
+                    if (pos_info->end_pos > pos_info->start_pos)
                     {
-                        StreamInfo *stream_info = reinterpret_cast<StreamInfo *>(cur_pos);
-                        st.pu8Addr = cur_pos + sizeof(StreamInfo);
-                        st.u32Len = stream_info->len;
-                        st.u64PTS = stream_info->pts;
-                        HI_MPI_VDEC_SendStream(stream_info->vdec_chn, &st, HI_IO_NOBLOCK);
+                        uint8_t *data = vir_addr + pos_info->start_pos;
+                        int32_t len = pos_info->end_pos - pos_info->start_pos;
+                        video_sinks_mux_.lock();
+                        UnpackAndSendStream(data, len, video_sinks_);
+                        video_sinks_mux_.unlock();
+                    }
+                    else
+                    {
+                        uint8_t *data = vir_addr + pos_info->start_pos;
+                        int32_t len = (PCIV_WINDOW_SIZE - pos_info->start_pos);
 
-                        cur_pos += (sizeof(StreamInfo) + stream_info->align_len);
+                        video_sinks_mux_.lock();
+                        UnpackAndSendStream(data, len, video_sinks_);
+                        video_sinks_mux_.unlock();
+
+                        data = vir_addr;
+                        len = pos_info->end_pos;
+
+                        video_sinks_mux_.lock();
+                        UnpackAndSendStream(data, len, video_sinks_);
+                        video_sinks_mux_.unlock();
                     }
 
                     msg.type = Msg::Type::READ_DONE;
@@ -144,5 +170,17 @@ int PCIVTrans::Initialize(pciv::Context *ctx)
         init_ = true;
     }
     return KSuccess;
+}
+
+void PCIVTrans::AddVideoSink(VideoSink<VDEC_STREAM_S> *video_sink)
+{
+    std::unique_lock<std::mutex> lock(video_sinks_mux_);
+    video_sinks_.push_back(video_sink);
+}
+
+void PCIVTrans::RemoveAllVideoSink()
+{
+    std::unique_lock<std::mutex> lock(video_sinks_mux_);
+    video_sinks_.clear();
 }
 } // namespace rs
