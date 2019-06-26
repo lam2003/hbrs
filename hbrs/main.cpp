@@ -110,13 +110,19 @@ int32_t main(int32_t argc, char **argv)
 
 	rs::PCIVComm::Instance()->Initialize();
 
-	// rs::PCIVTrans::Instance()->Initialize(rs::PCIVComm::Instance());
+	rs::PCIVTrans::Instance()->Initialize(rs::PCIVComm::Instance());
 
-	rs::pciv::Msg msg;
-	msg.type = 888;
+	
+	sleep(10);
+	rs::PCIVTrans::Instance()->Close();
+	printf("restart --------------------\n");
+	sleep(10);
+		rs::PCIVTrans::Instance()->Initialize(rs::PCIVComm::Instance());
+	// rs::pciv::Msg msg;
+	// msg.type = 888;
 
-	while(msg.type--)
-	rs::PCIVComm::Instance()->Send(1,rs::PCIVComm::Instance()->GetTransWritePort(),reinterpret_cast<uint8_t *>(&msg),sizeof(msg));
+	// while(msg.type--)
+	// rs::PCIVComm::Instance()->Send(1,rs::PCIVComm::Instance()->GetTransWritePort(),reinterpret_cast<uint8_t *>(&msg),sizeof(msg));
 
 	// rs::PCIVComm::Instance()->Close();
 
