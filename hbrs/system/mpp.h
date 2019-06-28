@@ -1,21 +1,10 @@
 #pragma once
 
+//self
 #include "common/global.h"
-#include "system/vi.h"
-#include "system/vpss.h"
-#include "system/vo.h"
 
 namespace rs
 {
-
-namespace mpp
-{
-struct Params
-{
-    CaptureMode mode;
-    int32_t block_num;
-};
-} // namespace mpp
 
 class MPPSystem
 {
@@ -24,33 +13,9 @@ public:
 
     virtual ~MPPSystem();
 
-    int32_t Initialize(const mpp::Params &params);
+    int32_t Initialize(int blk_num);
 
     void Close();
-
-    static int32_t Bind(MPP_CHN_S *src_chn, MPP_CHN_S *dst_chn)
-    {
-        int32_t ret;
-        ret = HI_MPI_SYS_Bind(src_chn, dst_chn);
-        if (ret != KSuccess)
-        {
-            log_e("HI_MPI_SYS_Bind failed with %#x", ret);
-            return KSDKError;
-        }
-        return KSuccess;
-    }
-
-    static int32_t UnBind(MPP_CHN_S *src_chn, MPP_CHN_S *dst_chn)
-    {
-        int32_t ret;
-        ret = HI_MPI_SYS_UnBind(src_chn, dst_chn);
-        if (ret != KSuccess)
-        {
-            log_e("HI_MPI_SYS_UnBind failed with %#x", ret);
-            return KSDKError;
-        }
-        return KSuccess;
-    }
 
     template <MOD_ID_E SRC, MOD_ID_E DST>
     static int32_t Bind(int32_t sdev, int32_t schn, int32_t ddev, int32_t dchn)
@@ -87,18 +52,42 @@ public:
     }
 
 protected:
-    static int32_t ConfigVB(CaptureMode mode, int32_t block_num);
+    static int32_t Bind(MPP_CHN_S *src_chn, MPP_CHN_S *dst_chn)
+    {
+        int32_t ret;
+        ret = HI_MPI_SYS_Bind(src_chn, dst_chn);
+        if (ret != KSuccess)
+        {
+            log_e("HI_MPI_SYS_Bind failed with %#x", ret);
+            return KSDKError;
+        }
+        return KSuccess;
+    }
 
-    static int32_t ConfigSys(int32_t align_width);
+    static int32_t UnBind(MPP_CHN_S *src_chn, MPP_CHN_S *dst_chn)
+    {
+        int32_t ret;
+        ret = HI_MPI_SYS_UnBind(src_chn, dst_chn);
+        if (ret != KSuccess)
+        {
+            log_e("HI_MPI_SYS_UnBind failed with %#x", ret);
+            return KSDKError;
+        }
+        return KSuccess;
+    }
+
+    static int32_t ConfigVB(int blk_num);
+
+    static int32_t ConfigSys();
 
     static void ConfigLogger();
 
     static int32_t ConfigMem();
 
+private:
     explicit MPPSystem();
 
 private:
-    mpp::Params params_;
     bool init_;
 };
 } // namespace rs

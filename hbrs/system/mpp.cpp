@@ -1,10 +1,8 @@
+//self
 #include "system/mpp.h"
-#include "common/utils.h"
 
 namespace rs
 {
-
-using namespace mpp;
 
 MPPSystem::MPPSystem() : init_(false) {}
 
@@ -15,6 +13,20 @@ MPPSystem::~MPPSystem()
 
 void MPPSystem::Close()
 {
+    if (!init_)
+        return;
+
+    int ret;
+
+    ret = HI_MPI_SYS_Exit();
+    if (ret != KSuccess)
+        log_e("HI_MPI_SYS_Exit failed with %#x", ret);
+
+    ret = HI_MPI_VB_Exit();
+    if (ret != KSuccess)
+        log_e("HI_MPI_VB_Exit failed with %#x", ret);
+
+    init_ = false;
 }
 
 MPPSystem *MPPSystem::Instance()
@@ -23,26 +35,34 @@ MPPSystem *MPPSystem::Instance()
     return instance;
 }
 
-int32_t MPPSystem::Initialize(const Params &params)
+int32_t MPPSystem::Initialize(int blk_num)
 {
     if (init_)
         return KInitialized;
 
     int32_t ret;
 
-    params_ = params;
+    ret = HI_MPI_SYS_Exit();
+    if (ret != KSuccess)
+    {
+        log_e("HI_MPI_SYS_Exit failed with %#x", ret);
+        return KSDKError;
+    }
 
-    HI_MPI_SYS_Exit();
-
-    HI_MPI_VB_Exit();
+    ret = HI_MPI_VB_Exit();
+    if (ret != KSuccess)
+    {
+        log_e("HI_MPI_VB_Exit failed with %#x", ret);
+        return KSDKError;
+    }
 
     ConfigLogger();
 
-    ret = ConfigVB(params.mode, params.block_num);
+    ret = ConfigVB(blk_num);
     if (ret != KSuccess)
         return ret;
 
-    ret = ConfigSys(RS_ALIGN_WIDTH);
+    ret = ConfigSys();
     if (ret != KSuccess)
         return ret;
 
@@ -55,7 +75,7 @@ int32_t MPPSystem::Initialize(const Params &params)
     return KSuccess;
 }
 
-int32_t MPPSystem::ConfigSys(int32_t align_width)
+int32_t MPPSystem::ConfigSys()
 {
     int32_t ret;
 
@@ -79,26 +99,25 @@ int32_t MPPSystem::ConfigSys(int32_t align_width)
     return KSuccess;
 }
 
-int32_t MPPSystem::ConfigVB(CaptureMode mode, int32_t block_num)
+int32_t MPPSystem::ConfigVB(int blk_num)
 {
     int32_t ret;
 
-    SIZE_S size = Utils::GetSize(mode);
-    uint32_t blk_size = (CEILING_2_POWER(size.u32Width, RS_ALIGN_WIDTH) * CEILING_2_POWER(size.u32Height, RS_ALIGN_WIDTH) * 3) >> 1;
-    log_d("MPP:VB block size:%u", blk_size);
+    uint32_t blk_size = (CEILING_2_POWER(RS_MAX_WIDTH, RS_ALIGN_WIDTH) * CEILING_2_POWER(RS_MAX_HEIGHT, RS_ALIGN_WIDTH) * 3) >> 1;
 
     VB_CONF_S conf;
     memset(&conf, 0, sizeof(conf));
     conf.u32MaxPoolCnt = 128;
     conf.astCommPool[0].u32BlkSize = blk_size;
-    conf.astCommPool[0].u32BlkCnt = block_num;
+    conf.astCommPool[0].u32BlkCnt = blk_num / 2;
 
     conf.astCommPool[1].u32BlkSize = blk_size;
-    conf.astCommPool[1].u32BlkCnt = block_num;
+    conf.astCommPool[1].u32BlkCnt = blk_num / 2;
     strcpy(conf.astCommPool[1].acMmzName, "ddr1");
 
-    conf.astCommPool[2].u32BlkSize = PCIV_WINDOW_SIZE;
+    conf.astCommPool[2].u32BlkSize = RS_PCIV_WINDOW_SIZE;
     conf.astCommPool[2].u32BlkCnt = 2;
+
     ret = HI_MPI_VB_SetConf(&conf);
     if (ret != KSuccess)
     {
@@ -133,31 +152,108 @@ void MPPSystem::ConfigLogger()
 
 int32_t MPPSystem::ConfigMem()
 {
-    int32_t ret;
+    int ret;
 
+    MPP_CHN_S chn_vi;
+    MPP_CHN_S chn_vo;
+    MPP_CHN_S chn_vpss;
+    MPP_CHN_S chn_grp;
+    MPP_CHN_S chn_venc;
+    MPP_CHN_S chn_rgn;
+    MPP_CHN_S chn_dec;
+
+    for (int i = 0; i < 4; i++)
     {
-        //VI CHN 4
-        MPP_CHN_S chn;
-        chn.enModId = HI_ID_VIU;
-        chn.s32DevId = 0;
-        chn.s32ChnId = 4;
-        ret = HI_MPI_SYS_SetMemConf(&chn, nullptr);
+        chn_vi.enModId = HI_ID_VIU;
+        chn_vi.s32DevId = 0;
+        chn_vi.s32ChnId = i * 4;
+
+        const char *mmz_name = (i % 2 == 0 ? nullptr : "ddr1");
+        ret = HI_MPI_SYS_SetMemConf(&chn_vi, mmz_name);
         if (ret != KSuccess)
         {
-            log_e("HI_MPI_SYS_SetMemConf failed");
+            log_e("HI_MPI_SYS_SetMemConf failed with %#x", ret);
             return KSDKError;
         }
     }
+
+    for (int i = 0; i < VDEC_MAX_CHN_NUM; i++)
     {
-        //VI CHN 8
-        MPP_CHN_S chn;
-        chn.enModId = HI_ID_VIU;
-        chn.s32DevId = 0;
-        chn.s32ChnId = 8;
-        ret = HI_MPI_SYS_SetMemConf(&chn, "ddr1");
+        chn_dec.enModId = HI_ID_VDEC;
+        chn_dec.s32DevId = 0;
+        chn_dec.s32ChnId = i;
+
+        const char *mmz_name = (i % 2 == 0 ? nullptr : "ddr1");
+        ret = HI_MPI_SYS_SetMemConf(&chn_dec, mmz_name);
         if (ret != KSuccess)
         {
-            log_e("HI_MPI_SYS_SetMemConf failed");
+            log_e("HI_MPI_SYS_SetMemConf failed with %#x", ret);
+            return KSDKError;
+        }
+    }
+
+    for (int i = 0; i < VENC_MAX_GRP_NUM; i++)
+    {
+        chn_venc.enModId = HI_ID_VENC;
+        chn_venc.s32DevId = 0;
+        chn_venc.s32ChnId = i;
+
+        chn_grp.enModId = HI_ID_GROUP;
+        chn_grp.s32DevId = i;
+        chn_grp.s32ChnId = 0;
+
+        const char *mmz_name = (i % 2 == 0 ? nullptr : "ddr1");
+        ret = HI_MPI_SYS_SetMemConf(&chn_venc, mmz_name);
+        if (ret != KSuccess)
+        {
+            log_e("HI_MPI_SYS_SetMemConf failed with %#x", ret);
+            return KSDKError;
+        }
+        ret = HI_MPI_SYS_SetMemConf(&chn_grp, mmz_name);
+        if (ret != KSuccess)
+        {
+            log_e("HI_MPI_SYS_SetMemConf failed with %#x", ret);
+            return KSDKError;
+        }
+    }
+
+    for (int i = 0; i < VPSS_MAX_GRP_NUM; i++)
+    {
+        chn_vpss.enModId = HI_ID_VPSS;
+        chn_vpss.s32DevId = i;
+        chn_vpss.s32ChnId = 0;
+        const char *mmz_name = (i % 2 == 0 ? nullptr : "ddr1");
+        ret = HI_MPI_SYS_SetMemConf(&chn_vpss, mmz_name);
+        if (ret != KSuccess)
+        {
+            log_e("HI_MPI_SYS_SetMemConf failed with %#x", ret);
+            return KSDKError;
+        }
+    }
+
+    for (int i = 0; i < VO_MAX_DEV_NUM; i++)
+    {
+        chn_vo.enModId = HI_ID_VOU;
+        chn_vo.s32DevId = i;
+        chn_vo.s32ChnId = 0;
+        const char *mmz_name = (i % 2 == 0 ? nullptr : "ddr1");
+        ret = HI_MPI_SYS_SetMemConf(&chn_vo, mmz_name);
+        if (ret != KSuccess)
+        {
+            log_e("HI_MPI_SYS_SetMemConf failed with %#x", ret);
+            return KSDKError;
+        }
+    }
+
+    {
+        chn_rgn.enModId = HI_ID_RGN;
+        chn_rgn.s32DevId = 0;
+        chn_rgn.s32ChnId = 0;
+        const char *mmz_name = nullptr;
+        ret = HI_MPI_SYS_SetMemConf(&chn_rgn, mmz_name);
+        if (ret != KSuccess)
+        {
+            log_e("HI_MPI_SYS_SetMemConf failed with %#x", ret);
             return KSDKError;
         }
     }

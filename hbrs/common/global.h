@@ -34,16 +34,26 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
-//3rdparty
+//logger
 #include <elog.h>
 //self
 #include "common/video_define.h"
 #include "common/err_code.h"
 
-#define RS_ALIGN_WIDTH 64
-#define RS_PIXEL_FORMAT PIXEL_FORMAT_YUV_SEMIPLANAR_420
+#define RS_ALIGN_WIDTH 64                               //图像对齐大小
+#define RS_PIXEL_FORMAT PIXEL_FORMAT_YUV_SEMIPLANAR_420 //图像像素格式
+#define RS_PCIV_WINDOW_SIZE 7340032                     //PCIV窗口大小
+#define RS_PCIV_SLAVE1_ID 1                             //PCIV从片1地址
+#define RS_PCIV_SLAVE3_ID 3                             //PCIV从片3地址
+#define RS_MAX_WIDTH 1920                               //最大支持的视频宽度
+#define RS_MAX_HEIGHT 1080                              //最大支持的视频长度
+#define RS_PCIV_CMD_PORT 0                              //PCIV命令端口
+#define RS_PCIV_TRANS_READ_PORT 1                       //PCIV传输读端口
+#define RS_PCIV_TRANS_WRITE_PORT 2                      //PCIV传输写端口
+#define RS_MEM_BLK_NUM 20                               //系统VB内存块分配数量
 
 #define RS_ASSERT(cond)     \
     while (!(cond))         \

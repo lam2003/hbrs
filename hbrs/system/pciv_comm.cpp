@@ -1,5 +1,4 @@
 #include "system/pciv_comm.h"
-#include "common/utils.h"
 
 namespace rs
 {
@@ -8,9 +7,6 @@ using namespace pciv;
 
 const int32_t PCIVComm::MsgPortBase = 100;
 const int32_t PCIVComm::MaxPortNum = 3;
-const int32_t PCIVComm::CommCMDPort = 0;
-const int32_t PCIVComm::TransReadPort = 1;
-const int32_t PCIVComm::TransWritePort = 2;
 
 PCIVComm *PCIVComm::Instance()
 {
@@ -34,7 +30,7 @@ int32_t PCIVComm::Initialize()
 
     int32_t ret;
 
-    ret = EnumChip(local_id_, remote_ids_);
+    ret = EnumChip();
     if (ret != KSuccess)
         return ret;
 
@@ -46,21 +42,31 @@ int32_t PCIVComm::Initialize()
             remote_fds_[i][j] = -1;
     }
 
-    for (int32_t remote_id : remote_ids_)
-    {
-        ret = OpenPort(remote_id, CommCMDPort, remote_fds_);
-        if (ret != KSuccess)
-            return ret;
-        ret = OpenPort(remote_id, TransReadPort, remote_fds_);
-        if (ret != KSuccess)
-            return ret;
-        ret = OpenPort(remote_id, TransWritePort, remote_fds_);
-        if (ret != KSuccess)
-            return ret;
-        ret = WaitConn(remote_id);
-        if (ret != KSuccess)
-            return ret;
-    }
+    ret = OpenPort(RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, remote_fds_);
+    if (ret != KSuccess)
+        return ret;
+    ret = OpenPort(RS_PCIV_SLAVE1_ID, RS_PCIV_TRANS_READ_PORT, remote_fds_);
+    if (ret != KSuccess)
+        return ret;
+    ret = OpenPort(RS_PCIV_SLAVE1_ID, RS_PCIV_TRANS_WRITE_PORT, remote_fds_);
+    if (ret != KSuccess)
+        return ret;
+    ret = WaitConn(RS_PCIV_SLAVE1_ID);
+    if (ret != KSuccess)
+        return ret;
+
+    ret = OpenPort(RS_PCIV_SLAVE3_ID, RS_PCIV_CMD_PORT, remote_fds_);
+    if (ret != KSuccess)
+        return ret;
+    ret = OpenPort(RS_PCIV_SLAVE3_ID, RS_PCIV_TRANS_READ_PORT, remote_fds_);
+    if (ret != KSuccess)
+        return ret;
+    ret = OpenPort(RS_PCIV_SLAVE3_ID, RS_PCIV_TRANS_WRITE_PORT, remote_fds_);
+    if (ret != KSuccess)
+        return ret;
+    ret = WaitConn(RS_PCIV_SLAVE3_ID);
+    if (ret != KSuccess)
+        return ret;
 
     init_ = true;
 
@@ -108,7 +114,7 @@ int32_t PCIVComm::WaitConn(int32_t remote_id)
     }
 
     while (ioctl(fd, HI_MCC_IOC_CHECK, &attr))
-        usleep(10000);
+        usleep(10000); //10ms
 
     log_d("chip[%d] connected", remote_id);
 
@@ -146,7 +152,7 @@ int32_t PCIVComm::OpenPort(int32_t remote_id, int32_t port, std::vector<std::vec
     return KSuccess;
 }
 
-int32_t PCIVComm::EnumChip(int32_t &local_id, std::vector<int32_t> &remote_ids)
+int32_t PCIVComm::EnumChip()
 {
     int32_t ret;
 
@@ -159,6 +165,8 @@ int32_t PCIVComm::EnumChip(int32_t &local_id, std::vector<int32_t> &remote_ids)
     }
 
     hi_mcc_handle_attr attr;
+    memset(&attr, 0, sizeof(attr));
+
     ret = ioctl(fd, HI_MCC_IOC_ATTR_INIT, &attr);
     if (ret < 0)
     {
@@ -166,29 +174,21 @@ int32_t PCIVComm::EnumChip(int32_t &local_id, std::vector<int32_t> &remote_ids)
         return KSystemError;
     }
 
-    local_id = ioctl(fd, HI_MCC_IOC_GET_LOCAL_ID, &attr);
-    if (local_id < 0)
-    {
-        log_e("ioctl HI_MCC_IOC_GET_LOCAL_ID failed,%s", strerror(errno));
-        return KSystemError;
-    }
-
-    if (ioctl(fd, HI_MCC_IOC_GET_REMOTE_ID, &attr))
-    {
-        log_e("ioctl HI_MCC_IOC_GET_REMOTE_ID failed,%s", strerror(errno));
-        return KSystemError;
-    }
-
-    remote_ids.clear();
-    for (int32_t i = 0; i < HISI_MAX_MAP_DEV; i++)
-    {
-        if (attr.remote_id[i] != -1)
-            remote_ids.push_back(attr.remote_id[i]);
-    }
-
-    attr.target_id = 1;
+    attr.target_id = RS_PCIV_SLAVE1_ID;
     attr.port = 0;
     attr.priority = 0;
+
+    ret = ioctl(fd, HI_MCC_IOC_CONNECT, &attr);
+    if (ret < 0)
+    {
+        log_e("ioctl HI_MCC_IOC_CONNECT failed,%s", strerror(errno));
+        return KSystemError;
+    }
+
+    attr.target_id = RS_PCIV_SLAVE3_ID;
+    attr.port = 0;
+    attr.priority = 0;
+
     ret = ioctl(fd, HI_MCC_IOC_CONNECT, &attr);
     if (ret < 0)
     {
@@ -214,7 +214,6 @@ int32_t PCIVComm::Send(int32_t remote_id, int32_t port, uint8_t *data, int32_t l
     while (rest_len)
     {
     again:
-
         ret = write(fd, data + offset, rest_len);
         if (ret < 0 && errno == EINTR)
         {
@@ -231,34 +230,26 @@ int32_t PCIVComm::Send(int32_t remote_id, int32_t port, uint8_t *data, int32_t l
     return KSuccess;
 }
 
-int32_t PCIVComm::Recv(int32_t remote_id, int32_t port, uint8_t *data, int32_t len)
+int32_t PCIVComm::Recv(int32_t remote_id, int32_t port, uint8_t *data, int32_t len, int timeout)
 {
     if (!init_)
-        return KUnInitialized;
-    int32_t ret;
+        return KInitialized;
+
+    fd_set fds;
+    timeval tv;
+
     int32_t fd = remote_fds_[remote_id][port];
+
+    FD_ZERO(&fds);
+    FD_SET(fd, &fds);
+    tv.tv_sec = 0;
+    tv.tv_usec = timeout;
+
+    int ret = select(fd + 1, &fds, NULL, NULL, &tv);
+    if (ret <= 0)
+        return 0;
+
     ret = read(fd, data, len);
     return ret;
 }
-
-const std::vector<int32_t> &PCIVComm::GetRemoteIds()
-{
-    return remote_ids_;
-}
-
-int32_t PCIVComm::GetTransReadPort()
-{
-    return TransReadPort;
-}
-
-int32_t PCIVComm::GetTransWritePort()
-{
-    return TransWritePort;
-}
-
-int32_t PCIVComm::GetCMDPort()
-{
-    return CommCMDPort;
-}
-
 } // namespace rs
