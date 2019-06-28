@@ -1,16 +1,17 @@
 #pragma once
 
+//stl
 #include <system_error>
 
 enum err_code
 {
     KSuccess = 0,
-    KInitialized = 1,
-    KSDKError = 2,
-    KUnInitialized = 3,
-    KParamsError = 4,
-    KSystemError = 5,
-    KNotEnoughBuf = 6
+    KInitialized = -1,
+    KSDKError = -2,
+    KUnInitialized = -3,
+    KParamsError = -4,
+    KSystemError = -5,
+    KNotEnoughBuf = -6
 };
 
 class RSErrorCategory : public std::error_category

@@ -39,7 +39,7 @@ void PCIVTrans::Close()
 
     for (size_t i = 0; i < bufs_.size(); i++)
     {
-        ret = HI_MPI_SYS_Munmap(bufs_[i].vir_addr, PCIV_WINDOW_SIZE);
+        ret = HI_MPI_SYS_Munmap(bufs_[i].vir_addr, RS_PCIV_WINDOW_SIZE);
         if (ret != KSuccess)
             log_e("HI_MPI_SYS_Munmap failed with %#x", ret);
         ret = HI_MPI_PCIV_Free(1, bufs_[i].phy_addr);
@@ -112,14 +112,14 @@ int32_t PCIVTrans::Initialize(pciv::Context *ctx)
     for (int32_t remote_id : remote_ids)
     {
         PCIVBuffer buf;
-        ret = HI_MPI_PCIV_Malloc(PCIV_WINDOW_SIZE, 1, buf.phy_addr);
+        ret = HI_MPI_PCIV_Malloc(RS_PCIV_WINDOW_SIZE, 1, buf.phy_addr);
         if (ret != KSuccess)
         {
             log_e("HI_MPI_PCIV_Malloc failed with %#x", ret);
             return KSDKError;
         }
 
-        buf.vir_addr = static_cast<uint8_t *>(HI_MPI_SYS_Mmap(buf.phy_addr[0], PCIV_WINDOW_SIZE));
+        buf.vir_addr = reinterpret_cast<uint8_t *>(HI_MPI_SYS_Mmap(buf.phy_addr[0], RS_PCIV_WINDOW_SIZE));
         if (buf.vir_addr == nullptr)
         {
             log_e("HI_MPI_SYS_Mmap failed");

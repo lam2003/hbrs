@@ -1,10 +1,7 @@
 #pragma once
-
+//stl
 #include <chrono>
-#include <string>
-
-#include <json/json.h>
-
+//self
 #include "common/global.h"
 
 namespace rs
@@ -12,26 +9,6 @@ namespace rs
 class Utils
 {
 public:
-    static SIZE_S GetSize(CaptureMode mode)
-    {
-        SIZE_S size;
-
-        switch (mode)
-        {
-        case CAPTURE_MODE_720P:
-            size.u32Width = 1280;
-            size.u32Height = 720;
-            break;
-        case CAPTURE_MODE_1080P:
-            size.u32Width = 1920;
-            size.u32Height = 1080;
-            break;
-        default:
-            RS_ASSERT(0);
-        }
-
-        return size;
-    }
 
     static HI_HDMI_VIDEO_FMT_E GetHDMIFmt(VO_INTF_SYNC_E intf_sync)
     {
@@ -181,23 +158,6 @@ public:
         auto now = steady_clock::now();
         auto now_since_epoch = now.time_since_epoch();
         return duration_cast<milliseconds>(now_since_epoch).count();
-    }
-
-    static std::string ToStr(const Json::Value &json)
-    {
-        Json::FastWriter w;
-        std::string value = w.write(json);
-        return value.substr(0, value.size() - 1);
-    }
-
-    static bool ToJson(const std::string &str, Json::Value &root)
-    {
-        if (str.empty())
-            return false;
-        Json::Reader reader(Json::Features::strictMode());
-        if (!reader.parse(str, root))
-            return false;
-        return true;
     }
 };
 } // namespace rs
