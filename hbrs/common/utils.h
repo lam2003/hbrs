@@ -1,15 +1,19 @@
 #pragma once
 //stl
 #include <chrono>
+#include <atomic>
+//drive
+#include <tw6874_ioctl_cmd.h>
 //self
 #include "common/global.h"
+#include "common/buffer.h"
+#include "system/pciv_comm.h"
 
 namespace rs
 {
 class Utils
 {
 public:
-
     static HI_HDMI_VIDEO_FMT_E GetHDMIFmt(VO_INTF_SYNC_E intf_sync)
     {
         HI_HDMI_VIDEO_FMT_E fmt;
@@ -158,6 +162,192 @@ public:
         auto now = steady_clock::now();
         auto now_since_epoch = now.time_since_epoch();
         return duration_cast<milliseconds>(now_since_epoch).count();
+    }
+
+    static VideoInputFormat GetVIFmt(hd_dis_resolution_e type)
+    {
+        VideoInputFormat fmt;
+
+        switch (type)
+        {
+        case RES_1080P60:
+        {
+            fmt.has_signal = true;
+            fmt.width = 1920;
+            fmt.height = 1080;
+            fmt.interlaced = false;
+            fmt.frame_rate = 60;
+            break;
+        }
+        case RES_1080P50:
+        {
+            fmt.has_signal = true;
+            fmt.width = 1920;
+            fmt.height = 1080;
+            fmt.interlaced = false;
+            fmt.frame_rate = 50;
+            break;
+        }
+        case RES_720P50:
+        {
+            fmt.has_signal = true;
+            fmt.width = 1280;
+            fmt.height = 720;
+            fmt.interlaced = false;
+            fmt.frame_rate = 50;
+            break;
+        }
+        case RES_720P60:
+        {
+            fmt.has_signal = true;
+            fmt.width = 1280;
+            fmt.height = 720;
+            fmt.interlaced = false;
+            fmt.frame_rate = 60;
+            break;
+        }
+        case RES_1080I60:
+        {
+            fmt.has_signal = true;
+            fmt.width = 1920;
+            fmt.height = 1080;
+            fmt.interlaced = true;
+            fmt.frame_rate = 60;
+            break;
+        }
+        case RES_1080I50:
+        {
+            fmt.has_signal = true;
+            fmt.width = 1920;
+            fmt.height = 1080;
+            fmt.interlaced = true;
+            fmt.frame_rate = 50;
+            break;
+        }
+        case RES_1080P30:
+        {
+            fmt.has_signal = true;
+            fmt.width = 1920;
+            fmt.height = 1080;
+            fmt.interlaced = false;
+            fmt.frame_rate = 30;
+            break;
+        }
+        case RES_1080P25:
+        {
+            fmt.has_signal = true;
+            fmt.width = 1920;
+            fmt.height = 1080;
+            fmt.interlaced = false;
+            fmt.frame_rate = 25;
+            break;
+        }
+        case RES_NTSC:
+        {
+            fmt.has_signal = true;
+            fmt.width = 720;
+            fmt.height = 480;
+            fmt.interlaced = false;
+            fmt.frame_rate = 30;
+            break;
+        }
+        case RES_PAL:
+        {
+            fmt.has_signal = true;
+            fmt.width = 720;
+            fmt.height = 576;
+            fmt.interlaced = false;
+            fmt.frame_rate = 25;
+            break;
+        }
+        case RES_720P25:
+        {
+            fmt.has_signal = true;
+            fmt.width = 1280;
+            fmt.height = 720;
+            fmt.interlaced = false;
+            fmt.frame_rate = 25;
+            break;
+        }
+        case RES_720P30:
+        {
+            fmt.has_signal = true;
+            fmt.width = 1280;
+            fmt.height = 720;
+            fmt.interlaced = false;
+            fmt.frame_rate = 30;
+            break;
+        }
+        case RES_NONE:
+        {
+            fmt.has_signal = false;
+            fmt.width = 0;
+            fmt.height = 0;
+            fmt.interlaced = false;
+            fmt.frame_rate = 0;
+            break;
+        }
+        default:
+            RS_ASSERT(0);
+        }
+        return fmt;
+    }
+
+    static int Recv(pciv::Context *ctx, int remote_id, int port, uint8_t *tmp_buf, int32_t buf_len, Buffer<allocator_1k> &msg_buf, pciv::Msg &msg, int try_time)
+    {
+        int ret;
+        while (try_time-- && msg_buf.Size() < sizeof(msg))
+        {
+            ret = ctx->Recv(remote_id, port, tmp_buf, buf_len, 500000); //500ms
+            if (ret > 0)
+            {
+                if (!msg_buf.Append(tmp_buf, ret))
+                {
+                    log_e("append data to msg buf failed");
+                    return KNotEnoughBuf;
+                }
+            }
+            else if (ret < 0)
+                return ret;
+        }
+
+        if (msg_buf.Size() >= sizeof(msg))
+        {
+            msg_buf.Get(reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+            msg_buf.Consume(sizeof(msg));
+            return KSuccess;
+        }
+
+        log_e("recv timeout");
+        return KTimeout;
+    }
+
+    static int Recv(pciv::Context *ctx, int remote_id, int port, uint8_t *tmp_buf, int32_t buf_len, Buffer<allocator_1k> &msg_buf, const std::atomic<bool> &run, pciv::Msg &msg)
+    {
+        int ret;
+        do
+        {
+            ret = ctx->Recv(remote_id, port, tmp_buf, buf_len, 500000); //500ms
+            if (ret > 0)
+            {
+                if (!msg_buf.Append(tmp_buf, ret))
+                {
+                    log_e("append data to msg buf failed");
+                    return KNotEnoughBuf;
+                }
+            }
+            else if (ret < 0)
+                return ret;
+
+        } while (run && msg_buf.Size() < sizeof(msg));
+
+        if (msg_buf.Size() >= sizeof(msg))
+        {
+            msg_buf.Get(reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+            msg_buf.Consume(sizeof(msg));
+        }
+
+        return KSuccess;
     }
 };
 } // namespace rs

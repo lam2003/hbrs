@@ -1,5 +1,5 @@
 #include "system/pciv_trans.h"
-#include "common/buffer.h"
+#include "common/utils.h"
 
 namespace rs
 {
@@ -69,35 +69,6 @@ void PCIVTrans::UnpackAndSendStream(uint8_t *data, int32_t len, const std::vecto
     }
 }
 
-static int Recv(Context *ctx, int remote_id, int port, uint8_t *tmp_buf, int32_t buf_len, Buffer<allocator_1k> &msg_buf, const std::atomic<bool> &run, Msg &msg)
-{
-    int ret;
-    do
-    {
-        ret = ctx->Recv(remote_id, port, tmp_buf, buf_len, 500000); //500ms
-        if (ret > 0)
-        {
-            if (!msg_buf.Append(tmp_buf, ret))
-            {
-                log_e("append data to msg_buf failed");
-                return KNotEnoughBuf;
-            }
-        }
-        else if (ret < 0)
-            return ret;
-
-    } while (run && msg_buf.Size() < sizeof(msg));
-
-    if (msg_buf.Size() >= sizeof(msg))
-    {
-        msg_buf.Get(reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
-        msg_buf.Consume(sizeof(msg));
-        return true;
-    }
-
-    return false;
-}
-
 int32_t PCIVTrans::Initialize(pciv::Context *ctx)
 {
     if (init_)
@@ -145,7 +116,7 @@ int32_t PCIVTrans::Initialize(pciv::Context *ctx)
 
             while (run_)
             {
-                ret = Recv(ctx_, remote_id, RS_PCIV_TRANS_READ_PORT, tmp_buf, sizeof(tmp_buf), msg_buf, run_, msg);
+                ret = Utils::Recv(ctx_, remote_id, RS_PCIV_TRANS_READ_PORT, tmp_buf, sizeof(tmp_buf), msg_buf, run_, msg);
                 if (ret != KSuccess)
                     return;
 

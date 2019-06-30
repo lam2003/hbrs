@@ -54,6 +54,11 @@
 #define RS_PCIV_TRANS_READ_PORT 1                       //PCIV传输读端口
 #define RS_PCIV_TRANS_WRITE_PORT 2                      //PCIV传输写端口
 #define RS_MEM_BLK_NUM 20                               //系统VB内存块分配数量
+#define RS_TOTAL_SCENE_NUM 6                            //总场景数量
+#define RS_MASTER_SDI_BASE 0                            //主片SDI通道起始偏移
+#define RS_MASTER_SDI_NUM 2                             //主片SDI通道的数量
+#define RS_SLAVE_SDI_BASE 1                             //从片SDI通道起始偏移
+#define RS_SLAVE_SDI_NUM 4                              //从片SDI通道的数量
 
 #define RS_ASSERT(cond)     \
     while (!(cond))         \
@@ -61,3 +66,13 @@
         log_e("%s", #cond); \
         exit(1);            \
     }
+
+enum RS_SCENE
+{
+    TEA_FEATURE = 0,
+    STU_FEATURE,
+    TEA_FULL_VIEW,
+    STU_FULL_VIEW,
+    BLACK_BOARD_FEATURE,
+    PC_CAPTURE
+};
