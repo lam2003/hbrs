@@ -1,9 +1,8 @@
-//stl
-#include <map>
-//drive
-#include <tw6874_ioctl_cmd.h>
+
 //self
 #include "system/sig_detect.h"
+#include "common/buffer.h"
+#include "common/err_code.h"
 #include "common/utils.h"
 
 namespace rs
@@ -17,6 +16,35 @@ static std::map<int, RS_SCENE> Tw6874_1_DevChn2Scene = {
 static std::map<int, RS_SCENE> Tw6874_2_DevChn2Scene = {
     {1, TEA_FEATURE},
     {0, STU_FEATURE}};
+
+static int Recv(pciv::Context *ctx, int remote_id, int port, uint8_t *tmp_buf, int32_t buf_len, Buffer<allocator_1k> &msg_buf, pciv::Msg &msg, int try_time)
+{
+    int ret;
+    while (try_time-- && msg_buf.Size() < sizeof(msg))
+    {
+        ret = ctx->Recv(remote_id, port, tmp_buf, buf_len, 500000); //500ms
+        if (ret > 0)
+        {
+            if (!msg_buf.Append(tmp_buf, ret))
+            {
+                log_e("append data to msg buf failed");
+                return KNotEnoughBuf;
+            }
+        }
+        else if (ret < 0)
+            return ret;
+    }
+
+    if (msg_buf.Size() >= sizeof(msg))
+    {
+        msg_buf.Get(reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+        msg_buf.Consume(sizeof(msg));
+        return KSuccess;
+    }
+
+    log_e("recv timeout");
+    return KTimeout;
+}
 
 SigDetect::~SigDetect()
 {
@@ -102,7 +130,7 @@ int SigDetect::Initialize(pciv::Context *ctx)
                 if (ret != KSuccess)
                     return;
 
-                ret = Utils::Recv(ctx_, RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, tmp_buf, sizeof(tmp_buf), msg_buf, msg, 3);
+                ret = Recv(ctx_, RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, tmp_buf, sizeof(tmp_buf), msg_buf, msg, 3);
                 if (ret != KSuccess)
                     return;
                 if (msg.type != pciv::Msg::Type::ACK)

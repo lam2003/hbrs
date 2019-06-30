@@ -1,13 +1,8 @@
-//stl
-#include <thread>
-#include <atomic>
-#include <memory>
-#include <mutex>
-#include <vector>
-//self
-#include "common/global.h"
-
 #pragma once
+
+//self
+#include "global.h"
+#include "common/video_define.h"
 
 namespace rs
 {

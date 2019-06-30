@@ -6,7 +6,7 @@
 #include "system/vpss.h"
 #include "system/venc.h"
 #include "system/vdec.h"
-#include "common/buffer.h"
+// #include "common/buffer.h"
 
 #include "system/sig_detect.h"
 

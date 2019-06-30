@@ -1,4 +1,5 @@
 #include "system/vdec.h"
+#include "common/err_code.h"
 
 namespace rs
 {

@@ -1,4 +1,6 @@
+//self
 #include "system/pciv_comm.h"
+#include "common/err_code.h"
 
 namespace rs
 {
@@ -102,6 +104,7 @@ int32_t PCIVComm::WaitConn(int32_t remote_id)
     }
 
     hi_mcc_handle_attr attr;
+    memset(&attr, 0, sizeof(attr));
     attr.target_id = remote_id;
     attr.port = 1000;
     attr.priority = 0;
@@ -135,6 +138,7 @@ int32_t PCIVComm::OpenPort(int32_t remote_id, int32_t port, std::vector<std::vec
     }
 
     hi_mcc_handle_attr attr;
+    memset(&attr, 0, sizeof(attr));
     attr.target_id = remote_id;
     attr.port = port + MsgPortBase;
     attr.priority = 2;
@@ -233,7 +237,7 @@ int32_t PCIVComm::Recv(int32_t remote_id, int32_t port, uint8_t *data, int32_t l
         log_e("read failed,%s", strerror(errno));
         return KSystemError;
     }
-    
+
     return ret;
 }
 } // namespace rs

@@ -1,12 +1,6 @@
 #pragma once
-//stl
-#include <vector>
-#include <thread>
-#include <mutex>
-#include <atomic>
-#include <memory>
+
 //self
-#include "common/global.h"
 #include "system/pciv_comm.h"
 
 namespace rs
