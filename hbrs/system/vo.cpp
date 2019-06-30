@@ -200,6 +200,13 @@ int32_t VideoOutput::StartChn(const Channel &chn)
         return KSDKError;
     }
 
+    ret = HI_MPI_VO_SetChnFrameRate(params_.dev, chn.no, chn.frame_rate);
+    if (ret != KSuccess)
+    {
+        log_e("HI_MPI_VO_SetChnFrameRate failed with %#x", ret);
+        return KSDKError;
+    }
+
     return KSuccess;
 }
 

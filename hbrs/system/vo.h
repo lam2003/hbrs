@@ -19,6 +19,7 @@ struct Channel
     RECT_S rect;
     int32_t no;
     int32_t level;
+    int32_t frame_rate;
 };
 } // namespace vo
 

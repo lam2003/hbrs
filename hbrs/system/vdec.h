@@ -1,3 +1,10 @@
+//stl
+#include <thread>
+#include <atomic>
+#include <memory>
+#include <mutex>
+#include <vector>
+//self
 #include "common/global.h"
 
 #pragma once
@@ -29,8 +36,16 @@ public:
 
     void OnFrame(const VDEC_STREAM_S &st, int chn) override;
 
+    void AddVideoSink(VideoSink<VIDEO_FRAME_INFO_S> *sink);
+
+    void RemoveAllVideoSink();
+
 private:
     vdec::Params params_;
+    std::mutex mux_;
+    std::vector<VideoSink<VIDEO_FRAME_INFO_S> *> sinks_;
+    std::atomic<bool> run_;
+    std::unique_ptr<std::thread> thread_;
     bool init_;
 };
 } // namespace rs

@@ -126,7 +126,6 @@ int32_t PCIVTrans::Initialize(pciv::Context *ctx)
                 if (msg.type == Msg::Type::WRITE_DONE)
                 {
                     PosInfo *pos_info = reinterpret_cast<PosInfo *>(msg.data);
-                    // printf("start_pos:%d end_pos:%d\n", pos_info->start_pos, pos_info->end_pos);
                     int32_t len = pos_info->end_pos - pos_info->start_pos;
                     uint8_t *data = buf.vir_addr + pos_info->start_pos;
 

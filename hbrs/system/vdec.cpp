@@ -39,12 +39,41 @@ int VideoDecode::Initialize(const vdec::Params &params)
         return KSDKError;
     }
 
-    ret = HI_MPI_VDEC_StartRecvStream(params_.chn);
-    if (ret != KSuccess)
-    {
-        log_e("HI_MPI_VDEC_CreateChn failed with %#x", ret);
-        return KSDKError;
-    }
+    run_ = true;
+    thread_ = std::unique_ptr<std::thread>(new std::thread([this]() {
+        int ret;
+
+        ret = HI_MPI_VDEC_StartRecvStream(params_.chn);
+        if (ret != KSuccess)
+        {
+            log_e("HI_MPI_VDEC_CreateChn failed with %#x", ret);
+            return;
+        }
+
+        VIDEO_FRAME_INFO_S frame;
+        while (run_)
+        {
+            ret = HI_MPI_VDEC_GetImage_TimeOut(params_.chn, &frame, 500); //500ms
+            if (ret != KSuccess)
+            {
+                if (ret == HI_ERR_VDEC_BUSY)
+                    continue;
+
+                log_e("HI_MPI_VDEC_GetImage_TimeOut failed with %#x", ret);
+                return;
+            }
+            {
+                std::unique_lock<std::mutex> lock(mux_);
+                for (size_t i = 0; i < sinks_.size(); i++)
+                    sinks_[i]->OnFrame(frame);
+            }
+            HI_MPI_VDEC_ReleaseImage(params_.chn, &frame);
+        }
+
+        ret = HI_MPI_VDEC_StopRecvStream(params_.chn);
+        if (ret != KSuccess)
+            log_e("HI_MPI_VDEC_StopRecvStream failed with %#x", ret);
+    }));
 
     init_ = true;
 
@@ -58,9 +87,11 @@ void VideoDecode::Close()
 
     int ret;
 
-    ret = HI_MPI_VDEC_StopRecvStream(params_.chn);
-    if (ret != KSuccess)
-        log_e("HI_MPI_VDEC_StopRecvStream failed with %#x", ret);
+    run_ = false;
+    thread_->join();
+    thread_.reset();
+    thread_ = nullptr;
+    sinks_.clear();
 
     ret = HI_MPI_VDEC_DestroyChn(params_.chn);
     if (ret != KSuccess)
@@ -85,5 +116,17 @@ void VideoDecode::OnFrame(const VDEC_STREAM_S &st, int chn)
             return;
         }
     }
+}
+
+void VideoDecode::AddVideoSink(VideoSink<VIDEO_FRAME_INFO_S> *sink)
+{
+    std::unique_lock<std::mutex> lock(mux_);
+    sinks_.push_back(sink);
+}
+
+void VideoDecode::RemoveAllVideoSink()
+{
+    std::unique_lock<std::mutex> lock(mux_);
+    sinks_.clear();
 }
 } // namespace rs

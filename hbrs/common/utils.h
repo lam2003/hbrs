@@ -22,6 +22,9 @@ public:
         case VO_OUTPUT_PAL:
             fmt = HI_HDMI_VIDEO_FMT_PAL;
             break;
+        case VO_OUTPUT_NTSC:
+            fmt = HI_HDMI_VIDEO_FMT_NTSC;
+            break;
         case VO_OUTPUT_1080P24:
             fmt = HI_HDMI_VIDEO_FMT_1080P_24;
             break;
@@ -42,6 +45,18 @@ public:
             break;
         case VO_OUTPUT_720P60:
             fmt = HI_HDMI_VIDEO_FMT_720P_60;
+            break;
+        case VO_OUTPUT_1080I50:
+            fmt = HI_HDMI_VIDEO_FMT_1080i_50;
+            break;
+        case VO_OUTPUT_1080I60:
+            fmt = HI_HDMI_VIDEO_FMT_1080i_60;
+            break;
+        case VO_OUTPUT_576P50:
+            fmt = HI_HDMI_VIDEO_FMT_576P_50;
+            break;
+        case VO_OUTPUT_480P60:
+            fmt = HI_HDMI_VIDEO_FMT_480P_60;
             break;
         case VO_OUTPUT_800x600_60:
             fmt = HI_HDMI_VIDEO_FMT_VESA_800X600_60;
@@ -74,14 +89,22 @@ public:
         switch (intf_sync)
         {
         case VO_OUTPUT_PAL:
+        case VO_OUTPUT_576P50:
             size.u32Width = 720;
             size.u32Height = 576;
+            break;
+        case VO_OUTPUT_NTSC:
+        case VO_OUTPUT_480P60:
+            size.u32Width = 720;
+            size.u32Height = 480;
             break;
         case VO_OUTPUT_1080P24:
         case VO_OUTPUT_1080P25:
         case VO_OUTPUT_1080P30:
         case VO_OUTPUT_1080P50:
         case VO_OUTPUT_1080P60:
+        case VO_OUTPUT_1080I50:
+        case VO_OUTPUT_1080I60:
             size.u32Width = 1920;
             size.u32Height = 1080;
             break;
@@ -133,11 +156,14 @@ public:
         case VO_OUTPUT_1080P24:
             frame_rate = 24;
             break;
+        case VO_OUTPUT_NTSC:
         case VO_OUTPUT_1080P30:
             frame_rate = 30;
             break;
         case VO_OUTPUT_1080P50:
         case VO_OUTPUT_720P50:
+        case VO_OUTPUT_1080I50:
+        case VO_OUTPUT_576P50:
             frame_rate = 50;
             break;
         case VO_OUTPUT_1080P60:
@@ -148,6 +174,8 @@ public:
         case VO_OUTPUT_1366x768_60:
         case VO_OUTPUT_1440x900_60:
         case VO_OUTPUT_1280x800_60:
+        case VO_OUTPUT_1080I60:
+        case VO_OUTPUT_480P60:
             frame_rate = 60;
             break;
         default:
