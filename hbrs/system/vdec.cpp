@@ -3,7 +3,9 @@
 
 namespace rs
 {
-VideoDecode::VideoDecode() : init_(false)
+VideoDecode::VideoDecode() : run_(false),
+                             thread_(nullptr),
+                             init_(false)
 {
 }
 

@@ -8,15 +8,6 @@
 namespace rs
 {
 
-static std::map<int, RS_SCENE> Tw6874_1_DevChn2Scene = {
-    {3, TEA_FULL_VIEW},
-    {2, STU_FULL_VIEW},
-    {1, BLACK_BOARD_FEATURE}};
-
-static std::map<int, RS_SCENE> Tw6874_2_DevChn2Scene = {
-    {1, TEA_FEATURE},
-    {0, STU_FEATURE}};
-
 static int Recv(pciv::Context *ctx, int remote_id, int port, uint8_t *tmp_buf, int32_t buf_len, Buffer<allocator_1k> &msg_buf, pciv::Msg &msg, int try_time)
 {
     int ret;
@@ -51,7 +42,10 @@ SigDetect::~SigDetect()
     Close();
 }
 
-SigDetect::SigDetect() : init_(false)
+SigDetect::SigDetect() : ctx_(nullptr),
+                         run_(false),
+                         thread_(nullptr),
+                         init_(false)
 {
 }
 
@@ -140,25 +134,47 @@ int SigDetect::Initialize(pciv::Context *ctx)
                 }
 
                 memcpy(&tmp_fmts[PC_CAPTURE], msg.data, sizeof(tmp_fmts[PC_CAPTURE]));
-                for (size_t i = 0; i < tmp_fmts.size(); i++)
+
+                pciv::Tw6874Query query;
+                for (int i = TEA_FULL_VIEW; i <= BLACK_BOARD_FEATURE; i++)
+                    query.fmts[i - TEA_FULL_VIEW] = tmp_fmts[i];
+
+                msg.type = pciv::Msg::Type::QUERY_TW6874;
+                memcpy(msg.data, &query, sizeof(query));
+                ret = ctx_->Send(RS_PCIV_SLAVE3_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+                if (ret != KSuccess)
+                    return;
+
                 {
-                    VideoInputFormat fmt = tmp_fmts[i];
-                    // log_d("chn:%d,has_signal:%d,fmt.width:%d,height:%d,fps:%d,interlaced:%d",
-                    //       i,
-                    //       fmt.has_signal,
-                    //       fmt.width,
-                    //       fmt.height,
-                    //       fmt.frame_rate,
-                    //       fmt.interlaced);
+                    std::unique_lock<std::mutex> lock(mux_);
+                    std::swap(tmp_fmts, fmts_);
                 }
-                sleep(1);
+
+                usleep(1000000);
             }
         }
     }));
 
+    init_ = true;
+
     return KSuccess;
 }
 
-void SigDetect::Close() {}
+void SigDetect::Close()
+{
+    if (!init_)
+        return;
+
+    run_ = false;
+    thread_->join();
+    thread_.reset();
+    thread_ = nullptr;
+
+    fmts_.clear();
+
+    ctx_ = nullptr;
+
+    init_ = false;
+}
 
 } // namespace rs

@@ -79,6 +79,8 @@ void PCIVTrans::Close()
     bufs_.clear();
     threads_.clear();
     sinks_.clear();
+    
+    ctx_ = nullptr;
 
     init_ = false;
 }
