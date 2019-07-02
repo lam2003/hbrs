@@ -58,6 +58,14 @@ void PCIVTrans::Close()
 
     int ret;
 
+    std::vector<int> remote_ids = {RS_PCIV_SLAVE1_ID, RS_PCIV_SLAVE3_ID};
+    for (int remote_id : remote_ids)
+    {
+        Msg msg;
+        msg.type = Msg::Type::STOP_TRANS;
+        ctx_->Send(remote_id, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+    }
+
     run_ = false;
     for (size_t i = 0; i < threads_.size(); i++)
     {
@@ -79,7 +87,7 @@ void PCIVTrans::Close()
     bufs_.clear();
     threads_.clear();
     sinks_.clear();
-    
+
     ctx_ = nullptr;
 
     init_ = false;

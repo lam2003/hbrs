@@ -220,22 +220,6 @@ int VideoOutput::StopChannel(int chn)
     return KSuccess;
 }
 
-int VideoOutput::SendFrame(int chn, VIDEO_FRAME_INFO_S &frame)
-{
-    if (!init_)
-        return KUnInitialized;
-    int ret;
-
-    ret = HI_MPI_VO_SendFrameTimeOut(params_.dev, chn, &frame, 100); //100ms
-    if (ret != KSuccess && ret != HI_ERR_VO_WAIT_TIMEOUT)
-    {
-        log_e("HI_MPI_VO_SendFrame failed with %#x", ret);
-        return ret;
-    }
-
-    return KSuccess;
-}
-
 int VideoOutput::StopAllChn()
 {
     if (!init_)

@@ -15,7 +15,7 @@ struct Params
 };
 } // namespace vpss
 
-class VideoProcess : public VideoSender<VIDEO_FRAME_INFO_S>, public VideoSink<VIDEO_FRAME_INFO_S>
+class VideoProcess
 {
 
 public:
@@ -27,15 +27,9 @@ public:
 
     void Close();
 
-    void OnFrame(const VIDEO_FRAME_INFO_S &frame) override;
+    int StartUserChannel(int chn, const SIZE_S &size);
 
-    int GetFrame(int chn, VIDEO_FRAME_INFO_S &frame) override;
-
-    int ReleaseFrame(int chn, const VIDEO_FRAME_INFO_S &frame) override;
-
-    int StartChannel(int chn, const SIZE_S &size) override;
-
-    int StopChannal(int chn) override;
+    int StopUserChannal(int chn);
 
 private:
     vpss::Params params_;

@@ -68,41 +68,7 @@ int32_t VideoProcess::Initialize(const Params &params)
     return KSuccess;
 }
 
-int VideoProcess::GetFrame(int chn, VIDEO_FRAME_INFO_S &frame)
-{
-    if (!init_)
-        return KUnInitialized;
-
-    int ret;
-    ret = HI_MPI_VPSS_UserGetFrame(params_.grp, chn, &frame);
-    if (ret != KSuccess)
-    {
-        if (ret == static_cast<int>(0xffffffff))
-            return KTimeout;
-
-        log_e("HI_MPI_VPSS_UserGetFrame failed with %#x", ret);
-        return KSDKError;
-    }
-
-    return KSuccess;
-}
-
-int VideoProcess::ReleaseFrame(int chn, const VIDEO_FRAME_INFO_S &frame)
-{
-    if (!init_)
-        return KUnInitialized;
-
-    int ret;
-    ret = HI_MPI_VPSS_UserReleaseFrame(params_.grp, chn, const_cast<VIDEO_FRAME_INFO_S *>(&frame));
-    if (ret != KSuccess)
-    {
-        log_e("HI_MPI_VPSS_UserReleaseFrame failed with %#x", ret);
-        return KSDKError;
-    }
-    return KSuccess;
-}
-
-int VideoProcess::StartChannel(int chn, const SIZE_S &size)
+int VideoProcess::StartUserChannel(int chn, const SIZE_S &size)
 {
     if (!init_)
         return KUnInitialized;
@@ -127,7 +93,7 @@ int VideoProcess::StartChannel(int chn, const SIZE_S &size)
     return KSuccess;
 }
 
-int VideoProcess::StopChannal(int chn)
+int VideoProcess::StopUserChannal(int chn)
 {
     if (!init_)
         return KUnInitialized;
@@ -170,13 +136,6 @@ void VideoProcess::Close()
         log_e("HI_MPI_VPSS_DestroyGrp failed with %#x", ret);
 
     init_ = false;
-}
-
-void VideoProcess::OnFrame(const VIDEO_FRAME_INFO_S &frame)
-{
-    if (!init_)
-        return;
-    HI_MPI_VPSS_UserSendFrame(params_.grp, const_cast<VIDEO_FRAME_INFO_S *>(&frame));
 }
 
 } // namespace rs

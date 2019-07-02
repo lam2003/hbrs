@@ -39,27 +39,6 @@ public:
     virtual void OnStop() = 0;
 };
 
-template <typename FrameT>
-class VideoSender
-{
-public:
-    virtual ~VideoSender() {}
-    virtual int GetFrame(int chn, FrameT &frame) = 0;
-    virtual int ReleaseFrame(int chn, const FrameT &frame) = 0;
-    virtual int StartChannel(int chn, const SIZE_S &size) = 0;
-    virtual int StopChannal(int chn) = 0;
-};
-
-template <typename FrameT>
-class VideoRecver
-{
-public:
-    virtual ~VideoRecver() {}
-    virtual int SendFrame(int chn, FrameT &frame) = 0;
-    virtual int StartChannel(int chn, const RECT_S &rect, int level) = 0;
-    virtual int StopChannel(int chn) = 0;
-};
-
 struct MMZBuffer
 {
     uint8_t *vir_addr;

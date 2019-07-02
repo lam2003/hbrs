@@ -14,16 +14,9 @@ struct Params
     VO_INTF_TYPE_E intf_type;
     VO_INTF_SYNC_E intf_sync;
 };
-
-// struct Channel
-// {
-//     RECT_S rect;
-//     int32_t no;
-//     int32_t level;
-// };
 } // namespace vo
 
-class VideoOutput : public VideoRecver<VIDEO_FRAME_INFO_S>
+class VideoOutput
 {
 public:
     explicit VideoOutput();
@@ -36,11 +29,9 @@ public:
 
     int32_t StopAllChn();
 
-    int SendFrame(int chn, VIDEO_FRAME_INFO_S &frame) override;
+    int StartChannel(int chn, const RECT_S &rect, int level);
 
-    int StartChannel(int chn, const RECT_S &rect, int level) override;
-
-    int StopChannel(int chn) override;
+    int StopChannel(int chn);
 
 protected:
     static int32_t StartHDMI(HI_HDMI_ID_E dev, VO_INTF_SYNC_E intf_sync);

@@ -7,7 +7,6 @@
 #include "system/vpss.h"
 #include "system/venc.h"
 #include "system/vdec.h"
-#include "system/channel.h"
 #include "common/buffer.h"
 
 using namespace rs;
@@ -74,9 +73,9 @@ int32_t main(int32_t argc, char **argv)
 	ret = vpss_stu_fea_2vo.Initialize({11});
 	CHECK_ERROR(ret);
 	//配置vpss通道1
-	ret = vpss_tea_fea_2vo.StartChannel(1, {RS_MAX_WIDTH, RS_MAX_HEIGHT});
+	ret = vpss_tea_fea_2vo.StartUserChannel(1, {RS_MAX_WIDTH, RS_MAX_HEIGHT});
 	CHECK_ERROR(ret);
-	ret = vpss_stu_fea_2vo.StartChannel(1, {RS_MAX_WIDTH, RS_MAX_HEIGHT});
+	ret = vpss_stu_fea_2vo.StartUserChannel(1, {RS_MAX_WIDTH, RS_MAX_HEIGHT});
 	CHECK_ERROR(ret);
 	//初始化虚拟vo
 	ret = vo_tea_fea.Initialize({10, 0, VO_OUTPUT_1080P30});
@@ -126,19 +125,14 @@ int32_t main(int32_t argc, char **argv)
 	ret = MPPSystem::Bind<HI_ID_VOU, HI_ID_VPSS>(11, 0, 1, 0);
 	CHECK_ERROR(ret);
 	//绑定VDEC与VPSS
-
-	vdec_tea_full.AddVideoSink(&vpss_tea_full);
-	vdec_stu_full.AddVideoSink(&vpss_stu_full);
-	vdec_black_board.AddVideoSink(&vpss_black_board);
-	vdec_pc.AddVideoSink(&vpss_pc);
-	// ret = MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 0, 2, 0);
-	// CHECK_ERROR(ret);
-	// ret = MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 1, 3, 0);
-	// CHECK_ERROR(ret);
-	// ret = MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 2, 4, 0);
-	// CHECK_ERROR(ret);
-	// ret = MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 3, 5, 0);
-	// CHECK_ERROR(ret);
+	ret = MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 0, 2, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 1, 3, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 2, 4, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 3, 5, 0);
+	CHECK_ERROR(ret);
 
 	ret = PCIVComm::Instance()->Initialize();
 	CHECK_ERROR(ret);
@@ -158,37 +152,38 @@ int32_t main(int32_t argc, char **argv)
 	ret = vo_disp.Initialize({0, VO_INTF_BT1120 | VO_INTF_VGA | VO_INTF_HDMI, VO_OUTPUT_1080P60});
 	CHECK_ERROR(ret);
 
-	Channel channel(&vpss_stu_full, &vo_disp);
-	channel.Initialize(1, 0, {0, 0, 1920, 1080}, 0);
+	ret = vo_disp.StartChannel(0, {0, 0, 640, 360}, 0);
+	CHECK_ERROR(ret);
+	ret = vo_disp.StartChannel(1, {640, 0, 640, 360}, 0);
+	CHECK_ERROR(ret);
+	ret = vo_disp.StartChannel(2, {1280, 0, 640, 360}, 0);
+	CHECK_ERROR(ret);
+	ret = vo_disp.StartChannel(3, {0, 360, 640, 360}, 0);
+	CHECK_ERROR(ret);
+	ret = vo_disp.StartChannel(4, {640, 360, 640, 360}, 0);
+	CHECK_ERROR(ret);
+	ret = vo_disp.StartChannel(5, {1280, 360, 640, 360}, 0);
+	CHECK_ERROR(ret);
 
-	// ret = vo_disp.StartChn({{0, 0, 640, 360}, 0, 0});
-	// CHECK_ERROR(ret);
-	// ret = vo_disp.StartChn({{640, 0, 640, 360}, 1, 0});
-	// CHECK_ERROR(ret);
-	// ret = vo_disp.StartChn({{1280, 0, 640, 360}, 2, 0});
-	// CHECK_ERROR(ret);
-	// ret = vo_disp.StartChn({{0, 360, 640, 360}, 3, 0});
-	// CHECK_ERROR(ret);
-	// ret = vo_disp.StartChn({{640, 360, 640, 360}, 4, 0});
-	// CHECK_ERROR(ret);
-	// ret = vo_disp.StartChn({{1280, 360, 640, 360}, 5, 0});
-	// CHECK_ERROR(ret);
-
-	// ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(0, 1, 0, 0);
-	// CHECK_ERROR(ret);
-	// ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(1, 1, 0, 1);
-	// CHECK_ERROR(ret);
-	// ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(2, 1, 0, 2);
-	// CHECK_ERROR(ret);
-	// ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(3, 1, 0, 3);
-	// CHECK_ERROR(ret);
-	// ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(4, 1, 0, 4);
-	// CHECK_ERROR(ret);
-	// ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(5, 1, 0, 5);
-	// CHECK_ERROR(ret);
+	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(0, 1, 0, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(1, 1, 0, 1);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(2, 1, 0, 2);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(3, 1, 0, 3);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(4, 1, 0, 4);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(5, 1, 0, 5);
+	CHECK_ERROR(ret);
 
 	while (g_Run)
-		sleep(1000);
+		sleep(10000);
+
+	SigDetect::Instance()->Close();
+	PCIVTrans::Instance()->Close();
+	PCIVComm::Instance()->Close();
 
 	return 0;
 }
