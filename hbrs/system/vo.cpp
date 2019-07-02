@@ -125,7 +125,7 @@ int32_t VideoOutput::StartDevLayer(int32_t dev, VO_INTF_TYPE_E intf_type, VO_INT
     memset(&pub_attr, 0, sizeof(pub_attr));
     pub_attr.enIntfType = intf_type;
     pub_attr.enIntfSync = intf_sync;
-    pub_attr.u32BgColor = 0x0ffff;
+    pub_attr.u32BgColor = 0x00000;
     pub_attr.bDoubleFrame = HI_FALSE;
     ret = HI_MPI_VO_SetPubAttr(dev, &pub_attr);
     if (ret != KSuccess)
@@ -171,7 +171,7 @@ int32_t VideoOutput::StartDevLayer(int32_t dev, VO_INTF_TYPE_E intf_type, VO_INT
     return KSuccess;
 }
 
-int32_t VideoOutput::StartChn(const Channel &chn)
+int VideoOutput::StartChannel(int chn, const RECT_S &rect, int level)
 {
     if (!init_)
         return KUnInitialized;
@@ -180,32 +180,57 @@ int32_t VideoOutput::StartChn(const Channel &chn)
 
     VO_CHN_ATTR_S attr;
     memset(&attr, 0, sizeof(attr));
-    attr.stRect.s32X = chn.rect.s32X;
-    attr.stRect.s32Y = chn.rect.s32Y;
-    attr.stRect.u32Width = chn.rect.u32Width;
-    attr.stRect.u32Height = chn.rect.u32Height;
-    attr.u32Priority = chn.level;
+    attr.stRect.s32X = rect.s32X;
+    attr.stRect.s32Y = rect.s32Y;
+    attr.stRect.u32Width = rect.u32Width;
+    attr.stRect.u32Height = rect.u32Height;
+    attr.u32Priority = level;
     attr.bDeflicker = HI_FALSE;
 
-    ret = HI_MPI_VO_SetChnAttr(params_.dev, chn.no, &attr);
+    ret = HI_MPI_VO_SetChnAttr(params_.dev, chn, &attr);
     if (ret != KSuccess)
     {
         log_e("HI_MPI_VO_SetChnAttr failed with %#x", ret);
         return KSDKError;
     }
 
-    ret = HI_MPI_VO_EnableChn(params_.dev, chn.no);
+    ret = HI_MPI_VO_EnableChn(params_.dev, chn);
     if (ret != KSuccess)
     {
         log_e("HI_MPI_VO_EnableChn failed with %#x", ret);
         return KSDKError;
     }
 
-    ret = HI_MPI_VO_SetChnFrameRate(params_.dev, chn.no, chn.frame_rate);
+    return KSuccess;
+}
+
+int VideoOutput::StopChannel(int chn)
+{
+    if (!init_)
+        return KUnInitialized;
+
+    int ret;
+
+    ret = HI_MPI_VO_DisableChn(params_.dev, chn);
     if (ret != KSuccess)
     {
-        log_e("HI_MPI_VO_SetChnFrameRate failed with %#x", ret);
+        log_e("HI_MPI_VO_DisableChn failed with %#x", ret);
         return KSDKError;
+    }
+    return KSuccess;
+}
+
+int VideoOutput::SendFrame(int chn, VIDEO_FRAME_INFO_S &frame)
+{
+    if (!init_)
+        return KUnInitialized;
+    int ret;
+
+    ret = HI_MPI_VO_SendFrameTimeOut(params_.dev, chn, &frame, 100); //100ms
+    if (ret != KSuccess && ret != HI_ERR_VO_WAIT_TIMEOUT)
+    {
+        log_e("HI_MPI_VO_SendFrame failed with %#x", ret);
+        return ret;
     }
 
     return KSuccess;

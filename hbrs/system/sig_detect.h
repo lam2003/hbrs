@@ -11,13 +11,14 @@ public:
 
     static SigDetect *Instance();
 
-    int Initialize(pciv::Context *ctx);
+    int Initialize(pciv::Context *ctx, ADV7842_MODE mode);
 
     void Close();
 
     void AddVIFmtListener(VIFmtListener *listener);
 
     void RemoveAllVIFmtListener();
+
 protected:
     explicit SigDetect();
 

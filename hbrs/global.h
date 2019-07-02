@@ -47,6 +47,7 @@
 #include <stdio.h>
 #include <string.h>
 //drive
+#include <adv7842.h>
 #include <tw6874_ioctl_cmd.h>
 //logger
 #include <elog.h>

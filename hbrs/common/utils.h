@@ -316,61 +316,9 @@ public:
         return fmt;
     }
 
-    // static int Recv(pciv::Context *ctx, int remote_id, int port, uint8_t *tmp_buf, int32_t buf_len, Buffer<allocator_1k> &msg_buf, pciv::Msg &msg, int try_time)
-    // {
-    //     int ret;
-    //     while (try_time-- && msg_buf.Size() < sizeof(msg))
-    //     {
-    //         ret = ctx->Recv(remote_id, port, tmp_buf, buf_len, 500000); //500ms
-    //         if (ret > 0)
-    //         {
-    //             if (!msg_buf.Append(tmp_buf, ret))
-    //             {
-    //                 log_e("append data to msg buf failed");
-    //                 return KNotEnoughBuf;
-    //             }
-    //         }
-    //         else if (ret < 0)
-    //             return ret;
-    //     }
-
-    //     if (msg_buf.Size() >= sizeof(msg))
-    //     {
-    //         msg_buf.Get(reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
-    //         msg_buf.Consume(sizeof(msg));
-    //         return KSuccess;
-    //     }
-
-    //     log_e("recv timeout");
-    //     return KTimeout;
-    // }
-
-    // static int Recv(pciv::Context *ctx, int remote_id, int port, uint8_t *tmp_buf, int32_t buf_len, Buffer<allocator_1k> &msg_buf, const std::atomic<bool> &run, pciv::Msg &msg)
-    // {
-    //     int ret;
-    //     do
-    //     {
-    //         ret = ctx->Recv(remote_id, port, tmp_buf, buf_len, 500000); //500ms
-    //         if (ret > 0)
-    //         {
-    //             if (!msg_buf.Append(tmp_buf, ret))
-    //             {
-    //                 log_e("append data to msg buf failed");
-    //                 return KNotEnoughBuf;
-    //             }
-    //         }
-    //         else if (ret < 0)
-    //             return ret;
-
-    //     } while (run && msg_buf.Size() < sizeof(msg));
-
-    //     if (msg_buf.Size() >= sizeof(msg))
-    //     {
-    //         msg_buf.Get(reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
-    //         msg_buf.Consume(sizeof(msg));
-    //     }
-
-    //     return KSuccess;
-    // }
+    static inline int32_t Align(int num, int align = RS_ALIGN_WIDTH)
+    {
+        return (num + align - 1) & ~(align - 1);
+    }
 };
 } // namespace rs

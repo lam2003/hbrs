@@ -55,7 +55,7 @@ SigDetect *SigDetect::Instance()
     return instance;
 }
 
-int SigDetect::Initialize(pciv::Context *ctx)
+int SigDetect::Initialize(pciv::Context *ctx, ADV7842_MODE mode)
 {
     if (init_)
         return KInitialized;
@@ -64,7 +64,7 @@ int SigDetect::Initialize(pciv::Context *ctx)
     fmts_.resize(RS_TOTAL_SCENE_NUM);
 
     run_ = true;
-    thread_ = std::unique_ptr<std::thread>(new std::thread([this]() {
+    thread_ = std::unique_ptr<std::thread>(new std::thread([this, mode]() {
         int ret;
 
         const char *tw6874_1_dev = "/dev/tw6874_driver_1";
@@ -101,6 +101,13 @@ int SigDetect::Initialize(pciv::Context *ctx)
         pciv::Msg msg;
         uint8_t tmp_buf[1024];
         Buffer<allocator_1k> msg_buf;
+
+        msg.type = pciv::Msg::Type::CONF_ADV7842;
+        pciv::Adv7842Conf *conf = reinterpret_cast<pciv::Adv7842Conf *>(msg.data);
+        conf->mode = mode;
+        ret = PCIVComm::Instance()->Send(RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+        if (ret != KSuccess)
+            return;
 
         while (run_)
         {
@@ -189,7 +196,7 @@ int SigDetect::Initialize(pciv::Context *ctx)
                     }
                 }
             }
-            
+
             if (changes[TEA_FULL_VIEW] || changes[STU_FULL_VIEW] || changes[BLACK_BOARD_FEATURE])
             {
                 pciv::Tw6874Query query;
@@ -202,17 +209,19 @@ int SigDetect::Initialize(pciv::Context *ctx)
                 if (ret != KSuccess)
                     return;
             }
-
-            if (changes[TEA_FEATURE])
             {
-                for (size_t i = 0; i < listeners_.size(); i++)
-                    listeners_[i]->OnChange(fmts_[TEA_FEATURE], Scene2ViChn[TEA_FEATURE]);
-            }
+                std::unique_lock<std::mutex> lock(mux_);
+                if (changes[TEA_FEATURE])
+                {
+                    for (size_t i = 0; i < listeners_.size(); i++)
+                        listeners_[i]->OnChange(fmts_[TEA_FEATURE], Scene2ViChn[TEA_FEATURE]);
+                }
 
-            if (changes[STU_FEATURE])
-            {
-                for (size_t i = 0; i < listeners_.size(); i++)
-                    listeners_[i]->OnChange(fmts_[STU_FEATURE], Scene2ViChn[STU_FEATURE]);
+                if (changes[STU_FEATURE])
+                {
+                    for (size_t i = 0; i < listeners_.size(); i++)
+                        listeners_[i]->OnChange(fmts_[STU_FEATURE], Scene2ViChn[STU_FEATURE]);
+                }
             }
 
             usleep(1000000);

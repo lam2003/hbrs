@@ -3,9 +3,7 @@
 
 namespace rs
 {
-VideoDecode::VideoDecode() : run_(false),
-                             thread_(nullptr),
-                             init_(false)
+VideoDecode::VideoDecode() : init_(false)
 {
 }
 
@@ -23,60 +21,48 @@ int VideoDecode::Initialize(const vdec::Params &params)
 
     params_ = params;
 
-    VDEC_CHN_ATTR_S attr;
-    memset(&attr, 0, sizeof(attr));
+    VDEC_CHN_ATTR_S chn_attr;
+    memset(&chn_attr, 0, sizeof(chn_attr));
 
-    attr.enType = PT_H264;
-    attr.u32BufSize = params_.width * params_.height * 2;
-    attr.u32Priority = 1;
-    attr.u32PicWidth = params_.width;
-    attr.u32PicHeight = params_.height;
-    attr.stVdecVideoAttr.enMode = VIDEO_MODE_STREAM;
-    attr.stVdecVideoAttr.u32RefFrameNum = 2;
-    attr.stVdecVideoAttr.s32SupportBFrame = 0;
+    chn_attr.enType = PT_H264;
+    chn_attr.u32BufSize = params_.width * params_.height * 2;
+    chn_attr.u32Priority = 1;
+    chn_attr.u32PicWidth = params_.width;
+    chn_attr.u32PicHeight = params_.height;
+    chn_attr.stVdecVideoAttr.enMode = VIDEO_MODE_STREAM;
+    chn_attr.stVdecVideoAttr.u32RefFrameNum = 2;
+    chn_attr.stVdecVideoAttr.s32SupportBFrame = 0;
 
-    ret = HI_MPI_VDEC_CreateChn(params_.chn, &attr);
+    ret = HI_MPI_VDEC_CreateChn(params_.chn, &chn_attr);
     if (ret != KSuccess)
     {
         log_e("HI_MPI_VDEC_CreateChn failed with %#", ret);
         return KSDKError;
     }
 
-    run_ = true;
-    thread_ = std::unique_ptr<std::thread>(new std::thread([this]() {
-        int ret;
+    VDEC_CHN_PARAM_S chn_params;
+    memset(&chn_params, 0, sizeof(chn_params));
+    ret = HI_MPI_VDEC_GetChnParam(params_.chn, &chn_params);
+    if (ret != KSuccess)
+    {
+        log_e("HI_MPI_VDEC_GetChnParam failed with %#", ret);
+        return KSDKError;
+    }
 
-        ret = HI_MPI_VDEC_StartRecvStream(params_.chn);
-        if (ret != KSuccess)
-        {
-            log_e("HI_MPI_VDEC_CreateChn failed with %#x", ret);
-            return;
-        }
+    chn_params.s32ChanStrmOFThr = 1;
+    ret = HI_MPI_VDEC_SetChnParam(params_.chn, &chn_params);
+    if (ret != KSuccess)
+    {
+        log_e("HI_MPI_VDEC_SetChnParam failed with %#", ret);
+        return KSDKError;
+    }
 
-        VIDEO_FRAME_INFO_S frame;
-        while (run_)
-        {
-            ret = HI_MPI_VDEC_GetImage_TimeOut(params_.chn, &frame, 500); //500ms
-            if (ret != KSuccess)
-            {
-                if (ret == HI_ERR_VDEC_BUSY)
-                    continue;
-
-                log_e("HI_MPI_VDEC_GetImage_TimeOut failed with %#x", ret);
-                return;
-            }
-            {
-                std::unique_lock<std::mutex> lock(mux_);
-                for (size_t i = 0; i < sinks_.size(); i++)
-                    sinks_[i]->OnFrame(frame);
-            }
-            HI_MPI_VDEC_ReleaseImage(params_.chn, &frame);
-        }
-
-        ret = HI_MPI_VDEC_StopRecvStream(params_.chn);
-        if (ret != KSuccess)
-            log_e("HI_MPI_VDEC_StopRecvStream failed with %#x", ret);
-    }));
+    ret = HI_MPI_VDEC_StartRecvStream(params_.chn);
+    if (ret != KSuccess)
+    {
+        log_e("HI_MPI_VDEC_CreateChn failed with %#x", ret);
+        return KSDKError;
+    }
 
     init_ = true;
 
@@ -90,11 +76,9 @@ void VideoDecode::Close()
 
     int ret;
 
-    run_ = false;
-    thread_->join();
-    thread_.reset();
-    thread_ = nullptr;
-    sinks_.clear();
+    ret = HI_MPI_VDEC_StopRecvStream(params_.chn);
+    if (ret != KSuccess)
+        log_e("HI_MPI_VDEC_StopRecvStream failed with %#x", ret);
 
     ret = HI_MPI_VDEC_DestroyChn(params_.chn);
     if (ret != KSuccess)
@@ -108,28 +92,8 @@ void VideoDecode::OnFrame(const VDEC_STREAM_S &st, int chn)
     if (!init_)
         return;
 
-    int ret;
-
     if (params_.chn == chn)
-    {
-        ret = HI_MPI_VDEC_SendStream(params_.chn, const_cast<VDEC_STREAM_S *>(&st), HI_IO_NOBLOCK);
-        if (ret != KSuccess)
-        {
-            log_e("HI_MPI_VDEC_SendStream failed with %#x", ret);
-            return;
-        }
-    }
+        HI_MPI_VDEC_SendStream(params_.chn, const_cast<VDEC_STREAM_S *>(&st), HI_IO_NOBLOCK);
 }
 
-void VideoDecode::AddVideoSink(VideoSink<VIDEO_FRAME_INFO_S> *sink)
-{
-    std::unique_lock<std::mutex> lock(mux_);
-    sinks_.push_back(sink);
-}
-
-void VideoDecode::RemoveAllVideoSink()
-{
-    std::unique_lock<std::mutex> lock(mux_);
-    sinks_.clear();
-}
 } // namespace rs

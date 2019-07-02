@@ -1,5 +1,6 @@
 //self
 #include "system/mpp.h"
+#include "common/utils.h"
 
 namespace rs
 {
@@ -99,11 +100,13 @@ int32_t MPPSystem::ConfigSys()
     return KSuccess;
 }
 
+
+
 int32_t MPPSystem::ConfigVB(int blk_num)
 {
     int32_t ret;
 
-    uint32_t blk_size = (((RS_MAX_WIDTH + (RS_MAX_WIDTH % RS_ALIGN_WIDTH)) * (RS_MAX_HEIGHT + (RS_MAX_HEIGHT % RS_ALIGN_WIDTH))) * 3) / 2;
+    uint32_t blk_size = Utils::Align(RS_MAX_WIDTH) * Utils::Align(RS_MAX_HEIGHT) * 3 / 2;
 
     VB_CONF_S conf;
     memset(&conf, 0, sizeof(conf));
