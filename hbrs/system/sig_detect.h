@@ -15,11 +15,15 @@ public:
 
     void Close();
 
+    void AddVIFmtListener(VIFmtListener *listener);
+
+    void RemoveAllVIFmtListener();
 protected:
     explicit SigDetect();
 
 private:
     std::mutex mux_;
+    std::vector<VIFmtListener *> listeners_;
     std::vector<VideoInputFormat> fmts_;
     pciv::Context *ctx_;
     std::atomic<bool> run_;

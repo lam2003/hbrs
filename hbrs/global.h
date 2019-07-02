@@ -85,11 +85,15 @@ enum RS_SCENE
     PC_CAPTURE
 };
 
-static std::map<int, RS_SCENE> Tw6874_1_DevChn2Scene = {
+static std::map<int, int> Tw6874_1_DevChn2Scene = {
     {3, TEA_FULL_VIEW},
     {2, STU_FULL_VIEW},
     {1, BLACK_BOARD_FEATURE}};
 
-static std::map<int, RS_SCENE> Tw6874_2_DevChn2Scene = {
+static std::map<int, int> Tw6874_2_DevChn2Scene = {
     {1, TEA_FEATURE},
     {0, STU_FEATURE}};
+
+static std::map<int, int> Scene2ViChn = {
+    {TEA_FEATURE, 8},
+    {STU_FEATURE, 4}};

@@ -52,8 +52,10 @@ public:
     VIHelper(int dev, int chn) : dev_(dev), chn_(chn) {}
     ~VIHelper() = default;
 
-    void OnChange(const VideoInputFormat &fmt) override
+    void OnChange(const VideoInputFormat &fmt, int chn) override
     {
+        if (chn != chn_)
+            return;
         log_d("vi[%d][%d]has_signal:%d,fmt.width:%d,height:%d,fps:%d,interlaced:%d",
               dev_,
               chn_,
