@@ -42,6 +42,7 @@
 #include <memory>
 #include <chrono>
 #include <system_error>
+#include <condition_variable>
 //stdlib
 #include <stdlib.h>
 #include <stdio.h>
@@ -49,6 +50,7 @@
 //drive
 #include <adv7842.h>
 #include <tw6874_ioctl_cmd.h>
+#include <tlv320aic31.h>
 //logger
 #include <elog.h>
 

@@ -3,7 +3,8 @@ add_executable(3531 ${SOURCES})
 
 
 target_link_libraries(3531 
-easylogger
+libeasylogger.a
+libaacenc.a
 jsoncpp
 libmpi.a
 libhdmi.a
