@@ -50,6 +50,7 @@ int VideoDecode::Initialize(const vdec::Params &params)
     }
 
     chn_params.s32ChanStrmOFThr = 1;
+    chn_params.s32ChanErrThr = 0;
     ret = HI_MPI_VDEC_SetChnParam(params_.chn, &chn_params);
     if (ret != KSuccess)
     {

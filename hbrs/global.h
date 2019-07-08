@@ -33,7 +33,11 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <getopt.h>
 //stl
+#include <string>
+#include <fstream>
+#include <exception>
 #include <vector>
 #include <map>
 #include <mutex>
@@ -53,6 +57,8 @@
 #include <tlv320aic31.h>
 //logger
 #include <elog.h>
+//json
+#include <json/json.h>
 
 #define RS_ALIGN_WIDTH 64                               //图像对齐大小
 #define RS_PIXEL_FORMAT PIXEL_FORMAT_YUV_SEMIPLANAR_420 //图像像素格式
@@ -85,7 +91,8 @@ enum RS_SCENE
     TEA_FULL_VIEW,
     STU_FULL_VIEW,
     BLACK_BOARD_FEATURE,
-    PC_CAPTURE
+    PC_CAPTURE,
+    MAIN
 };
 
 static std::map<int, int> Tw6874_1_DevChn2Scene = {
