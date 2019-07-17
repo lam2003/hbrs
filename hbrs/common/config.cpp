@@ -49,47 +49,20 @@ int Config::Initialize(const std::string &path)
     }
 
     Json::Value video = root["video"];
-    if (!video.isMember("record") ||
-        !video["record"].isObject() ||
-        !video.isMember("live") ||
-        !video["live"].isObject() ||
-        !video.isMember("frame_rate") ||
-        !video["frame_rate"].isInt())
+    if (!video.isMember("width") ||
+        !video["width"].isInt() ||
+        !video.isMember("height") ||
+        !video["height"].isInt() ||
+        !video.isMember("bitrate") ||
+        !video["bitrate"].isInt())
     {
         log_e("check video error");
         return KParamsError;
     }
 
-    Json::Value record = video["record"];
-    if (!record.isMember("width") ||
-        !record["width"].isInt() ||
-        !record.isMember("height") ||
-        !record["height"].isInt() ||
-        !record.isMember("bitrate") ||
-        !record["bitrate"].isInt())
-    {
-        log_e("check video-record error");
-        return KParamsError;
-    }
-    Json::Value live = video["live"];
-    if (!live.isMember("width") ||
-        !live["width"].isInt() ||
-        !live.isMember("height") ||
-        !live["height"].isInt() ||
-        !live.isMember("bitrate") ||
-        !live["bitrate"].isInt())
-    {
-        log_e("check video-live error");
-        return KParamsError;
-    }
-
-    video_.frame_rate = video["frame_rate"].asInt();
-    video_.record.width = record["width"].asInt();
-    video_.record.height = record["height"].asInt();
-    video_.record.bitrate = record["bitrate"].asInt();
-    video_.live.width = live["width"].asInt();
-    video_.live.height = live["height"].asInt();
-    video_.live.bitrate = live["bitrate"].asInt();
+    video_.width = video["width"].asInt();
+    video_.height = video["height"].asInt();
+    video_.bitrate = video["bitrate"].asInt();
 
     {
         //scene
@@ -141,7 +114,9 @@ int Config::Initialize(const std::string &path)
             !system.isMember("chns") ||
             !system["chns"].isArray() ||
             !system.isMember("mapping") ||
-            !system["mapping"].isArray())
+            !system["mapping"].isArray() ||
+            !system.isMember("pc_capture_mode") ||
+            !system["pc_capture_mode"].isInt())
         {
             log_e("check system error");
             return KParamsError;
@@ -190,7 +165,6 @@ int Config::Initialize(const std::string &path)
             Json::Value::Members members = item.getMemberNames();
             for (auto it = members.begin(); it != members.end(); it++)
             {
-                printf("########\n");
                 try
                 {
                     if (item[*it].isInt())
@@ -202,6 +176,8 @@ int Config::Initialize(const std::string &path)
                 }
             }
         }
+
+        system_.pc_capture_mode = static_cast<ADV7842_MODE>(system["pc_capture_mode"].asInt());
     }
 
     init_ = true;

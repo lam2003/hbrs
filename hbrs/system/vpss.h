@@ -31,6 +31,8 @@ public:
 
     int StopUserChannal(int chn);
 
+    int SetFrameRateControl(int src_frame_rate, int dst_frame_rate);
+
 private:
     vpss::Params params_;
     bool init_;

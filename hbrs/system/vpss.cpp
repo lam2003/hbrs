@@ -34,8 +34,8 @@ int32_t VideoProcess::Initialize(const Params &params)
     attr.bDrEn = HI_FALSE;
     attr.bDbEn = HI_FALSE;
     attr.bIeEn = HI_FALSE;
-    attr.bNrEn = HI_FALSE;
-    attr.bHistEn = HI_FALSE;
+    attr.bNrEn = HI_TRUE;
+    attr.bHistEn = HI_TRUE;
     attr.enDieMode = VPSS_DIE_MODE_AUTO;
     attr.enPixFmt = RS_PIXEL_FORMAT;
 
@@ -138,4 +138,20 @@ void VideoProcess::Close()
     init_ = false;
 }
 
+int VideoProcess::SetFrameRateControl(int src_frame_rate, int dst_frame_rate)
+{
+    if (!init_)
+        return KUnInitialized;
+
+    int ret;
+    VPSS_FRAME_RATE_S conf = {src_frame_rate, dst_frame_rate};
+    ret = HI_MPI_VPSS_SetGrpFrameRate(params_.grp, &conf);
+    if (ret != KSuccess)
+    {
+        log_e("HI_MPI_VPSS_SetGrpFrameRate failed with %#x", ret);
+        return KSDKError;
+    }
+
+    return KSuccess;
+}
 } // namespace rs

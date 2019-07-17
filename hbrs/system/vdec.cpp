@@ -36,7 +36,7 @@ int VideoDecode::Initialize(const vdec::Params &params)
     ret = HI_MPI_VDEC_CreateChn(params_.chn, &chn_attr);
     if (ret != KSuccess)
     {
-        log_e("HI_MPI_VDEC_CreateChn failed with %#", ret);
+        log_e("HI_MPI_VDEC_CreateChn failed with %#x", ret);
         return KSDKError;
     }
 
@@ -45,7 +45,7 @@ int VideoDecode::Initialize(const vdec::Params &params)
     ret = HI_MPI_VDEC_GetChnParam(params_.chn, &chn_params);
     if (ret != KSuccess)
     {
-        log_e("HI_MPI_VDEC_GetChnParam failed with %#", ret);
+        log_e("HI_MPI_VDEC_GetChnParam failed with %#x", ret);
         return KSDKError;
     }
 
@@ -54,7 +54,7 @@ int VideoDecode::Initialize(const vdec::Params &params)
     ret = HI_MPI_VDEC_SetChnParam(params_.chn, &chn_params);
     if (ret != KSuccess)
     {
-        log_e("HI_MPI_VDEC_SetChnParam failed with %#", ret);
+        log_e("HI_MPI_VDEC_SetChnParam failed with %#x", ret);
         return KSDKError;
     }
 

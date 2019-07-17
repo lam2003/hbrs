@@ -10,24 +10,9 @@ class Config
 public:
     struct Video
     {
-        int frame_rate;
-
-        struct Record
-        {
-            int width;
-            int height;
-            int bitrate;
-        };
-
-        struct Live
-        {
-            int width;
-            int height;
-            int bitrate;
-        };
-
-        Record record;
-        Live live;
+        int width;
+        int height;
+        int bitrate;
     };
 
     struct Scene
@@ -60,6 +45,7 @@ public:
         VO_INTF_SYNC_E disp_vo_intf_sync;
         std::vector<Chn> chns;
         std::map<int, RS_SCENE> mapping;
+        ADV7842_MODE pc_capture_mode;
     };
 
     static Config *Instance();

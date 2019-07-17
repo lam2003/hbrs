@@ -2,6 +2,7 @@
 #include "system/vo.h"
 #include "common/utils.h"
 #include "common/err_code.h"
+#include "common/config.h"
 
 namespace rs
 {
@@ -201,7 +202,16 @@ int VideoOutput::StartChannel(int chn, const RECT_S &rect, int level)
         return KSDKError;
     }
 
-    ret = HI_MPI_VO_SetChnFrameRate(params_.dev, chn, 64);
+    return KSuccess;
+}
+
+int VideoOutput::SetChannelFrameRate(int chn, int frame_rate)
+{
+    if (!init_)
+        return KUnInitialized;
+
+    int ret;
+    ret = HI_MPI_VO_SetChnFrameRate(params_.dev, chn, frame_rate);
     if (ret != KSuccess)
     {
         log_e("HI_MPI_VO_EnableChn failed with %#x", ret);
@@ -265,10 +275,10 @@ void VideoOutput::Close()
 
     if (params_.intf_type & VO_INTF_HDMI)
     {
-        ret = HI_MPI_HDMI_Stop(HI_HDMI_ID_0);
+        ret = HI_MPI_HDMI_Stop(HdmiDev);
         if (ret != KSuccess)
             log_e("HI_MPI_HDMI_Stop failed with %#x", ret);
-        ret = HI_MPI_HDMI_Close(HI_HDMI_ID_0);
+        ret = HI_MPI_HDMI_Close(HdmiDev);
         if (ret != KSuccess)
             log_e("HI_MPI_HDMI_Close failed with %#x", ret);
         ret = HI_MPI_HDMI_DeInit();
@@ -277,5 +287,275 @@ void VideoOutput::Close()
     }
 
     init_ = false;
+}
+
+int VideoOutput::ClearDispBuffer(int chn)
+{
+    if (!init_)
+        return KUnInitialized;
+
+    int ret;
+    ret = HI_MPI_VO_ClearChnBuffer(params_.dev, chn, HI_TRUE);
+    if (ret != KSuccess)
+    {
+        log_e("HI_MPI_VO_ClearChnBuffer failed with %#x", ret);
+        return KSDKError;
+    }
+
+    return KSuccess;
+}
+
+int VideoOutput::SetSceneMode(VideoOutput &vo, int mode)
+{
+    int ret;
+
+    ret = vo.StopAllChn();
+    if (ret != KSuccess)
+        return ret;
+
+    switch (mode)
+    {
+    case Config::Scene::Mode::NORMAL_MODE:
+    {
+        ret = vo.StartChannel(0, {0, 0, 1920, 1080}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(0, 64);
+        if (ret != KSuccess)
+            return ret;
+        break;
+    }
+    case Config::Scene::Mode::PIP_MODE:
+    {
+        ret = vo.StartChannel(0, {0, 0, 1920, 1080}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(0, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(1, {1340, 660, 480, 320}, 1); //边距100px
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(1, 64);
+        if (ret != KSuccess)
+            return ret;
+        break;
+    }
+
+    case Config::Scene::Mode::TWO:
+    {
+        ret = vo.StartChannel(0, {0, 0, 960, 1080}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(0, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(1, {960, 0, 960, 1080}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(1, 64);
+        if (ret != KSuccess)
+            return ret;
+        break;
+    }
+    case Config::Scene::Mode::THREE:
+    {
+        ret = vo.StartChannel(0, {0, 0, 1280, 1080}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(0, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(1, {1280, 0, 640, 540}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(1, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(2, {1280, 540, 640, 540}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(2, 64);
+        if (ret != KSuccess)
+            return ret;
+        break;
+    }
+    case Config::Scene::Mode::FOUR:
+    {
+        ret = vo.StartChannel(0, {0, 0, 960, 540}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(0, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(1, {960, 0, 960, 540}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(1, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(2, {0, 540, 960, 540}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(2, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(3, {960, 540, 960, 540}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(3, 64);
+        if (ret != KSuccess)
+            return ret;
+        break;
+    }
+    case Config::Scene::Mode::FOUR1:
+    {
+        ret = vo.StartChannel(0, {0, 0, 1440, 1080}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(0, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(1, {1440, 0, 480, 360}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(1, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(2, {1440, 360, 480, 360}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(2, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(3, {1440, 720, 480, 360}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(3, 64);
+        if (ret != KSuccess)
+            return ret;
+        break;
+    }
+    case Config::Scene::Mode::FIVE:
+    {
+        ret = vo.StartChannel(0, {0, 0, 960, 1080}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(0, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(1, {1440, 0, 480, 540}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(1, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(2, {1440, 540, 480, 540}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(2, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(3, {960, 0, 480, 540}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(3, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(4, {960, 540, 480, 540}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(4, 64);
+        if (ret != KSuccess)
+            return ret;
+        break;
+    }
+    case Config::Scene::Mode::SIX:
+    {
+        ret = vo.StartChannel(0, {0, 0, 640, 540}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(0, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(1, {640, 0, 640, 540}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(1, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(2, {1280, 0, 640, 540}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(2, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(3, {1280, 540, 640, 540}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(3, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(4, {640, 540, 640, 540}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(4, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(5, {0, 540, 640, 540}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(5, 64);
+        if (ret != KSuccess)
+            return ret;
+        break;
+    }
+    case Config::Scene::Mode::SIX1:
+    {
+        ret = vo.StartChannel(0, {0, 0, 1280, 720}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(0, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(1, {1280, 0, 640, 360}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(1, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(2, {1280, 360, 640, 360}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(2, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(3, {1280, 720, 640, 360}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(3, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(4, {640, 720, 640, 360}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(4, 64);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.StartChannel(5, {0, 720, 640, 360}, 0);
+        if (ret != KSuccess)
+            return ret;
+        ret = vo.SetChannelFrameRate(5, 64);
+        if (ret != KSuccess)
+            return ret;
+        break;
+    }
+
+    default:
+        RS_ASSERT(0);
+        break;
+    }
+
+    return KSuccess;
 }
 } // namespace rs
