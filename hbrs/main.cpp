@@ -12,6 +12,7 @@
 #include "common/buffer.h"
 #include "common/config.h"
 #include "common/logger.h"
+#include "common/http_server.h"
 
 using namespace rs;
 
@@ -27,7 +28,7 @@ struct option g_LongOpts[] = {
 	{"config", 1, NULL, 'c'},
 	{0, 0, 0, 0}};
 
-static RS_SCENE g_CurMainScene = TEA_FEATURE;
+static RS_SCENE g_CurMainScene = PC_CAPTURE;
 
 static bool g_Run = true;
 
@@ -59,6 +60,7 @@ int32_t main(int32_t argc, char **argv)
 	VideoEncode venc_black_board;
 	VideoEncode venc_pc;
 	VideoEncode venc_main;
+	VideoEncode venc_main2;
 	VideoDecode vdec_tea_full;
 	VideoDecode vdec_stu_full;
 	VideoDecode vdec_black_board;
@@ -163,27 +165,15 @@ int32_t main(int32_t argc, char **argv)
 	//#####################################################
 	ret = vpss_tea_fea.Initialize({0});
 	CHECK_ERROR(ret);
-	ret = vpss_tea_fea.StartUserChannel(1, {(HI_U32)Config::Instance()->video_.width, (HI_U32)Config::Instance()->video_.height});
-	CHECK_ERROR(ret);
 	ret = vpss_stu_fea.Initialize({1});
-	CHECK_ERROR(ret);
-	ret = vpss_stu_fea.StartUserChannel(1, {(HI_U32)Config::Instance()->video_.width, (HI_U32)Config::Instance()->video_.height});
 	CHECK_ERROR(ret);
 	ret = vpss_tea_full.Initialize({2});
 	CHECK_ERROR(ret);
-	ret = vpss_tea_full.StartUserChannel(1, {(HI_U32)Config::Instance()->video_.width, (HI_U32)Config::Instance()->video_.height});
-	CHECK_ERROR(ret);
 	ret = vpss_stu_full.Initialize({3});
-	CHECK_ERROR(ret);
-	ret = vpss_stu_full.StartUserChannel(1, {(HI_U32)Config::Instance()->video_.width, (HI_U32)Config::Instance()->video_.height});
 	CHECK_ERROR(ret);
 	ret = vpss_black_board.Initialize({4});
 	CHECK_ERROR(ret);
-	ret = vpss_black_board.StartUserChannel(1, {(HI_U32)Config::Instance()->video_.width, (HI_U32)Config::Instance()->video_.height});
-	CHECK_ERROR(ret);
 	ret = vpss_pc.Initialize({5});
-	CHECK_ERROR(ret);
-	ret = vpss_pc.StartUserChannel(1, {(HI_U32)Config::Instance()->video_.width, (HI_U32)Config::Instance()->video_.height});
 	CHECK_ERROR(ret);
 	ret = MPPSystem::Bind<HI_ID_VOU, HI_ID_VPSS>(10, 0, 0, 0);
 	CHECK_ERROR(ret);
@@ -200,66 +190,74 @@ int32_t main(int32_t argc, char **argv)
 	//#####################################################
 	//初始化主画面,由原始输入视频合成,vir_vo->vpss
 	//#####################################################
-	ret = vo_main.Initialize({12, 0, VO_OUTPUT_1080P60});
+	ret = vo_main.Initialize({12, 0, VO_OUTPUT_1080P25});
 	CHECK_ERROR(ret);
-	ret = VideoOutput::SetSceneMode(vo_main, Config::Instance()->scene_.mode);
+	ret = vo_main.StopAllChn();
 	CHECK_ERROR(ret);
+
+	std::map<int, std::pair<RECT_S, int>> scene_pos = VideoOutput::GetScenePos(Config::Instance()->scene_.mode);
 	for (auto it = Config::Instance()->scene_.mapping.begin(); it != Config::Instance()->scene_.mapping.end(); it++)
 	{
-		if (it->second == MAIN)
+		if (scene_pos.count(it->first) == 0)
+						continue;
+		
+		ret = vo_main.StartChannel(it->first, scene_pos[it->first].first, scene_pos[it->first].second);
+		CHECK_ERROR(ret);
+
+		switch (it->second)
 		{
+		case TEA_FEATURE:
+			vpss_tea_fea.StartUserChannel(3, scene_pos[it->first].first);
+			CHECK_ERROR(ret);
+			ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(it->second, 3, 12, it->first);
+			CHECK_ERROR(ret);
+			break;
+		case STU_FEATURE:
+			vpss_stu_fea.StartUserChannel(3, scene_pos[it->first].first);
+			CHECK_ERROR(ret);
+			ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(it->second, 3, 12, it->first);
+			CHECK_ERROR(ret);
+			break;
+		case TEA_FULL_VIEW:
+			vpss_tea_full.StartUserChannel(3, scene_pos[it->first].first);
+			CHECK_ERROR(ret);
+			ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(it->second, 3, 12, it->first);
+			CHECK_ERROR(ret);
+			break;
+		case STU_FULL_VIEW:
+			vpss_stu_full.StartUserChannel(3, scene_pos[it->first].first);
+			CHECK_ERROR(ret);
+			ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(it->second, 3, 12, it->first);
+			CHECK_ERROR(ret);
+			break;
+		case BLACK_BOARD_FEATURE:
+			vpss_black_board.StartUserChannel(3, scene_pos[it->first].first);
+			CHECK_ERROR(ret);
+			ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(it->second, 3, 12, it->first);
+			CHECK_ERROR(ret);
+			break;
+		case PC_CAPTURE:
+			vpss_pc.StartUserChannel(3, scene_pos[it->first].first);
+			CHECK_ERROR(ret);
+			ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(it->second, 3, 12, it->first);
+			CHECK_ERROR(ret);
+			break;
+		case MAIN:
 			ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(g_CurMainScene, 4, 12, it->first);
 			CHECK_ERROR(ret);
-		}
-		else
-		{
-			ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(it->second, 4, 12, it->first);
-			CHECK_ERROR(ret);
+			break;
+		default:
+			break;
 		}
 	}
 	ret = vpss_main.Initialize({6});
 	CHECK_ERROR(ret);
-	ret = vpss_main.SetFrameRateControl(RS_MAIN_FRAME_RATE, RS_FRAME_RATE);
-	CHECK_ERROR(ret);
-	ret = vpss_main.StartUserChannel(1, {(HI_U32)Config::Instance()->video_.width, (HI_U32)Config::Instance()->video_.height});
-	CHECK_ERROR(ret);
 	ret = MPPSystem::Bind<HI_ID_VOU, HI_ID_VPSS>(12, 0, 6, 0);
-	CHECK_ERROR(ret);
-	//#####################################################
-	//初始化视频编码器,具有录制/直播双码流,vpss->venc
-	//#####################################################
-	ret = venc_tea_fea.Initialize({0, 0, Config::Instance()->video_.width, Config::Instance()->video_.height, RS_FRAME_RATE, 0, Config::Instance()->video_.bitrate, VENC_RC_MODE_H264CBR});
-	CHECK_ERROR(ret);
-	ret = venc_stu_fea.Initialize({1, 1, Config::Instance()->video_.width, Config::Instance()->video_.height, RS_FRAME_RATE, 0, Config::Instance()->video_.bitrate, VENC_RC_MODE_H264CBR});
-	CHECK_ERROR(ret);
-	ret = venc_tea_full.Initialize({2, 2, Config::Instance()->video_.width, Config::Instance()->video_.height, RS_FRAME_RATE, 0, Config::Instance()->video_.bitrate, VENC_RC_MODE_H264CBR});
-	CHECK_ERROR(ret);
-	ret = venc_stu_full.Initialize({3, 3, Config::Instance()->video_.width, Config::Instance()->video_.height, RS_FRAME_RATE, 0, Config::Instance()->video_.bitrate, VENC_RC_MODE_H264CBR});
-	CHECK_ERROR(ret);
-	ret = venc_black_board.Initialize({4, 4, Config::Instance()->video_.width, Config::Instance()->video_.height, RS_FRAME_RATE, 0, Config::Instance()->video_.bitrate, VENC_RC_MODE_H264CBR});
-	CHECK_ERROR(ret);
-	ret = venc_pc.Initialize({5, 5, Config::Instance()->video_.width, Config::Instance()->video_.height, RS_FRAME_RATE, 0, Config::Instance()->video_.bitrate, VENC_RC_MODE_H264CBR});
-	CHECK_ERROR(ret);
-	ret = venc_main.Initialize({6, 6, Config::Instance()->video_.width, Config::Instance()->video_.height, RS_FRAME_RATE, 0, Config::Instance()->video_.bitrate, VENC_RC_MODE_H264CBR});
-	CHECK_ERROR(ret);
-	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(0, 1, 0, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(1, 1, 1, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(2, 1, 2, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(3, 1, 3, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(4, 1, 4, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(5, 1, 5, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(6, 1, 6, 0);
 	CHECK_ERROR(ret);
 	//#####################################################
 	//初始化屏幕显示 vpss->phy_vo
 	//#####################################################
-	ret = vo_disp.Initialize({0, VO_INTF_BT1120 | VO_INTF_VGA | VO_INTF_HDMI, Config::Instance()->system_.disp_vo_intf_sync});
+	ret = vo_disp.Initialize({0, VO_INTF_VGA | VO_INTF_HDMI, Config::Instance()->system_.disp_vo_intf_sync});
 	CHECK_ERROR(ret);
 	for (auto it = Config::Instance()->system_.chns.begin(); it != Config::Instance()->system_.chns.end(); it++)
 	{
@@ -279,9 +277,110 @@ int32_t main(int32_t argc, char **argv)
 			CHECK_ERROR(ret);
 		}
 	}
+	//#####################################################
+	//初始化视频编码器,具有录制/直播双码流,vpss->venc
+	//#####################################################
+	if (Config::Instance()->IsResourceMode())
+	{
+		vpss_tea_fea.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
+		CHECK_ERROR(ret);
+		vpss_stu_fea.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
+		CHECK_ERROR(ret);
+		vpss_tea_full.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
+		CHECK_ERROR(ret);
+		vpss_stu_full.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
+		CHECK_ERROR(ret);
+		vpss_black_board.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
+		CHECK_ERROR(ret);
+		vpss_pc.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
+		CHECK_ERROR(ret);
+
+		ret = venc_tea_fea.Initialize({0, 0, Config::Instance()->video_.record_width, Config::Instance()->video_.record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.record_bitrate, VENC_RC_MODE_H264CBR});
+		CHECK_ERROR(ret);
+		ret = venc_stu_fea.Initialize({1, 1, Config::Instance()->video_.record_width, Config::Instance()->video_.record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.record_bitrate, VENC_RC_MODE_H264CBR});
+		CHECK_ERROR(ret);
+		ret = venc_tea_full.Initialize({2, 2, Config::Instance()->video_.record_width, Config::Instance()->video_.record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.record_bitrate, VENC_RC_MODE_H264CBR});
+		CHECK_ERROR(ret);
+		ret = venc_stu_full.Initialize({3, 3, Config::Instance()->video_.record_width, Config::Instance()->video_.record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.record_bitrate, VENC_RC_MODE_H264CBR});
+		CHECK_ERROR(ret);
+		ret = venc_black_board.Initialize({4, 4, Config::Instance()->video_.record_width, Config::Instance()->video_.record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.record_bitrate, VENC_RC_MODE_H264CBR});
+		CHECK_ERROR(ret);
+		ret = venc_pc.Initialize({5, 5, Config::Instance()->video_.record_width, Config::Instance()->video_.record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.record_bitrate, VENC_RC_MODE_H264CBR});
+		CHECK_ERROR(ret);
+	}
+	else
+	{
+		vpss_tea_fea.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.live_width, (HI_U32)Config::Instance()->video_.live_height});
+		CHECK_ERROR(ret);
+		vpss_stu_fea.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.live_width, (HI_U32)Config::Instance()->video_.live_height});
+		CHECK_ERROR(ret);
+		vpss_tea_full.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.live_width, (HI_U32)Config::Instance()->video_.live_height});
+		CHECK_ERROR(ret);
+		vpss_stu_full.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.live_width, (HI_U32)Config::Instance()->video_.live_height});
+		CHECK_ERROR(ret);
+		vpss_black_board.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.live_width, (HI_U32)Config::Instance()->video_.live_height});
+		CHECK_ERROR(ret);
+		vpss_pc.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.live_width, (HI_U32)Config::Instance()->video_.live_height});
+		CHECK_ERROR(ret);
+
+		ret = venc_tea_fea.Initialize({0, 0, Config::Instance()->video_.live_width, Config::Instance()->video_.live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.live_bitrate, VENC_RC_MODE_H264CBR});
+		CHECK_ERROR(ret);
+		ret = venc_stu_fea.Initialize({1, 1, Config::Instance()->video_.live_width, Config::Instance()->video_.live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.live_bitrate, VENC_RC_MODE_H264CBR});
+		CHECK_ERROR(ret);
+		ret = venc_tea_full.Initialize({2, 2, Config::Instance()->video_.live_width, Config::Instance()->video_.live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.live_bitrate, VENC_RC_MODE_H264CBR});
+		CHECK_ERROR(ret);
+		ret = venc_stu_full.Initialize({3, 3, Config::Instance()->video_.live_width, Config::Instance()->video_.live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.live_bitrate, VENC_RC_MODE_H264CBR});
+		CHECK_ERROR(ret);
+		ret = venc_black_board.Initialize({4, 4, Config::Instance()->video_.live_width, Config::Instance()->video_.live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.live_bitrate, VENC_RC_MODE_H264CBR});
+		CHECK_ERROR(ret);
+		ret = venc_pc.Initialize({5, 5, Config::Instance()->video_.live_width, Config::Instance()->video_.live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.live_bitrate, VENC_RC_MODE_H264CBR});
+		CHECK_ERROR(ret);
+	}
+
+	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(0, 1, 0, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(1, 1, 1, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(2, 1, 2, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(3, 1, 3, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(4, 1, 4, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(5, 1, 5, 0);
+	CHECK_ERROR(ret);
+
+	if (Config::Instance()->IsResourceMode())
+	{
+		vpss_main.StartUserChannel(1, {0, 0,(HI_U32) Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
+		CHECK_ERROR(ret);
+		ret = venc_main.Initialize({6, 6, Config::Instance()->video_.record_width, Config::Instance()->video_.record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.record_bitrate, VENC_RC_MODE_H264CBR});
+		CHECK_ERROR(ret);
+		ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(6, 1, 6, 0);
+		CHECK_ERROR(ret);
+	}
+	else
+	{
+		vpss_main.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
+		CHECK_ERROR(ret);
+		vpss_main.StartUserChannel(3, {0, 0, (HI_U32)Config::Instance()->video_.live_width, (HI_U32)Config::Instance()->video_.live_height});
+		CHECK_ERROR(ret);
+		ret = venc_main.Initialize({6, 6, Config::Instance()->video_.record_width, Config::Instance()->video_.record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.record_bitrate, VENC_RC_MODE_H264CBR});
+		CHECK_ERROR(ret);
+		ret = venc_main2.Initialize({7, 7, Config::Instance()->video_.live_width, Config::Instance()->video_.live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.live_bitrate, VENC_RC_MODE_H264CBR});
+		CHECK_ERROR(ret);
+		ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(6, 1, 6, 0);
+		CHECK_ERROR(ret);
+		ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(6, 3, 7, 0);
+		CHECK_ERROR(ret);
+	}
+
+	HttpServer http_server;
+	http_server.Initialize("0.0.0.0", 8080);
 
 	while (g_Run)
-		sleep(10000);
-
+	{
+		http_server.Dispatch();
+	}
 	return 0;
 }

@@ -55,10 +55,10 @@ int32_t VideoEncode::Initialize(const Params &params)
     {
         VENC_ATTR_H264_CBR_S cbr_attr;
         memset(&cbr_attr, 0, sizeof(cbr_attr));
-        cbr_attr.u32Gop = params_.frame_rate;
+        cbr_attr.u32Gop = params_.dst_frame_rate;
         cbr_attr.u32StatTime = 1;
-        cbr_attr.u32ViFrmRate = params_.frame_rate;
-        cbr_attr.fr32TargetFrmRate = params_.frame_rate;
+        cbr_attr.u32ViFrmRate = params_.src_frame_rate;
+        cbr_attr.fr32TargetFrmRate = params_.dst_frame_rate;
         cbr_attr.u32BitRate = params_.bitrate;
         cbr_attr.u32FluctuateLevel = 0;
         chn_attr.stRcAttr.enRcMode = VENC_RC_MODE_H264CBR;
@@ -70,10 +70,10 @@ int32_t VideoEncode::Initialize(const Params &params)
     {
         VENC_ATTR_H264_VBR_S vbr_attr;
         memset(&vbr_attr, 0, sizeof(vbr_attr));
-        vbr_attr.u32Gop = params_.frame_rate;
+        vbr_attr.u32Gop = params_.dst_frame_rate;
         vbr_attr.u32StatTime = 1;
-        vbr_attr.u32ViFrmRate = params_.frame_rate;
-        vbr_attr.fr32TargetFrmRate = params_.frame_rate;
+        vbr_attr.u32ViFrmRate = params_.src_frame_rate;
+        vbr_attr.fr32TargetFrmRate = params_.dst_frame_rate;
         vbr_attr.u32MinQp = 24;
         vbr_attr.u32MaxQp = 32;
         vbr_attr.u32MaxBitRate = params_.bitrate;

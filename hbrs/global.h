@@ -59,6 +59,15 @@
 #include <elog.h>
 //json
 #include <json/json.h>
+//libevent http
+#include <event2/http.h>
+#include <sys/queue.h>
+#include <event2/event.h>
+#include <event2/buffer.h>
+#include <event2/http_compat.h>
+#include <event2/http_struct.h>
+#include <event2/buffer_compat.h>
+
 
 #define RS_ALIGN_WIDTH 64                               //图像对齐大小
 #define RS_PIXEL_FORMAT PIXEL_FORMAT_YUV_SEMIPLANAR_420 //图像像素格式

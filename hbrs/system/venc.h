@@ -15,7 +15,8 @@ struct Params
     int32_t chn;
     int32_t width;
     int32_t height;
-    int32_t frame_rate;
+    int32_t src_frame_rate;
+    int32_t dst_frame_rate;
     int32_t profile;
     int32_t bitrate;
     VENC_RC_MODE_E mode;

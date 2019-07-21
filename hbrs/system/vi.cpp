@@ -184,7 +184,10 @@ int32_t VideoInput::Initialize(const Params &params)
             }
 
             int_cnt = stat.u32IntCnt;
-            usleep(1000000); //1000ms
+            int wait_time = 10;
+
+            while (run_ && wait_time--)
+                usleep(500000); //500ms
         }
 
         ret = HI_MPI_VI_DisableChn(params_.chn);
@@ -244,7 +247,7 @@ void VIHelper::OnChange(const VideoInputFormat &fmt, int chn)
 
 VIHelper::VIHelper(int dev, int chn, VideoOutput *vo) : dev_(dev),
                                                         chn_(chn),
-                                                        vo_(vo)                                 
+                                                        vo_(vo)
 {
 }
 

@@ -305,249 +305,80 @@ int VideoOutput::ClearDispBuffer(int chn)
     return KSuccess;
 }
 
-int VideoOutput::SetSceneMode(VideoOutput &vo, int mode)
+std::map<int, std::pair<RECT_S, int>> VideoOutput::GetScenePos(int mode)
 {
-    int ret;
-
-    ret = vo.StopAllChn();
-    if (ret != KSuccess)
-        return ret;
+    std::map<int, std::pair<RECT_S, int>> res;
 
     switch (mode)
     {
     case Config::Scene::Mode::NORMAL_MODE:
     {
-        ret = vo.StartChannel(0, {0, 0, 1920, 1080}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(0, 64);
-        if (ret != KSuccess)
-            return ret;
+        res[0] = std::make_pair<RECT_S, int>({0, 0, 1920, 1080}, 0);
         break;
     }
     case Config::Scene::Mode::PIP_MODE:
     {
-        ret = vo.StartChannel(0, {0, 0, 1920, 1080}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(0, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(1, {1340, 660, 480, 320}, 1); //边距100px
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(1, 64);
-        if (ret != KSuccess)
-            return ret;
+        res[0] = std::make_pair<RECT_S, int>({0, 0, 1920, 1080}, 0);
+        res[1] = std::make_pair<RECT_S, int>({1340, 660, 480, 320}, 1);
         break;
     }
 
     case Config::Scene::Mode::TWO:
     {
-        ret = vo.StartChannel(0, {0, 0, 960, 1080}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(0, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(1, {960, 0, 960, 1080}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(1, 64);
-        if (ret != KSuccess)
-            return ret;
+        res[0] = std::make_pair<RECT_S, int>({0, 0, 960, 1080}, 0);
+        res[1] = std::make_pair<RECT_S, int>({960, 0, 920, 1080}, 0);
         break;
     }
     case Config::Scene::Mode::THREE:
     {
-        ret = vo.StartChannel(0, {0, 0, 1280, 1080}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(0, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(1, {1280, 0, 640, 540}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(1, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(2, {1280, 540, 640, 540}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(2, 64);
-        if (ret != KSuccess)
-            return ret;
+        res[0] = std::make_pair<RECT_S, int>({0, 0, 1280, 1080}, 0);
+        res[1] = std::make_pair<RECT_S, int>({1280, 0, 640, 540}, 0);
+        res[2] = std::make_pair<RECT_S, int>({1280, 540, 640, 540}, 0);
         break;
     }
     case Config::Scene::Mode::FOUR:
     {
-        ret = vo.StartChannel(0, {0, 0, 960, 540}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(0, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(1, {960, 0, 960, 540}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(1, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(2, {0, 540, 960, 540}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(2, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(3, {960, 540, 960, 540}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(3, 64);
-        if (ret != KSuccess)
-            return ret;
+        res[0] = std::make_pair<RECT_S, int>({0, 0, 960, 540}, 0);
+        res[1] = std::make_pair<RECT_S, int>({960, 0, 960, 540}, 0);
+        res[2] = std::make_pair<RECT_S, int>({0, 540, 960, 540}, 0);
+        res[3] = std::make_pair<RECT_S, int>({960, 540, 960, 540}, 0);
         break;
     }
     case Config::Scene::Mode::FOUR1:
     {
-        ret = vo.StartChannel(0, {0, 0, 1440, 1080}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(0, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(1, {1440, 0, 480, 360}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(1, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(2, {1440, 360, 480, 360}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(2, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(3, {1440, 720, 480, 360}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(3, 64);
-        if (ret != KSuccess)
-            return ret;
+        res[0] = std::make_pair<RECT_S, int>({0, 0, 1440, 1080}, 0);
+        res[1] = std::make_pair<RECT_S, int>({1440, 0, 480, 360}, 0);
+        res[2] = std::make_pair<RECT_S, int>({1440, 360, 480, 360}, 0);
+        res[3] = std::make_pair<RECT_S, int>({1440, 720, 480, 360}, 0);
         break;
     }
     case Config::Scene::Mode::FIVE:
     {
-        ret = vo.StartChannel(0, {0, 0, 960, 1080}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(0, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(1, {1440, 0, 480, 540}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(1, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(2, {1440, 540, 480, 540}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(2, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(3, {960, 0, 480, 540}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(3, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(4, {960, 540, 480, 540}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(4, 64);
-        if (ret != KSuccess)
-            return ret;
+        res[0] = std::make_pair<RECT_S, int>({0, 0, 960, 1080}, 0);
+        res[1] = std::make_pair<RECT_S, int>({1440, 0, 480, 540}, 0);
+        res[2] = std::make_pair<RECT_S, int>({1440, 540, 480, 540}, 0);
+        res[3] = std::make_pair<RECT_S, int>({960, 0, 480, 540}, 0);
+        res[4] = std::make_pair<RECT_S, int>({960, 540, 480, 540}, 0);
         break;
     }
     case Config::Scene::Mode::SIX:
     {
-        ret = vo.StartChannel(0, {0, 0, 640, 540}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(0, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(1, {640, 0, 640, 540}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(1, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(2, {1280, 0, 640, 540}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(2, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(3, {1280, 540, 640, 540}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(3, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(4, {640, 540, 640, 540}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(4, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(5, {0, 540, 640, 540}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(5, 64);
-        if (ret != KSuccess)
-            return ret;
+        res[0] = std::make_pair<RECT_S, int>({0, 0, 640, 540}, 0);
+        res[1] = std::make_pair<RECT_S, int>({640, 0, 640, 540}, 0);
+        res[2] = std::make_pair<RECT_S, int>({1280, 0, 640, 540}, 0);
+        res[3] = std::make_pair<RECT_S, int>({1280, 540, 640, 540}, 0);
+        res[4] = std::make_pair<RECT_S, int>({640, 540, 640, 540}, 0);
+        res[5] = std::make_pair<RECT_S, int>({0, 540, 640, 540}, 0);
         break;
     }
     case Config::Scene::Mode::SIX1:
     {
-        ret = vo.StartChannel(0, {0, 0, 1280, 720}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(0, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(1, {1280, 0, 640, 360}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(1, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(2, {1280, 360, 640, 360}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(2, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(3, {1280, 720, 640, 360}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(3, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(4, {640, 720, 640, 360}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(4, 64);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.StartChannel(5, {0, 720, 640, 360}, 0);
-        if (ret != KSuccess)
-            return ret;
-        ret = vo.SetChannelFrameRate(5, 64);
-        if (ret != KSuccess)
-            return ret;
+        res[0] = std::make_pair<RECT_S, int>({0, 0, 1280, 720}, 0);
+        res[1] = std::make_pair<RECT_S, int>({1280, 0, 640, 360}, 0);
+        res[2] = std::make_pair<RECT_S, int>({1280, 360, 640, 360}, 0);
+        res[3] = std::make_pair<RECT_S, int>({1280, 720, 640, 360}, 0);
+        res[4] = std::make_pair<RECT_S, int>({640, 720, 640, 360}, 0);
+        res[5] = std::make_pair<RECT_S, int>({0, 720, 640, 360}, 0);
         break;
     }
 
@@ -556,6 +387,6 @@ int VideoOutput::SetSceneMode(VideoOutput &vo, int mode)
         break;
     }
 
-    return KSuccess;
+    return res;
 }
 } // namespace rs

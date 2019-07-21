@@ -10,9 +10,13 @@ class Config
 public:
     struct Video
     {
-        int width;
-        int height;
-        int bitrate;
+        int record_width;
+        int record_height;
+        int record_bitrate;
+
+        int live_width;
+        int live_height;
+        int live_bitrate;
     };
 
     struct Scene
@@ -57,6 +61,8 @@ public:
     void Close();
 
     int WriteToFile();
+
+    bool IsResourceMode();
 
 protected:
     explicit Config();

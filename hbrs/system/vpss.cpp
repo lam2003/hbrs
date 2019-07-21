@@ -68,7 +68,7 @@ int32_t VideoProcess::Initialize(const Params &params)
     return KSuccess;
 }
 
-int VideoProcess::StartUserChannel(int chn, const SIZE_S &size)
+int VideoProcess::StartUserChannel(int chn, const RECT_S &rect)
 {
     if (!init_)
         return KUnInitialized;
@@ -78,8 +78,8 @@ int VideoProcess::StartUserChannel(int chn, const SIZE_S &size)
     memset(&chn_mode, 0, sizeof(chn_mode));
 
     chn_mode.enChnMode = VPSS_CHN_MODE_USER;
-    chn_mode.u32Width = size.u32Width;
-    chn_mode.u32Height = size.u32Height;
+    chn_mode.u32Width = rect.u32Width;
+    chn_mode.u32Height = rect.u32Height;
     chn_mode.bDouble = HI_FALSE;
     chn_mode.enPixelFormat = RS_PIXEL_FORMAT;
 

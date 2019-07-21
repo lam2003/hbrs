@@ -15,6 +15,7 @@ libresampler.a
 libtde.a
 libjpeg.a
 libpciv.a
+libevent.a
 pthread
 dl
 rt

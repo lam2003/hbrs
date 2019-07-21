@@ -37,7 +37,7 @@ public:
 
     int SetChannelFrameRate(int chn, int frame_rate);
 
-    static int SetSceneMode(VideoOutput &vo, int mode);
+    static std::map<int, std::pair<RECT_S, int>> GetScenePos(int mode);
 
 protected:
     static int32_t StartHDMI(HI_HDMI_ID_E dev, VO_INTF_SYNC_E intf_sync);
