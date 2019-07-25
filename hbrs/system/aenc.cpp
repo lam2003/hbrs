@@ -26,7 +26,6 @@ int AudioEncode::Initialize()
         int ret;
         uint64_t ts = 0;
         uint64_t duration = (1000000 * 1024) / 44100;
-        printf("%lld\n",duration);
 
         AACENC_CONFIG config;
         ret = AACInitDefaultConfig(&config);

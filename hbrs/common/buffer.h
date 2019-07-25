@@ -118,4 +118,10 @@ private:
     uint32_t end_pos_;
 };
 
+struct MMZBuffer
+{
+    uint8_t *vir_addr;
+    uint32_t phy_addr;
+};
+
 } // namespace rs

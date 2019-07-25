@@ -88,9 +88,10 @@ int32_t VideoOutput::StartHDMI(HI_HDMI_ID_E dev, VO_INTF_SYNC_E intf_sync)
     attr.enVidOutMode = HI_HDMI_VIDEO_MODE_YCBCR444;
     attr.enDeepColorMode = HI_HDMI_DEEP_COLOR_OFF;
     attr.bxvYCCMode = HI_FALSE;
-    attr.bEnableAudio = HI_FALSE;
+    attr.bEnableAudio = HI_TRUE;
     attr.enSoundIntf = HI_HDMI_SND_INTERFACE_I2S;
     attr.bIsMultiChannel = HI_FALSE;
+    attr.enSampleRate = HI_HDMI_SAMPLE_RATE_44K;
     attr.enBitDepth = HI_HDMI_BIT_DEPTH_16;
     attr.bEnableAviInfoFrame = HI_TRUE;
     attr.bEnableAudInfoFrame = HI_TRUE;

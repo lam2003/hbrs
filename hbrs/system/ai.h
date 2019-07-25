@@ -1,7 +1,7 @@
 #pragma once
 
 #include "global.h"
-#include "common/audio_define.h"
+#include "common/av_define.h"
 
 namespace rs
 {

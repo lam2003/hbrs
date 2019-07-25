@@ -2,7 +2,7 @@
 
 //self
 #include "global.h"
-#include "common/video_define.h"
+#include "common/av_define.h"
 
 namespace rs
 {
@@ -35,16 +35,17 @@ public:
 
     void Close();
 
-    void SetVideoSink(VideoSink<VENC_STREAM_S> *video_sink);
+    void SetVideoSink(VideoSink<VENCFrame> *video_sink);
 
 private:
     venc::Params params_;
     std::mutex video_sink_mux_;
     std::unique_ptr<std::thread> thread_;
     std::atomic<bool> run_;
-    VideoSink<VENC_STREAM_S> *video_sink_;
+    VideoSink<VENCFrame> *video_sink_;
     bool init_;
 
     static const int PacketBufferSize;
+    static const int BufferSize;
 };
 } // namespace rs

@@ -2,7 +2,7 @@
 
 //self
 #include "global.h"
-#include "common/video_define.h"
+#include "common/av_define.h"
 
 namespace rs
 {

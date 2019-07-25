@@ -1,12 +1,14 @@
 //self
 #include "system/venc.h"
 #include "common/err_code.h"
+#include "common/buffer.h"
 
 namespace rs
 {
 using namespace venc;
 
 const int VideoEncode::PacketBufferSize = 64 * 1024;
+const int VideoEncode::BufferSize = 2 * 1024 * 1024;
 
 VideoEncode::VideoEncode() : thread_(nullptr),
                              run_(false),
@@ -111,6 +113,14 @@ int32_t VideoEncode::Initialize(const Params &params)
     thread_ = std::unique_ptr<std::thread>(new std::thread([this]() {
         int32_t ret;
 
+        MMZBuffer mmz_buffer;
+        ret = HI_MPI_SYS_MmzAlloc(&mmz_buffer.phy_addr, reinterpret_cast<void **>(&mmz_buffer.vir_addr), nullptr, "ddr1", BufferSize);
+        if (ret != KSuccess)
+        {
+            log_e("HI_MPI_SYS_MmzAlloc failed with %#x", ret);
+            return;
+        }
+
         ret = HI_MPI_VENC_StartRecvPic(params_.chn);
         if (ret != KSuccess)
         {
@@ -191,7 +201,18 @@ int32_t VideoEncode::Initialize(const Params &params)
                 if (video_sink_ != nullptr)
                 {
                     for (uint32_t i = 0; i < stream.u32PackCount; i++)
-                        video_sink_->OnFrame(stream, params_.chn);
+                    {
+                        uint32_t len = stream.pstPack[i].u32Len[0] + stream.pstPack[i].u32Len[1];
+                        memcpy(mmz_buffer.vir_addr, stream.pstPack[i].pu8Addr[0], stream.pstPack[i].u32Len[0]);
+                        memcpy(mmz_buffer.vir_addr + stream.pstPack[i].u32Len[0], stream.pstPack[i].pu8Addr[1], stream.pstPack[i].u32Len[1]);
+
+                        VENCFrame frame;
+                        frame.len = len;
+                        frame.data = mmz_buffer.vir_addr;
+                        frame.type = stream.pstPack[i].DataType.enH264EType;
+                        frame.ts = stream.pstPack[i].u64PTS;
+                        video_sink_->OnFrame(frame);
+                    }
                 }
             }
 
@@ -210,6 +231,10 @@ int32_t VideoEncode::Initialize(const Params &params)
             log_e("HI_MPI_VENC_StopRecvPic failed with %#x", ret);
             return;
         }
+
+        ret = HI_MPI_SYS_MmzFree(mmz_buffer.phy_addr, mmz_buffer.vir_addr);
+        if (ret != KSuccess)
+            log_e("HI_MPI_SYS_MmzFree failed with %#x", ret);
     }));
 
     init_ = true;
@@ -241,7 +266,7 @@ void VideoEncode::Close()
     init_ = false;
 }
 
-void VideoEncode::SetVideoSink(VideoSink<VENC_STREAM_S> *video_sink)
+void VideoEncode::SetVideoSink(VideoSink<VENCFrame> *video_sink)
 {
     std::unique_lock<std::mutex> lock(video_sink_mux_);
     video_sink_ = video_sink;

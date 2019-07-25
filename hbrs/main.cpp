@@ -8,6 +8,7 @@
 #include "system/venc.h"
 #include "system/vdec.h"
 #include "system/ai.h"
+#include "system/ao.h"
 #include "system/aenc.h"
 #include "common/buffer.h"
 #include "common/config.h"
@@ -44,6 +45,9 @@ int32_t main(int32_t argc, char **argv)
 {
 	int ret;
 
+	AudioInput ai;
+	AudioEncode aenc;
+	AudioOutput ao;
 	VideoProcess vpss_tea_fea;
 	VideoProcess vpss_stu_fea;
 	VideoProcess vpss_tea_full;
@@ -69,6 +73,8 @@ int32_t main(int32_t argc, char **argv)
 	VideoOutput vo_stu_fea;
 	VideoOutput vo_main;
 	VideoOutput vo_disp;
+
+	av_register_all();
 
 	ConfigLogger();
 
@@ -106,6 +112,23 @@ int32_t main(int32_t argc, char **argv)
 
 	ret = MPPSystem::Instance()->Initialize();
 	CHECK_ERROR(ret);
+	//#####################################################
+	//初始化音频输入
+	//#####################################################
+	ret = ai.Initialize({4, 0});
+	CHECK_ERROR(ret);
+	//#####################################################
+	//初始化音频编码
+	//#####################################################
+	ret = aenc.Initialize();
+	CHECK_ERROR(ret);
+	ai.AddAudioSink(&aenc);
+	//#####################################################
+	//初始化音频输出
+	//#####################################################
+	ret = ao.Initialize({4, 0});
+	CHECK_ERROR(ret);
+	MPPSystem::Bind<HI_ID_AI, HI_ID_AO>(4, 0, 4, 0);
 	//#####################################################
 	//初始化从片数据的四路解码器,pciv->vdec
 	//#####################################################
@@ -199,8 +222,8 @@ int32_t main(int32_t argc, char **argv)
 	for (auto it = Config::Instance()->scene_.mapping.begin(); it != Config::Instance()->scene_.mapping.end(); it++)
 	{
 		if (scene_pos.count(it->first) == 0)
-						continue;
-		
+			continue;
+
 		ret = vo_main.StartChannel(it->first, scene_pos[it->first].first, scene_pos[it->first].second);
 		CHECK_ERROR(ret);
 
@@ -352,7 +375,7 @@ int32_t main(int32_t argc, char **argv)
 
 	if (Config::Instance()->IsResourceMode())
 	{
-		vpss_main.StartUserChannel(1, {0, 0,(HI_U32) Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
+		vpss_main.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
 		CHECK_ERROR(ret);
 		ret = venc_main.Initialize({6, 6, Config::Instance()->video_.record_width, Config::Instance()->video_.record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.record_bitrate, VENC_RC_MODE_H264CBR});
 		CHECK_ERROR(ret);

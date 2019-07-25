@@ -16,6 +16,10 @@ libtde.a
 libjpeg.a
 libpciv.a
 libevent.a
+libavformat.a
+libavcodec.a
+libavutil.a
+libswresample.a
 pthread
 dl
 rt
