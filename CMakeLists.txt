@@ -13,8 +13,8 @@ set(CMAKE_SKIP_RPATH true)
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
 
-set(CMAKE_CXX_FLAGS "-g -Wall ${CMAKE_CXX_FLAGS}")
-set(CMAKE_C_FLAGS "-g -Wall ${CMAKE_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "-g -Wall -Wno-deprecated-declarations ${CMAKE_CXX_FLAGS}")
+set(CMAKE_C_FLAGS "-g -Wall -Wno-deprecated-declarations ${CMAKE_C_FLAGS}")
 
 
 include_directories(

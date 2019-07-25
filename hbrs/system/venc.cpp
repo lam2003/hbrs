@@ -7,9 +7,6 @@ namespace rs
 {
 using namespace venc;
 
-const int VideoEncode::PacketBufferSize = 64 * 1024;
-const int VideoEncode::BufferSize = 2 * 1024 * 1024;
-
 VideoEncode::VideoEncode() : thread_(nullptr),
                              run_(false),
                              video_sink_(nullptr),
@@ -114,12 +111,12 @@ int32_t VideoEncode::Initialize(const Params &params)
         int32_t ret;
 
         MMZBuffer mmz_buffer;
-        ret = HI_MPI_SYS_MmzAlloc(&mmz_buffer.phy_addr, reinterpret_cast<void **>(&mmz_buffer.vir_addr), nullptr, "ddr1", BufferSize);
-        if (ret != KSuccess)
-        {
-            log_e("HI_MPI_SYS_MmzAlloc failed with %#x", ret);
-            return;
-        }
+        allocator_2048k::mmz_malloc(mmz_buffer);
+
+        MMZBuffer packet_mmz_buffer;
+        allocator_128k::mmz_malloc(packet_mmz_buffer);
+        
+        uint8_t *packet_buf = packet_mmz_buffer.vir_addr;
 
         ret = HI_MPI_VENC_StartRecvPic(params_.chn);
         if (ret != KSuccess)
@@ -137,14 +134,6 @@ int32_t VideoEncode::Initialize(const Params &params)
 
         fd_set fds;
         timeval tv;
-
-        void *packet_buf = malloc(PacketBufferSize);
-        uint32_t packet_buf_size = PacketBufferSize;
-        if (!packet_buf)
-        {
-            log_e("malloc packet buffer failed");
-            return;
-        }
 
         VENC_STREAM_S stream;
         VENC_CHN_STAT_S chn_stat;
@@ -176,17 +165,6 @@ int32_t VideoEncode::Initialize(const Params &params)
                 return;
             }
 
-            if (sizeof(VENC_PACK_S) * chn_stat.u32CurPacks > packet_buf_size)
-            {
-                free(packet_buf);
-                packet_buf = malloc(sizeof(VENC_PACK_S) * chn_stat.u32CurPacks);
-                if (!packet_buf)
-                {
-                    log_e("malloc packet buffer failed");
-                    return;
-                }
-                packet_buf_size = sizeof(VENC_PACK_S) * chn_stat.u32CurPacks;
-            }
             stream.pstPack = reinterpret_cast<VENC_PACK_S *>(packet_buf);
             stream.u32PackCount = chn_stat.u32CurPacks;
 
@@ -223,7 +201,6 @@ int32_t VideoEncode::Initialize(const Params &params)
                 return;
             }
         }
-        free(packet_buf);
 
         ret = HI_MPI_VENC_StopRecvPic(params_.chn);
         if (ret != KSuccess)
@@ -232,9 +209,8 @@ int32_t VideoEncode::Initialize(const Params &params)
             return;
         }
 
-        ret = HI_MPI_SYS_MmzFree(mmz_buffer.phy_addr, mmz_buffer.vir_addr);
-        if (ret != KSuccess)
-            log_e("HI_MPI_SYS_MmzFree failed with %#x", ret);
+        allocator_64k::mmz_free(packet_mmz_buffer);
+        allocator_2048k::mmz_free(mmz_buffer);
     }));
 
     init_ = true;

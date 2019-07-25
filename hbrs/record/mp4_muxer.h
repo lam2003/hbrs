@@ -6,7 +6,7 @@
 
 namespace rs
 {
-namespace mp4
+namespace mp4_muxer
 {
 struct Params
 {
@@ -16,7 +16,7 @@ struct Params
     int samplate_rate;
     std::string filename;
 };
-} // namespace mp4
+} // namespace mp4_muxer
 
 class MP4Muxer
 {
@@ -25,7 +25,7 @@ public:
 
     virtual ~MP4Muxer();
 
-    int Initialize(const mp4::Params &params);
+    int Initialize(const mp4_muxer::Params &params);
 
     void Close();
 
@@ -34,7 +34,7 @@ public:
     int WriteAudioFrame(const AENCFrame &frame);
 
 private:
-    mp4::Params params_;
+    mp4_muxer::Params params_;
     MMZBuffer mmz_bufer_;
     int64_t aduration_;
     std::string sps_;
@@ -44,7 +44,5 @@ private:
     uint64_t ats_base;
     AVFormatContext *ctx_;
     bool init_;
-
-    static const int BufferSize;
 };
 } // namespace rs

@@ -5,6 +5,13 @@
 
 namespace rs
 {
+
+struct MMZBuffer
+{
+    uint8_t *vir_addr;
+    uint32_t phy_addr;
+};
+
 template <unsigned BlockSize>
 struct default_block_allocator_malloc_free
 {
@@ -13,14 +20,16 @@ struct default_block_allocator_malloc_free
         requested_size = BlockSize
     };
 
-    static uint8_t *ordered_malloc()
+    static void mmz_malloc(MMZBuffer &mmz_buffer)
     {
-        return (uint8_t *)malloc(requested_size);
+        int ret = HI_MPI_SYS_MmzAlloc(&mmz_buffer.phy_addr, reinterpret_cast<void **>(&mmz_buffer.vir_addr), nullptr, "ddr1", requested_size);
+        RS_ASSERT(ret == 0);
     }
 
-    static void ordered_free(uint8_t *block)
+    static void mmz_free(MMZBuffer &mmz_buffer)
     {
-        free(block);
+        int ret = HI_MPI_SYS_MmzFree(mmz_buffer.phy_addr, mmz_buffer.vir_addr);
+        RS_ASSERT(ret == 0);
     }
 };
 
@@ -45,7 +54,8 @@ public:
     typedef BlockAllocator allocator;
     Buffer()
     {
-        data_ = allocator::ordered_malloc();
+        allocator::mmz_malloc(mmz_buffer_);
+        data_ = mmz_buffer_.vir_addr;
         start_pos_ = 0;
         end_pos_ = 0;
     }
@@ -107,21 +117,16 @@ public:
 
     virtual ~Buffer()
     {
-        allocator::ordered_free(data_);
+        allocator::mmz_free(mmz_buffer_);
         start_pos_ = 0;
         end_pos_ = 0;
     }
 
 private:
+    MMZBuffer mmz_buffer_;
     uint8_t *data_;
     uint32_t start_pos_;
     uint32_t end_pos_;
-};
-
-struct MMZBuffer
-{
-    uint8_t *vir_addr;
-    uint32_t phy_addr;
 };
 
 } // namespace rs

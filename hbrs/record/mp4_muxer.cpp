@@ -4,9 +4,7 @@
 namespace rs
 {
 
-using namespace mp4;
-
-const int MP4Muxer::BufferSize = 3 * 1024 * 1024;
+using namespace mp4_muxer;
 
 MP4Muxer::MP4Muxer() : aduration_(0),
                        sps_(""),
@@ -78,12 +76,7 @@ int MP4Muxer::Initialize(const Params &params)
     pps_ = "";
     sei_ = "";
 
-    ret = HI_MPI_SYS_MmzAlloc(&mmz_bufer_.phy_addr, reinterpret_cast<void **>(&mmz_bufer_.vir_addr), nullptr, "ddr1", BufferSize);
-    if (ret != KSuccess)
-    {
-        log_e("HI_MPI_SYS_MmzAlloc failed with %#x", ret);
-        return KSDKError;
-    }
+    allocator_2048k::mmz_malloc(mmz_bufer_);
 
     ctx_ = avformat_alloc_context();
     if (!ctx_)
@@ -160,15 +153,12 @@ void MP4Muxer::Close()
 {
     if (!init_)
         return;
-    int ret;
     av_write_trailer(ctx_);
     avcodec_parameters_free(&ctx_->streams[0]->codecpar);
     avcodec_parameters_free(&ctx_->streams[1]->codecpar);
     avio_close(ctx_->pb);
     avformat_free_context(ctx_);
-    ret = HI_MPI_SYS_MmzFree(mmz_bufer_.phy_addr, mmz_bufer_.vir_addr);
-    if (ret != KSuccess)
-        log_e("HI_MPI_SYS_MmzFree failed with %#x", ret);
+    allocator_2048k::mmz_free(mmz_bufer_);
     init_ = false;
 }
 

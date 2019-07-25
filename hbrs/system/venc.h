@@ -44,8 +44,5 @@ private:
     std::atomic<bool> run_;
     VideoSink<VENCFrame> *video_sink_;
     bool init_;
-
-    static const int PacketBufferSize;
-    static const int BufferSize;
 };
 } // namespace rs
