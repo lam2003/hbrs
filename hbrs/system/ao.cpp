@@ -23,11 +23,11 @@ int AudioOutput::Initialize(const ao::Params &params)
 
     AIO_ATTR_S attr;
     memset(&attr, 0, sizeof(attr));
-    attr.enSamplerate = AUDIO_SAMPLE_RATE_48000;
+    attr.enSamplerate = AUDIO_SAMPLE_RATE_44100;
     attr.enBitwidth = AUDIO_BIT_WIDTH_16;
     attr.enWorkmode = AIO_MODE_I2S_SLAVE;
-    attr.u32FrmNum = MAX_AUDIO_FRAME_NUM;
-    attr.u32PtNumPerFrm = 480;
+    attr.u32FrmNum = 30;
+    attr.u32PtNumPerFrm = 1024;
     attr.u32ChnCnt = 2;
     attr.u32ClkSel = 1;
     attr.enSoundmode = AUDIO_SOUND_MODE_STEREO;

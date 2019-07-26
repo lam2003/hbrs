@@ -29,7 +29,7 @@ private:
     std::vector<AudioSink<AENCFrame> *> sinks_;
     std::mutex mux_;
     std::condition_variable cond_;
-    Buffer<allocator_16k> buf_;
+    Buffer<allocator_512k> buffer_;
     std::atomic<bool> run_;
     std::unique_ptr<std::thread> thread_;
     bool init_;

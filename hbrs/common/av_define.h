@@ -29,6 +29,7 @@ public:
 
 struct AIFrame
 {
+    uint64_t ts;
     uint32_t len;
     uint8_t *data;
 };

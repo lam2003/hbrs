@@ -5,6 +5,20 @@
 namespace rs
 {
 
+namespace mp4
+{
+struct Params
+{
+    int width;
+    int height;
+    int frame_rate;
+    int samplate_rate;
+    std::string filename;
+    int segment_duration;
+    bool need_to_segment;
+};
+} // namespace mp4
+
 class MP4Record : public AudioSink<AENCFrame>, public VideoSink<VENCFrame>
 {
 public:
@@ -12,7 +26,7 @@ public:
 
     virtual ~MP4Record();
 
-    int Initialize(const mp4_muxer::Params &params);
+    int Initialize(const mp4::Params &params);
 
     void Close();
 
@@ -21,6 +35,13 @@ public:
     void OnFrame(const VENCFrame &frame) override;
 
 private:
+    mp4::Params params_;
+    std::mutex mux_;
+    std::condition_variable cond_;
+    Buffer<allocator_2048k> buffer_;
+
+    std::atomic<bool> run_;
+    std::unique_ptr<std::thread> thread_;
     bool init_;
 };
 } // namespace rs

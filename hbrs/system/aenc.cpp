@@ -24,8 +24,6 @@ int AudioEncode::Initialize()
     run_ = true;
     thread_ = std::unique_ptr<std::thread>(new std::thread([this]() {
         int ret;
-        uint64_t ts = 0;
-        uint64_t duration = (1000000 * 1024) / 44100;
 
         AACENC_CONFIG config;
         ret = AACInitDefaultConfig(&config);
@@ -55,9 +53,10 @@ int AudioEncode::Initialize()
         {
             //清空缓存
             std::unique_lock<std::mutex> lock(mux_);
-            buf_.Clear();
+            buffer_.Clear();
         }
 
+        AIFrame frame;
         uint8_t tmp_buf[4096];
         uint8_t out_buf[4096];
         int out_len;
@@ -65,19 +64,22 @@ int AudioEncode::Initialize()
         {
             {
                 std::unique_lock<std::mutex> lock(mux_);
-                if (!buf_.Get(tmp_buf, sizeof(tmp_buf)))
+                if (buffer_.Get(reinterpret_cast<uint8_t *>(&frame), sizeof(frame)))
                 {
-                    if (run_)
-                    {
-                        cond_.wait(lock);
-                        continue;
-                    }
+                    memcpy(tmp_buf, buffer_.GetCurrentPos(), frame.len);
+                    frame.data = tmp_buf;
+                    buffer_.Consume(frame.len);
+                }
+                else if (run_)
+                {
+                    cond_.wait(lock);
+                    continue;
                 }
             }
 
             if (run_)
             {
-                ret = AACEncoderFrame(encoder, reinterpret_cast<short *>(tmp_buf), out_buf, &out_len);
+                ret = AACEncoderFrame(encoder, reinterpret_cast<short *>(frame.data), out_buf, &out_len);
                 if (ret != KSuccess)
                 {
                     log_e("AACEncoderFrame failed with %#x", ret);
@@ -87,15 +89,13 @@ int AudioEncode::Initialize()
                 AENCFrame aenc_frame;
                 aenc_frame.data = out_buf;
                 aenc_frame.len = out_len;
-                aenc_frame.ts = ts;
+                aenc_frame.ts = frame.ts;
 
                 {
                     std::unique_lock<std::mutex> lock(sinks_mux_);
                     for (size_t i = 0; i < sinks_.size(); i++)
                         sinks_[i]->OnFrame(aenc_frame);
                 }
-
-                ts += duration;
             }
         }
 
@@ -125,13 +125,19 @@ void AudioEncode::OnFrame(const AIFrame &frame)
     if (!init_)
         return;
 
-    std::unique_lock<std::mutex> lock(mux_);
-    if (!buf_.Append(frame.data, frame.len))
+    mux_.lock();
+    if (buffer_.FreeSpace() < frame.len + sizeof(frame))
     {
+        mux_.unlock();
         log_e("append data to buffer failed");
         return;
     }
+
+    buffer_.Append(const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(&frame)), sizeof(frame));
+    buffer_.Append(frame.data, frame.len);
+
     cond_.notify_one();
+    mux_.unlock();
 }
 
 void AudioEncode::AddAudioSink(AudioSink<AENCFrame> *sink)

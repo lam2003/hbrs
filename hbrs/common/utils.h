@@ -320,5 +320,19 @@ public:
     {
         return (num + align - 1) & ~(align - 1);
     }
+
+    static std::string ModifyMP4FileName(const std::string &path, int no)
+    {
+        size_t index = path.find_last_of('.');
+        if (std::string::npos == index)
+            return path;
+
+        std::string sub_str1 = path.substr(0, index);
+        std::string sub_str2 = path.substr(index);
+
+        std::ostringstream oss;
+        oss << sub_str1 << "_" << no << sub_str2;
+        return oss.str();
+    }
 };
 } // namespace rs

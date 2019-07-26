@@ -328,12 +328,11 @@ int AudioInput::Initialize(const Params &params)
 
     AIO_ATTR_S attr;
     memset(&attr, 0, sizeof(attr));
-    //从模式下设置无效,不过要与每帧采样点对应,否则会有杂音
-    attr.enSamplerate = AUDIO_SAMPLE_RATE_48000;
+    attr.enSamplerate = AUDIO_SAMPLE_RATE_44100;
     attr.enBitwidth = AUDIO_BIT_WIDTH_16;
     attr.enWorkmode = AIO_MODE_I2S_SLAVE;
-    attr.u32FrmNum = MAX_AUDIO_FRAME_NUM;
-    attr.u32PtNumPerFrm = 480;
+    attr.u32FrmNum = 30;
+    attr.u32PtNumPerFrm = 1024;
     attr.u32ChnCnt = 2;
     attr.u32ClkSel = 1;
     attr.enSoundmode = AUDIO_SOUND_MODE_STEREO;
@@ -423,6 +422,7 @@ int AudioInput::Initialize(const Params &params)
 
                 AIFrame ai_frame;
                 ai_frame.data = buf;
+                ai_frame.ts = frame.u64TimeStamp;
                 ai_frame.len = frame.u32Len * 2;
                 {
                     std::unique_lock<std::mutex> lock;

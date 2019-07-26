@@ -14,6 +14,7 @@
 #include "common/config.h"
 #include "common/logger.h"
 #include "common/http_server.h"
+#include "record/mp4_record.h"
 
 using namespace rs;
 
@@ -73,8 +74,6 @@ int32_t main(int32_t argc, char **argv)
 	VideoOutput vo_stu_fea;
 	VideoOutput vo_main;
 	VideoOutput vo_disp;
-
-	av_register_all();
 
 	ConfigLogger();
 
@@ -401,9 +400,19 @@ int32_t main(int32_t argc, char **argv)
 	HttpServer http_server;
 	http_server.Initialize("0.0.0.0", 8080);
 
+	MP4Record record;
+	record.Initialize({1920, 1080, 25, 44100, "./linmin_test.mp4", 10, true});
+
+	venc_main.SetVideoSink(&record);
+	aenc.AddAudioSink(&record);
+
 	while (g_Run)
 	{
 		http_server.Dispatch();
 	}
+
+	venc_main.SetVideoSink(nullptr);
+	aenc.RemoveAllAudioSink();
+	record.Close();
 	return 0;
 }

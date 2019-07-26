@@ -4,10 +4,7 @@
 namespace rs
 {
 
-using namespace mp4_muxer;
-
-MP4Muxer::MP4Muxer() : aduration_(0),
-                       sps_(""),
+MP4Muxer::MP4Muxer() : sps_(""),
                        pps_(""),
                        sei_(""),
                        vts_base(0),
@@ -64,17 +61,18 @@ MP4Muxer::~MP4Muxer()
 //     dsi[1] = ((sampling_frequency_index & 1) << 7) | (channel_configuration << 3);
 // }
 
-int MP4Muxer::Initialize(const Params &params)
+int MP4Muxer::Initialize(int width, int height, int frame_rate, int samplate_rate, const std::string filename)
 {
     if (init_)
         return KInitialized;
 
     int ret;
 
-    params_ = params;
     sps_ = "";
     pps_ = "";
     sei_ = "";
+    vts_base = 0;
+    ats_base = 0;
 
     allocator_2048k::mmz_malloc(mmz_bufer_);
 
@@ -85,7 +83,7 @@ int MP4Muxer::Initialize(const Params &params)
         return KSDKError;
     }
 
-    strcpy(ctx_->filename, params_.filename.c_str());
+    strcpy(ctx_->filename, filename.c_str());
     ctx_->oformat = av_guess_format(nullptr, ".mp4", nullptr);
     if (!ctx_->oformat)
     {
@@ -101,14 +99,13 @@ int MP4Muxer::Initialize(const Params &params)
         log_e("avformat_new_stream failed");
         return KSDKError;
     }
-    vts_base = 0;
     video_stream->id = 0;
     video_stream->index = 0;
     video_stream->time_base = {1, 1000000};
     video_stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
     video_stream->codecpar->codec_id = AV_CODEC_ID_H264;
-    video_stream->codecpar->width = params_.width;
-    video_stream->codecpar->height = params_.height;
+    video_stream->codecpar->width = width;
+    video_stream->codecpar->height = height;
     ctx_->streams[0] = video_stream;
 
     AVStream *audio_stream = avformat_new_stream(ctx_, nullptr);
@@ -117,7 +114,6 @@ int MP4Muxer::Initialize(const Params &params)
         log_e("avformat_new_stream failed");
         return KSDKError;
     }
-    ats_base = 0;
     audio_stream->id = 1;
     audio_stream->index = 1;
     audio_stream->time_base = (AVRational){1, 1000000};
@@ -127,11 +123,11 @@ int MP4Muxer::Initialize(const Params &params)
     audio_stream->codecpar->channel_layout = AV_CH_LAYOUT_STEREO;
     audio_stream->codecpar->frame_size = 4096;
     audio_stream->codecpar->format = AV_SAMPLE_FMT_S16;
-    audio_stream->codecpar->sample_rate = params_.samplate_rate;
+    audio_stream->codecpar->sample_rate = samplate_rate;
     audio_stream->codecpar->profile = FF_PROFILE_AAC_LOW;
     ctx_->streams[1] = audio_stream;
 
-    ret = avio_open(&ctx_->pb, params_.filename.c_str(), AVIO_FLAG_WRITE);
+    ret = avio_open(&ctx_->pb, filename.c_str(), AVIO_FLAG_WRITE);
     if (ret != 0)
     {
         log_e("avio_open failed");

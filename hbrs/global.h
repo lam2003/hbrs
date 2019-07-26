@@ -47,6 +47,7 @@
 #include <chrono>
 #include <system_error>
 #include <condition_variable>
+#include <sstream>
 //stdlib
 #include <stdlib.h>
 #include <stdio.h>
