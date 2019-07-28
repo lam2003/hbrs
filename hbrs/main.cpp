@@ -400,19 +400,54 @@ int32_t main(int32_t argc, char **argv)
 	HttpServer http_server;
 	http_server.Initialize("0.0.0.0", 8080);
 
-	MP4Record record;
-	record.Initialize({1920, 1080, 25, 44100, "./linmin_test.mp4", 10, true});
+	MP4Record record1;
+	record1.Initialize({1920, 1080, 25, 44100, "/nand/test_main.mp4", 10, false});
+	venc_main.AddVideoSink(&record1);
+	aenc.AddAudioSink(&record1);
 
-	venc_main.SetVideoSink(&record);
-	aenc.AddAudioSink(&record);
+	// MP4Record record2;
+	// record2.Initialize({1920, 1080, 25, 44100, "/nand/tea_fea.mp4", 10, false});
+	// venc_tea_fea.AddVideoSink(&record2);
+	// aenc.AddAudioSink(&record2);
+
+	// MP4Record record3;
+	// record3.Initialize({1920, 1080, 25, 44100, "/nand/stu_fea.mp4", 10, false});
+	// venc_stu_fea.AddVideoSink(&record3);
+	// aenc.AddAudioSink(&record3);
+
+	// MP4Record record4;
+	// record4.Initialize({1920, 1080, 25, 44100, "/nand/tea_full.mp4", 10, false});
+	// venc_tea_full.AddVideoSink(&record4);
+	// aenc.AddAudioSink(&record4);
+
+	// MP4Record record5;
+	// record5.Initialize({1920, 1080, 25, 44100, "/nand/stu_full.mp4", 10, false});
+	// venc_stu_full.AddVideoSink(&record5);
+	// aenc.AddAudioSink(&record5);
+
+	// MP4Record record6;
+	// record6.Initialize({1920, 1080, 25, 44100, "/nand/black_board.mp4", 10, false});
+	// venc_black_board.AddVideoSink(&record6);
+	// aenc.AddAudioSink(&record6);
 
 	while (g_Run)
 	{
 		http_server.Dispatch();
 	}
 
-	venc_main.SetVideoSink(nullptr);
 	aenc.RemoveAllAudioSink();
-	record.Close();
+	venc_main.RemoveAllVideoSink();
+	venc_tea_fea.RemoveAllVideoSink();
+	venc_stu_fea.RemoveAllVideoSink();
+	venc_tea_full.RemoveAllVideoSink();
+	venc_stu_full.RemoveAllVideoSink();
+	venc_black_board.RemoveAllVideoSink();
+
+	record1.Close();
+	// record2.Close();
+	// record3.Close();
+	// record4.Close();
+	// record5.Close();
+	// record6.Close();
 	return 0;
 }

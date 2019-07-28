@@ -35,14 +35,16 @@ public:
 
     void Close();
 
-    void SetVideoSink(VideoSink<VENCFrame> *video_sink);
+    void AddVideoSink(VideoSink<VENCFrame> *video_sink);
+
+    void RemoveAllVideoSink();
 
 private:
     venc::Params params_;
     std::mutex video_sink_mux_;
+    std::vector<VideoSink<VENCFrame> *> video_sinks_;
     std::unique_ptr<std::thread> thread_;
     std::atomic<bool> run_;
-    VideoSink<VENCFrame> *video_sink_;
     bool init_;
 };
 } // namespace rs

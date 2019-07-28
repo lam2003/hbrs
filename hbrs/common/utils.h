@@ -334,5 +334,47 @@ public:
         oss << sub_str1 << "_" << no << sub_str2;
         return oss.str();
     }
+
+    static void GetAACSpec(int samplate_rate, int channel, uint8_t spec[2])
+    {
+        uint16_t *p = reinterpret_cast<uint16_t *>(spec);
+
+        (*p) = 0;
+        (*p) |= (2 << 11);
+
+        if (samplate_rate == 48000)
+        {
+            (*p) |= (3 << 7);
+        }
+        else if (samplate_rate == 44100)
+        {
+            (*p) |= (4 << 7);
+        }
+        else if (samplate_rate == 32000)
+        {
+            (*p) |= (5 << 7);
+        }
+        else if (samplate_rate == 24000)
+        {
+            (*p) |= (6 << 7);
+        }
+        else if (samplate_rate == 16000)
+        {
+            (*p) |= (8 << 7);
+        }
+
+        if (channel == 1)
+        {
+            (*p) |= (1 << 3);
+        }
+        else if (channel == 2)
+        {
+            (*p) |= (2 << 3);
+        }
+
+        uint8_t temp = (*p) >> 8;
+        (*p) <<= 8;
+        (*p) |= temp;
+    }
 };
 } // namespace rs

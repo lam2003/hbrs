@@ -2,7 +2,6 @@
 
 #include "common/buffer.h"
 #include "common/av_define.h"
-#include "common/av_define.h"
 
 namespace rs
 {
@@ -22,14 +21,24 @@ public:
 
     int WriteAudioFrame(const AENCFrame &frame);
 
+protected:
+    int InitContext();
+
 private:
-    MMZBuffer mmz_bufer_;
+    MMZBuffer mmz_buffer_;
+    MP4FileHandle hdl_;
+    MP4TrackId vtrack_;
+    MP4TrackId atrack_;
+    int width_;
+    int height_;
+    int frame_rate_;
+    int samplate_rate_;
     std::string sps_;
     std::string pps_;
     std::string sei_;
-    uint64_t vts_base;
-    uint64_t ats_base;
-    AVFormatContext *ctx_;
+    uint64_t vts_base_;
+    std::atomic<bool> init_ctx_;
+
     bool init_;
 };
 } // namespace rs

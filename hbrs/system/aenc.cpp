@@ -37,10 +37,9 @@ int AudioEncode::Initialize()
         config.bitRate = 32000;
         config.bitsPerSample = 16;
         config.sampleRate = 44100;
-        config.bandWidth = 44100 / 2;
         config.nChannelsIn = 2;
         config.nChannelsOut = 2;
-        config.quality = AU_QualityExcellent;
+        config.quality = AU_QualityHigh;
 
         AAC_ENCODER_S *encoder;
         ret = AACEncoderOpen(&encoder, &config);

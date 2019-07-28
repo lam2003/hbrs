@@ -16,10 +16,8 @@ libtde.a
 libjpeg.a
 libpciv.a
 libevent.a
-libavformat.a
-libavcodec.a
-libavutil.a
-libswresample.a
+libmp4v2.a
+${CMAKE_SOURCE_DIR}/3rdparty/lib/srs_librtmp.a
 pthread
 dl
 rt

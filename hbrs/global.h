@@ -68,11 +68,10 @@
 #include <event2/http_compat.h>
 #include <event2/http_struct.h>
 #include <event2/buffer_compat.h>
-//ffmpeg
-extern "C"
-{
-#include <libavformat/avformat.h>
-}
+//srs-librtmp
+#include <srs_librtmp.h>
+//mp4v2
+#include <mp4v2/mp4v2.h>
 
 #define RS_ALIGN_WIDTH 64                               //图像对齐大小
 #define RS_PIXEL_FORMAT PIXEL_FORMAT_YUV_SEMIPLANAR_420 //图像像素格式

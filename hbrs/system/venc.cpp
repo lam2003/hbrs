@@ -9,7 +9,6 @@ using namespace venc;
 
 VideoEncode::VideoEncode() : thread_(nullptr),
                              run_(false),
-                             video_sink_(nullptr),
                              init_(false)
 {
 }
@@ -115,7 +114,7 @@ int32_t VideoEncode::Initialize(const Params &params)
 
         MMZBuffer packet_mmz_buffer;
         allocator_128k::mmz_malloc(packet_mmz_buffer);
-        
+
         uint8_t *packet_buf = packet_mmz_buffer.vir_addr;
 
         ret = HI_MPI_VENC_StartRecvPic(params_.chn);
@@ -176,21 +175,20 @@ int32_t VideoEncode::Initialize(const Params &params)
             }
             {
                 std::unique_lock<std::mutex> lock(video_sink_mux_);
-                if (video_sink_ != nullptr)
+                for (uint32_t i = 0; i < stream.u32PackCount; i++)
                 {
-                    for (uint32_t i = 0; i < stream.u32PackCount; i++)
-                    {
-                        uint32_t len = stream.pstPack[i].u32Len[0] + stream.pstPack[i].u32Len[1];
-                        memcpy(mmz_buffer.vir_addr, stream.pstPack[i].pu8Addr[0], stream.pstPack[i].u32Len[0]);
-                        memcpy(mmz_buffer.vir_addr + stream.pstPack[i].u32Len[0], stream.pstPack[i].pu8Addr[1], stream.pstPack[i].u32Len[1]);
+                    uint32_t len = stream.pstPack[i].u32Len[0] + stream.pstPack[i].u32Len[1];
+                    memcpy(mmz_buffer.vir_addr, stream.pstPack[i].pu8Addr[0], stream.pstPack[i].u32Len[0]);
+                    memcpy(mmz_buffer.vir_addr + stream.pstPack[i].u32Len[0], stream.pstPack[i].pu8Addr[1], stream.pstPack[i].u32Len[1]);
 
-                        VENCFrame frame;
-                        frame.len = len;
-                        frame.data = mmz_buffer.vir_addr;
-                        frame.type = stream.pstPack[i].DataType.enH264EType;
-                        frame.ts = stream.pstPack[i].u64PTS;
-                        video_sink_->OnFrame(frame);
-                    }
+                    VENCFrame frame;
+                    frame.len = len;
+                    frame.data = mmz_buffer.vir_addr;
+                    frame.type = stream.pstPack[i].DataType.enH264EType;
+                    frame.ts = stream.pstPack[i].u64PTS;
+
+                    for (VideoSink<VENCFrame> *video_sink : video_sinks_)
+                        video_sink->OnFrame(frame);
                 }
             }
 
@@ -238,14 +236,20 @@ void VideoEncode::Close()
     if (ret != KSuccess)
         log_e("HI_MPI_VENC_DestroyGroup failed with %#x", ret);
 
-    video_sink_ = nullptr;
+    video_sinks_.clear();
     init_ = false;
 }
 
-void VideoEncode::SetVideoSink(VideoSink<VENCFrame> *video_sink)
+void VideoEncode::AddVideoSink(VideoSink<VENCFrame> *video_sink)
 {
     std::unique_lock<std::mutex> lock(video_sink_mux_);
-    video_sink_ = video_sink;
+    video_sinks_.push_back(video_sink);
+}
+
+void VideoEncode::RemoveAllVideoSink()
+{
+    std::unique_lock<std::mutex> lock(video_sink_mux_);
+    video_sinks_.clear();
 }
 
 } // namespace rs

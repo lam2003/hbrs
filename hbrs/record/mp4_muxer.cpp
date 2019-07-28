@@ -1,16 +1,24 @@
 #include "record/mp4_muxer.h"
 #include "common/err_code.h"
+#include "common/utils.h"
 
 namespace rs
 {
 
-MP4Muxer::MP4Muxer() : sps_(""),
+MP4Muxer::MP4Muxer() : hdl_(MP4_INVALID_FILE_HANDLE),
+                       vtrack_(MP4_INVALID_TRACK_ID),
+                       atrack_(MP4_INVALID_TRACK_ID),
+                       width_(0),
+                       height_(0),
+                       frame_rate_(0),
+                       samplate_rate_(0),
+                       sps_(""),
                        pps_(""),
                        sei_(""),
-                       vts_base(0),
-                       ats_base(0),
-                       ctx_(0),
+                       vts_base_(0),
+                       init_ctx_(false),
                        init_(false)
+
 {
 }
 
@@ -19,129 +27,81 @@ MP4Muxer::~MP4Muxer()
     Close();
 }
 
-// int get_sr_index(unsigned int sampling_frequency)
-// {
-//     switch (sampling_frequency)
-//     {
-//     case 96000:
-//         return 0;
-//     case 88200:
-//         return 1;
-//     case 64000:
-//         return 2;
-//     case 48000:
-//         return 3;
-//     case 44100:
-//         return 4;
-//     case 32000:
-//         return 5;
-//     case 24000:
-//         return 6;
-//     case 22050:
-//         return 7;
-//     case 16000:
-//         return 8;
-//     case 12000:
-//         return 9;
-//     case 11025:
-//         return 10;
-//     case 8000:
-//         return 11;
-//     case 7350:
-//         return 12;
-//     default:
-//         return 0;
-//     }
-// }
-
-// void make_dsi(unsigned int sampling_frequency_index, unsigned int channel_configuration, unsigned char *dsi)
-// {
-//     unsigned int object_type = 2; // AAC LC by default
-//     dsi[0] = (object_type << 3) | (sampling_frequency_index >> 1);
-//     dsi[1] = ((sampling_frequency_index & 1) << 7) | (channel_configuration << 3);
-// }
-
 int MP4Muxer::Initialize(int width, int height, int frame_rate, int samplate_rate, const std::string filename)
 {
     if (init_)
         return KInitialized;
 
-    int ret;
+    allocator_2048k::mmz_malloc(mmz_buffer_);
+    hdl_ = MP4Create(filename.c_str(), MP4_CREATE_64BIT_TIME | MP4_CREATE_64BIT_DATA | MP4_CLOSE_DO_NOT_COMPUTE_BITRATE);
+    if (hdl_ == MP4_INVALID_FILE_HANDLE)
+    {
+        log_e("MP4Create failed");
+        return KSDKError;
+    }
+
+    if (!MP4SetTimeScale(hdl_, 1000000))
+    {
+        log_e("MP4SetTimeScale failed");
+        return KSDKError;
+    }
+
+    width_ = width;
+    height_ = height;
+    frame_rate_ = frame_rate;
+    samplate_rate_ = samplate_rate;
 
     sps_ = "";
     pps_ = "";
     sei_ = "";
-    vts_base = 0;
-    ats_base = 0;
-
-    allocator_2048k::mmz_malloc(mmz_bufer_);
-
-    ctx_ = avformat_alloc_context();
-    if (!ctx_)
-    {
-        log_e("avformat_alloc_context failed");
-        return KSDKError;
-    }
-
-    strcpy(ctx_->filename, filename.c_str());
-    ctx_->oformat = av_guess_format(nullptr, ".mp4", nullptr);
-    if (!ctx_->oformat)
-    {
-        log_e("av_guess_format failed");
-        return KSDKError;
-    }
-
-    av_register_output_format(ctx_->oformat);
-
-    AVStream *video_stream = avformat_new_stream(ctx_, nullptr);
-    if (!video_stream)
-    {
-        log_e("avformat_new_stream failed");
-        return KSDKError;
-    }
-    video_stream->id = 0;
-    video_stream->index = 0;
-    video_stream->time_base = {1, 1000000};
-    video_stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
-    video_stream->codecpar->codec_id = AV_CODEC_ID_H264;
-    video_stream->codecpar->width = width;
-    video_stream->codecpar->height = height;
-    ctx_->streams[0] = video_stream;
-
-    AVStream *audio_stream = avformat_new_stream(ctx_, nullptr);
-    if (audio_stream == nullptr)
-    {
-        log_e("avformat_new_stream failed");
-        return KSDKError;
-    }
-    audio_stream->id = 1;
-    audio_stream->index = 1;
-    audio_stream->time_base = (AVRational){1, 1000000};
-    audio_stream->codecpar->codec_type = AVMEDIA_TYPE_AUDIO;
-    audio_stream->codecpar->codec_id = AV_CODEC_ID_AAC;
-    audio_stream->codecpar->channels = 2;
-    audio_stream->codecpar->channel_layout = AV_CH_LAYOUT_STEREO;
-    audio_stream->codecpar->frame_size = 4096;
-    audio_stream->codecpar->format = AV_SAMPLE_FMT_S16;
-    audio_stream->codecpar->sample_rate = samplate_rate;
-    audio_stream->codecpar->profile = FF_PROFILE_AAC_LOW;
-    ctx_->streams[1] = audio_stream;
-
-    ret = avio_open(&ctx_->pb, filename.c_str(), AVIO_FLAG_WRITE);
-    if (ret != 0)
-    {
-        log_e("avio_open failed");
-        return KSDKError;
-    }
-
-    ret = avformat_write_header(ctx_, nullptr);
-    if (ret != 0)
-    {
-        log_e("avformat_write_header failed");
-        return KSDKError;
-    }
+    vts_base_ = 0;
+    init_ctx_ = false;
 
     init_ = true;
+
+    return KSuccess;
+}
+
+int MP4Muxer::InitContext()
+{
+    if (!init_)
+        return KUnInitialized;
+
+    atrack_ = MP4AddAudioTrack(hdl_, samplate_rate_, 1024, MP4_MPEG4_AUDIO_TYPE);
+    if (atrack_ == MP4_INVALID_TRACK_ID)
+    {
+        log_e("MP4AddAudioTrack failed");
+        return KSDKError;
+    }
+
+    MP4SetAudioProfileLevel(hdl_, 0x2);
+
+    uint8_t spec[2];
+    Utils::GetAACSpec(samplate_rate_, 2, spec);
+    if (!MP4SetTrackESConfiguration(hdl_, atrack_, spec, 2))
+    {
+        log_e("MP4SetTrackESConfiguration failed");
+        return KSDKError;
+    }
+
+    vtrack_ = MP4AddH264VideoTrack(hdl_, 1000000, 1000000 / frame_rate_, width_, height_,
+                                   sps_[5],
+                                   sps_[6],
+                                   sps_[7],
+                                   3);
+    if (vtrack_ == MP4_INVALID_TRACK_ID)
+    {
+        log_e("MP4AddH264VideoTrack failed");
+        return KSDKError;
+    }
+
+    MP4SetVideoProfileLevel(hdl_, 0x7F);
+    MP4AddH264SequenceParameterSet(hdl_, vtrack_, reinterpret_cast<const uint8_t *>(sps_.c_str() + 4), sps_.length() - 4);
+    MP4AddH264PictureParameterSet(hdl_, vtrack_, reinterpret_cast<const uint8_t *>(pps_.c_str() + 4), pps_.length() - 4);
+    MP4AddH264PictureParameterSet(hdl_, vtrack_, reinterpret_cast<const uint8_t *>(sei_.c_str() + 4), sei_.length() - 4);
+
+    init_ctx_ = true;
+
     return KSuccess;
 }
 
@@ -149,12 +109,9 @@ void MP4Muxer::Close()
 {
     if (!init_)
         return;
-    av_write_trailer(ctx_);
-    avcodec_parameters_free(&ctx_->streams[0]->codecpar);
-    avcodec_parameters_free(&ctx_->streams[1]->codecpar);
-    avio_close(ctx_->pb);
-    avformat_free_context(ctx_);
-    allocator_2048k::mmz_free(mmz_bufer_);
+
+    MP4Close(hdl_);
+    allocator_2048k::mmz_free(mmz_buffer_);
     init_ = false;
 }
 
@@ -163,66 +120,60 @@ int MP4Muxer::WriteVideoFrame(const VENCFrame &frame)
     if (!init_)
         return KUnInitialized;
 
-    int32_t ret;
-    if (sps_ == "" || pps_ == "" || sei_ == "")
+    if (frame.type == H264E_NALU_SPS)
     {
-        if (frame.type == H264E_NALU_SPS)
-        {
-            sps_ = std::string((char *)frame.data, frame.len);
-        }
-        else if (frame.type == H264E_NALU_PPS)
-        {
-            pps_ = std::string((char *)frame.data, frame.len);
-        }
-        else if (frame.type == H264E_NALU_SEI)
-        {
-            sei_ = std::string((char *)frame.data, frame.len);
-        }
-        return static_cast<int>(KSuccess);
+        sps_ = std::string((char *)frame.data, frame.len);
     }
+    else if (frame.type == H264E_NALU_PPS)
+    {
+        pps_ = std::string((char *)frame.data, frame.len);
+    }
+    else if (frame.type == H264E_NALU_SEI)
+    {
+        sei_ = std::string((char *)frame.data, frame.len);
+    }
+
+    if (!init_ctx_ && sps_ != "" && pps_ != "" && sei_ != "")
+        return InitContext();
 
     if (frame.type == H264E_NALU_SPS || frame.type == H264E_NALU_PPS || frame.type == H264E_NALU_SEI)
-        return static_cast<int>(KSuccess);
+        return KSuccess;
 
-    AVPacket pkt;
-    av_init_packet(&pkt);
+    if (vts_base_ == 0)
+        vts_base_ = frame.ts;
+    uint64_t duration = frame.ts - vts_base_;
+    vts_base_ = frame.ts;
 
-    pkt.data = mmz_bufer_.vir_addr;
-
+    uint32_t *tmp = reinterpret_cast<uint32_t *>(mmz_buffer_.vir_addr);
+    uint8_t *buf = mmz_buffer_.vir_addr + 4;
+    uint32_t pos = 0;
     if (frame.type == H264E_NALU_ISLICE)
     {
-        uint32_t pos = 0;
-        memcpy(pkt.data, sps_.c_str(), sps_.length());
+        memcpy(buf, sps_.c_str(), sps_.length());
         pos += sps_.length();
-        memcpy(pkt.data + pos, pps_.c_str(), pps_.length());
+        memcpy(buf + pos, pps_.c_str(), pps_.length());
         pos += pps_.length();
-        memcpy(pkt.data + pos, sei_.c_str(), sei_.length());
+        memcpy(buf + pos, sei_.c_str(), sei_.length());
         pos += sei_.length();
-        memcpy(pkt.data + pos, frame.data, frame.len);
+        memcpy(buf + pos, frame.data, frame.len);
         pos += frame.len;
-        pkt.flags |= AV_PKT_FLAG_KEY;
-        pkt.size = pos;
+        *tmp = htonl(pos);
+        if (!MP4WriteSample(hdl_, vtrack_, mmz_buffer_.vir_addr, pos + 4, duration, 0, true))
+        {
+            log_e("MP4WriteSample failed");
+            return KSDKError;
+        }
     }
-    else
+    else if (frame.type == H264E_NALU_PSLICE)
     {
-        memcpy(pkt.data, frame.data, frame.len);
-        pkt.size = frame.len;
-    }
-
-    if (vts_base == 0)
-        vts_base = frame.ts;
-    pkt.pts = frame.ts - vts_base;
-    pkt.dts = pkt.pts;
-    pkt.stream_index = 0;
-
-    av_packet_rescale_ts(&pkt, {1, 1000000}, ctx_->streams[0]->time_base);
-    ret = av_interleaved_write_frame(ctx_, &pkt);
-    av_packet_unref(&pkt);
-    if (ret != 0)
-    {
-
-        log_e("av_interleaved_write_frame failed");
-        return KSDKError;
+        memcpy(buf, frame.data, frame.len);
+        pos += frame.len;
+        *tmp = htonl(pos);
+        if (!MP4WriteSample(hdl_, vtrack_, mmz_buffer_.vir_addr, pos + 4, duration, 0, false))
+        {
+            log_e("MP4WriteSample failed");
+            return KSDKError;
+        }
     }
 
     return KSuccess;
@@ -233,23 +184,12 @@ int MP4Muxer::WriteAudioFrame(const AENCFrame &frame)
     if (!init_)
         return KUnInitialized;
 
-    int ret;
-    AVPacket pkt;
-    av_init_packet(&pkt);
-    pkt.size = frame.len;
-    pkt.data = frame.data;
-    if (ats_base == 0)
-        ats_base = frame.ts;
-    pkt.pts = frame.ts - ats_base;
-    pkt.dts = pkt.pts;
-    pkt.stream_index = 1;
+    if (!init_ctx_)
+        return KSuccess;
 
-    av_packet_rescale_ts(&pkt, {1, 1000000}, ctx_->streams[1]->time_base);
-    ret = av_interleaved_write_frame(ctx_, &pkt);
-    av_packet_unref(&pkt);
-    if (ret != 0)
+    if (!MP4WriteSample(hdl_, atrack_, frame.data, frame.len, MP4_INVALID_DURATION))
     {
-        log_e("av_interleaved_write_frame failed");
+        log_e("MP4WriteSample failed");
         return KSDKError;
     }
 
