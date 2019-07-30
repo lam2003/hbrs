@@ -23,9 +23,9 @@
       ]
    },
    "video": {
-      "record_height": 1080,
-      "record_width": 1920,
-      "record_bitrate": 10000,
+      "record_height": 720,
+      "record_width": 1280,
+      "record_bitrate": 4000,
       "live_height": 720,
       "live_width": 1280,
       "live_bitrate": 4000

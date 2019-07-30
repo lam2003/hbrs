@@ -55,7 +55,7 @@ int MP4Record::Initialize(const Params &params)
                     filename = params_.filename;
                 }
 
-                ret = muxer.Initialize(params_.width, params_.height, params_.frame_rate, params_.samplate_rate, filename);
+                ret = muxer.Initialize(params_.width, params_.height, params_.frame_rate, params_.samplate_rate, filename,params_.set_ts);
                 if (ret != KSuccess)
                     return;
 

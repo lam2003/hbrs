@@ -5,13 +5,7 @@
 
 namespace rs
 {
-namespace rtmp
-{
-struct Params
-{
-    std::string url;
-};
-} // namespace rtmp
+
 class RTMPStreamer
 {
 public:
@@ -19,7 +13,7 @@ public:
 
     virtual ~RTMPStreamer();
 
-    int Initialize(const rtmp::Params &params);
+    int Initialize(const std::string &url);
 
     void Close();
 
@@ -28,8 +22,9 @@ public:
     int WriteAudioFrame(const AENCFrame &frame);
 
 private:
-    rtmp::Params params_;
     srs_rtmp_t rtmp_;
+    uint64_t ats_base_;
+    uint64_t vts_base_;
     bool init_;
 
     static const int DefaultTimeOut;

@@ -13,7 +13,7 @@ public:
 
     virtual ~MP4Muxer();
 
-    int Initialize(int width, int height, int frame_rate, int samplate_rate, const std::string filename);
+    int Initialize(int width, int height, int frame_rate, int samplate_rate, const std::string filename, bool set_ts);
 
     void Close();
 
@@ -37,6 +37,11 @@ private:
     std::string pps_;
     std::string sei_;
     uint64_t vts_base_;
+    bool set_ts_;
+    uint64_t aone_frame_duration_;
+    uint64_t vone_frame_duration_;
+    uint64_t aduration_;
+    uint64_t vduration_;
     std::atomic<bool> init_ctx_;
 
     bool init_;

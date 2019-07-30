@@ -182,9 +182,13 @@ public:
     static uint64_t GetSteadyMilliSeconds()
     {
         using namespace std::chrono;
-        auto now = steady_clock::now();
-        auto now_since_epoch = now.time_since_epoch();
-        return duration_cast<milliseconds>(now_since_epoch).count();
+        return duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
+    }
+
+    static uint64_t GetSteadyMicroSeconds()
+    {
+        using namespace std::chrono;
+        return duration_cast<microseconds>(steady_clock::now().time_since_epoch()).count();
     }
 
     static VideoInputFormat GetVIFmt(hd_dis_resolution_e type)

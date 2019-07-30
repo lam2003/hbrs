@@ -360,7 +360,8 @@ int AudioInput::Initialize(const Params &params)
 
     AI_CHN_PARAM_S param;
     memset(&param, 0, sizeof(param));
-    param.u32UsrFrmDepth = 10;
+    
+    param.u32UsrFrmDepth = 20;
     ret = HI_MPI_AI_SetChnParam(params_.dev, params_.chn, &param);
     if (ret != HI_SUCCESS)
     {

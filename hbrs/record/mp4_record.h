@@ -16,6 +16,7 @@ struct Params
     std::string filename;
     int segment_duration;
     bool need_to_segment;
+    bool set_ts;
 };
 } // namespace mp4
 
