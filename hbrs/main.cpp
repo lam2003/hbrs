@@ -15,6 +15,7 @@
 #include "common/logger.h"
 #include "common/http_server.h"
 #include "record/mp4_record.h"
+#include "live/rtmp_live.h"
 
 using namespace rs;
 
@@ -109,6 +110,9 @@ int32_t main(int32_t argc, char **argv)
 		return 0;
 	}
 
+	//#####################################################
+	//初始化MPP
+	//#####################################################
 	ret = MPPSystem::Instance()->Initialize();
 	CHECK_ERROR(ret);
 	//#####################################################
@@ -302,60 +306,71 @@ int32_t main(int32_t argc, char **argv)
 	//#####################################################
 	//初始化视频编码器,具有录制/直播双码流,vpss->venc
 	//#####################################################
+	int width;
+	int height;
+	int bitrate;
+
 	if (Config::Instance()->IsResourceMode())
 	{
-		vpss_tea_fea.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
-		CHECK_ERROR(ret);
-		vpss_stu_fea.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
-		CHECK_ERROR(ret);
-		vpss_tea_full.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
-		CHECK_ERROR(ret);
-		vpss_stu_full.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
-		CHECK_ERROR(ret);
-		vpss_black_board.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
-		CHECK_ERROR(ret);
-		vpss_pc.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
-		CHECK_ERROR(ret);
+		width = Config::Instance()->video_.res_width;
+		height = Config::Instance()->video_.res_height;
+		bitrate = Config::Instance()->video_.res_bitrate;
+	}
+	else
+	{
+		width = Config::Instance()->video_.normal_live_width;
+		height = Config::Instance()->video_.normal_live_height;
+		bitrate = Config::Instance()->video_.normal_live_bitrate;
+	}
 
-		ret = venc_tea_fea.Initialize({0, 0, Config::Instance()->video_.record_width, Config::Instance()->video_.record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.record_bitrate, VENC_RC_MODE_H264CBR});
-		CHECK_ERROR(ret);
-		ret = venc_stu_fea.Initialize({1, 1, Config::Instance()->video_.record_width, Config::Instance()->video_.record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.record_bitrate, VENC_RC_MODE_H264CBR});
-		CHECK_ERROR(ret);
-		ret = venc_tea_full.Initialize({2, 2, Config::Instance()->video_.record_width, Config::Instance()->video_.record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.record_bitrate, VENC_RC_MODE_H264CBR});
-		CHECK_ERROR(ret);
-		ret = venc_stu_full.Initialize({3, 3, Config::Instance()->video_.record_width, Config::Instance()->video_.record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.record_bitrate, VENC_RC_MODE_H264CBR});
-		CHECK_ERROR(ret);
-		ret = venc_black_board.Initialize({4, 4, Config::Instance()->video_.record_width, Config::Instance()->video_.record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.record_bitrate, VENC_RC_MODE_H264CBR});
-		CHECK_ERROR(ret);
-		ret = venc_pc.Initialize({5, 5, Config::Instance()->video_.record_width, Config::Instance()->video_.record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.record_bitrate, VENC_RC_MODE_H264CBR});
+	ret = vpss_tea_fea.StartUserChannel(1, {0, 0, width, height});
+	CHECK_ERROR(ret);
+	ret = vpss_stu_fea.StartUserChannel(1, {0, 0, width, height});
+	CHECK_ERROR(ret);
+	ret = vpss_tea_full.StartUserChannel(1, {0, 0, width, height});
+	CHECK_ERROR(ret);
+	ret = vpss_stu_full.StartUserChannel(1, {0, 0, width, height});
+	CHECK_ERROR(ret);
+	ret = vpss_black_board.StartUserChannel(1, {0, 0, width, height});
+	CHECK_ERROR(ret);
+	ret = vpss_pc.StartUserChannel(1, {0, 0, width, height});
+	CHECK_ERROR(ret);
+
+	if (Config::Instance()->IsResourceMode())
+	{
+		ret = vpss_main.StartUserChannel(1, {0, 0, Config::Instance()->video_.res_width, Config::Instance()->video_.res_height});
 		CHECK_ERROR(ret);
 	}
 	else
 	{
-		vpss_tea_fea.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.live_width, (HI_U32)Config::Instance()->video_.live_height});
+		ret = vpss_main.StartUserChannel(1, {0, 0, Config::Instance()->video_.normal_record_width, Config::Instance()->video_.normal_record_height});
 		CHECK_ERROR(ret);
-		vpss_stu_fea.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.live_width, (HI_U32)Config::Instance()->video_.live_height});
+		ret = vpss_main.StartUserChannel(3, {0, 0, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height});
 		CHECK_ERROR(ret);
-		vpss_tea_full.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.live_width, (HI_U32)Config::Instance()->video_.live_height});
-		CHECK_ERROR(ret);
-		vpss_stu_full.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.live_width, (HI_U32)Config::Instance()->video_.live_height});
-		CHECK_ERROR(ret);
-		vpss_black_board.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.live_width, (HI_U32)Config::Instance()->video_.live_height});
-		CHECK_ERROR(ret);
-		vpss_pc.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.live_width, (HI_U32)Config::Instance()->video_.live_height});
-		CHECK_ERROR(ret);
+	}
 
-		ret = venc_tea_fea.Initialize({0, 0, Config::Instance()->video_.live_width, Config::Instance()->video_.live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.live_bitrate, VENC_RC_MODE_H264CBR});
+	ret = venc_tea_fea.Initialize({0, 0, width, height, RS_FRAME_RATE, RS_FRAME_RATE, 0, bitrate, VENC_RC_MODE_H264CBR});
+	CHECK_ERROR(ret);
+	ret = venc_stu_fea.Initialize({1, 1, width, height, RS_FRAME_RATE, RS_FRAME_RATE, 0, bitrate, VENC_RC_MODE_H264CBR});
+	CHECK_ERROR(ret);
+	ret = venc_tea_full.Initialize({2, 2, width, height, RS_FRAME_RATE, RS_FRAME_RATE, 0, bitrate, VENC_RC_MODE_H264CBR, true});
+	CHECK_ERROR(ret);
+	ret = venc_stu_full.Initialize({3, 3, width, height, RS_FRAME_RATE, RS_FRAME_RATE, 0, bitrate, VENC_RC_MODE_H264CBR, true});
+	CHECK_ERROR(ret);
+	ret = venc_black_board.Initialize({4, 4, width, height, RS_FRAME_RATE, RS_FRAME_RATE, 0, bitrate, VENC_RC_MODE_H264CBR, true});
+	CHECK_ERROR(ret);
+	ret = venc_pc.Initialize({5, 5, width, height, RS_FRAME_RATE, RS_FRAME_RATE, 0, bitrate, VENC_RC_MODE_H264CBR, true});
+	CHECK_ERROR(ret);
+	if (Config::Instance()->IsResourceMode())
+	{
+		ret = venc_main.Initialize({6, 6, Config::Instance()->video_.res_width, Config::Instance()->video_.res_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.res_bitrate, VENC_RC_MODE_H264CBR});
 		CHECK_ERROR(ret);
-		ret = venc_stu_fea.Initialize({1, 1, Config::Instance()->video_.live_width, Config::Instance()->video_.live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.live_bitrate, VENC_RC_MODE_H264CBR});
+	}
+	else
+	{
+		ret = venc_main.Initialize({6, 6, Config::Instance()->video_.normal_record_width, Config::Instance()->video_.normal_record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.normal_record_bitrate, VENC_RC_MODE_H264CBR});
 		CHECK_ERROR(ret);
-		ret = venc_tea_full.Initialize({2, 2, Config::Instance()->video_.live_width, Config::Instance()->video_.live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.live_bitrate, VENC_RC_MODE_H264CBR});
-		CHECK_ERROR(ret);
-		ret = venc_stu_full.Initialize({3, 3, Config::Instance()->video_.live_width, Config::Instance()->video_.live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.live_bitrate, VENC_RC_MODE_H264CBR});
-		CHECK_ERROR(ret);
-		ret = venc_black_board.Initialize({4, 4, Config::Instance()->video_.live_width, Config::Instance()->video_.live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.live_bitrate, VENC_RC_MODE_H264CBR});
-		CHECK_ERROR(ret);
-		ret = venc_pc.Initialize({5, 5, Config::Instance()->video_.live_width, Config::Instance()->video_.live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.live_bitrate, VENC_RC_MODE_H264CBR});
+		ret = venc_main2.Initialize({7, 7, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR});
 		CHECK_ERROR(ret);
 	}
 
@@ -371,26 +386,13 @@ int32_t main(int32_t argc, char **argv)
 	CHECK_ERROR(ret);
 	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(5, 1, 5, 0);
 	CHECK_ERROR(ret);
-
 	if (Config::Instance()->IsResourceMode())
 	{
-		vpss_main.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
-		CHECK_ERROR(ret);
-		ret = venc_main.Initialize({6, 6, Config::Instance()->video_.record_width, Config::Instance()->video_.record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.record_bitrate, VENC_RC_MODE_H264CBR});
-		CHECK_ERROR(ret);
 		ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(6, 1, 6, 0);
 		CHECK_ERROR(ret);
 	}
 	else
 	{
-		vpss_main.StartUserChannel(1, {0, 0, (HI_U32)Config::Instance()->video_.record_width, (HI_U32)Config::Instance()->video_.record_height});
-		CHECK_ERROR(ret);
-		vpss_main.StartUserChannel(3, {0, 0, (HI_U32)Config::Instance()->video_.live_width, (HI_U32)Config::Instance()->video_.live_height});
-		CHECK_ERROR(ret);
-		ret = venc_main.Initialize({6, 6, Config::Instance()->video_.record_width, Config::Instance()->video_.record_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.record_bitrate, VENC_RC_MODE_H264CBR});
-		CHECK_ERROR(ret);
-		ret = venc_main2.Initialize({7, 7, Config::Instance()->video_.live_width, Config::Instance()->video_.live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.live_bitrate, VENC_RC_MODE_H264CBR});
-		CHECK_ERROR(ret);
 		ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(6, 1, 6, 0);
 		CHECK_ERROR(ret);
 		ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(6, 3, 7, 0);
@@ -398,8 +400,79 @@ int32_t main(int32_t argc, char **argv)
 	}
 
 	HttpServer http_server;
-	http_server.Initialize("0.0.0.0", 8080);
+	http_server.Initialize("0.0.0.0", 8081);
 
+	MP4Record record_tea_fea;
+	MP4Record record_stu_fea;
+	MP4Record record_tea_full;
+	MP4Record record_stu_full;
+	MP4Record record_black_board;
+	MP4Record record_pc;
+	MP4Record record_main;
+
+	// record_tea_fea.Initialize({1280, 720, 25, 44100, "./record_tea_fea.mp4", 10, false});
+	// record_stu_fea.Initialize({1280, 720, 25, 44100, "./record_stu_fea.mp4", 10, false});
+	// record_tea_full.Initialize({1280, 720, 25, 44100, "./record_tea_full.mp4", 10, false});
+	// record_stu_full.Initialize({1280, 720, 25, 44100, "/nand/record_stu_full.mp4", 10, false});
+	// record_black_board.Initialize({1280, 720, 25, 44100, "/nand/record_black_board.mp4", 10, false});
+	// record_pc.Initialize({1280, 720, 25, 44100, "/nand/record_pc.mp4", 10, false});
+	record_main.Initialize({1280, 720, 25, 44100, "/nand/record_main.mp4", 10, false});
+
+	// aenc.AddAudioSink(&record_tea_fea);
+	// aenc.AddAudioSink(&record_stu_fea);
+	// aenc.AddAudioSink(&record_tea_full);
+	// aenc.AddAudioSink(&record_stu_full);
+	// aenc.AddAudioSink(&record_black_board);
+	// aenc.AddAudioSink(&record_pc);
+	aenc.AddAudioSink(&record_main);
+
+	// venc_tea_fea.AddVideoSink(&record_tea_fea);
+	// venc_stu_fea.AddVideoSink(&record_stu_fea);
+	// venc_tea_full.AddVideoSink(&record_tea_full);
+	// venc_stu_full.AddVideoSink(&record_stu_full);
+	// venc_black_board.AddVideoSink(&record_black_board);
+	// venc_pc.AddVideoSink(&record_pc);
+	venc_main.AddVideoSink(&record_main);
+
+printf("##############1111\n");
+	RTMPLive live_tea_fea;
+	printf("##############2222\n");
+	RTMPLive live_stu_fea;
+		printf("##############3333\n");
+	RTMPLive live_tea_full;
+			printf("##############4444\n");
+	RTMPLive live_stu_full;
+		printf("##############5555\n");
+	RTMPLive live_black_board;
+			printf("##############6666\n");
+	RTMPLive live_pc;
+			printf("##############7777\n");
+	RTMPLive live_main;
+		printf("##############8888\n");
+	live_tea_fea.Initialize({"rtmp://127.0.0.1/live/live_tea_fea"});
+			printf("##############9999\n");
+	live_stu_fea.Initialize({"rtmp://127.0.0.1/live/live_stu_fea"});
+		printf("##############aaaa\n");
+	live_tea_full.Initialize({"rtmp://127.0.0.1/live/live_tea_full"});
+		printf("##############bbbb\n");
+	live_stu_full.Initialize({"rtmp://127.0.0.1/live/live_stu_full"});
+		printf("##############cccc\n");
+	live_black_board.Initialize({"rtmp://127.0.0.1/live/live_black_board"});
+			printf("##############dddd\n");
+	live_pc.Initialize({"rtmp://127.0.0.1/live/live_pc"});
+		printf("##############eeee\n");
+	live_main.Initialize({"rtmp://127.0.0.1/live/live_main"});
+		printf("##############ffff\n");
+
+	aenc.AddAudioSink(&live_main);
+
+	venc_tea_fea.AddVideoSink(&live_tea_fea);
+	venc_stu_fea.AddVideoSink(&live_stu_fea);
+	venc_tea_full.AddVideoSink(&live_tea_full);
+	venc_stu_full.AddVideoSink(&live_stu_full);
+	venc_black_board.AddVideoSink(&live_black_board);
+	venc_pc.AddVideoSink(&live_pc);
+	venc_main.AddVideoSink(&live_main);
 
 	while (g_Run)
 	{
@@ -414,6 +487,22 @@ int32_t main(int32_t argc, char **argv)
 	venc_tea_full.RemoveAllVideoSink();
 	venc_stu_full.RemoveAllVideoSink();
 	venc_black_board.RemoveAllVideoSink();
+
+	// record_tea_fea.Close();
+	// record_stu_fea.Close();
+	// record_tea_full.Close();
+	// record_stu_full.Close();
+	// record_black_board.Close();
+	// record_pc.Close();
+	record_main.Close();
+
+	live_tea_fea.Close();
+	live_stu_fea.Close();
+	live_tea_full.Close();
+	live_stu_full.Close();
+	live_black_board.Close();
+	live_pc.Close();
+	live_main.Close();
 
 	return 0;
 }

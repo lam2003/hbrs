@@ -20,6 +20,7 @@ struct Params
     int32_t profile;
     int32_t bitrate;
     VENC_RC_MODE_E mode;
+    bool set_ts;
 };
 
 } // namespace venc

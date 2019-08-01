@@ -109,13 +109,14 @@ int32_t VideoEncode::Initialize(const Params &params)
     thread_ = std::unique_ptr<std::thread>(new std::thread([this]() {
         int32_t ret;
 
-        MMZBuffer mmz_buffer;
-        allocator_2048k::mmz_malloc(mmz_buffer);
+        MMZBuffer mmz_buffer(2 * 1024 * 1024);
+        MMZBuffer packet_mmz_buffer(128 * 1024);
 
-        MMZBuffer packet_mmz_buffer;
-        allocator_128k::mmz_malloc(packet_mmz_buffer);
 
         uint8_t *packet_buf = packet_mmz_buffer.vir_addr;
+
+        uint64_t duration = 1000000 / params_.dst_frame_rate;
+        uint64_t frame_index = 0;
 
         ret = HI_MPI_VENC_StartRecvPic(params_.chn);
         if (ret != KSuccess)
@@ -187,6 +188,15 @@ int32_t VideoEncode::Initialize(const Params &params)
                     frame.type = stream.pstPack[i].DataType.enH264EType;
                     frame.ts = stream.pstPack[i].u64PTS;
 
+                    if (params_.set_ts)
+                    {
+                        frame.ts = frame_index * duration;
+                        if (frame.type != H264E_NALU_SPS &&
+                            frame.type != H264E_NALU_PPS &&
+                            frame.type != H264E_NALU_SEI)
+                            frame_index++;
+                    }
+
                     for (VideoSink<VENCFrame> *video_sink : video_sinks_)
                         video_sink->OnFrame(frame);
                 }
@@ -207,8 +217,6 @@ int32_t VideoEncode::Initialize(const Params &params)
             return;
         }
 
-        allocator_64k::mmz_free(packet_mmz_buffer);
-        allocator_2048k::mmz_free(mmz_buffer);
     }));
 
     init_ = true;

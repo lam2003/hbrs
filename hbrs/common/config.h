@@ -10,13 +10,17 @@ class Config
 public:
     struct Video
     {
-        int record_width;
-        int record_height;
-        int record_bitrate;
+        int res_width;
+        int res_height;
+        int res_bitrate;
 
-        int live_width;
-        int live_height;
-        int live_bitrate;
+        int normal_live_width;
+        int normal_live_height;
+        int normal_live_bitrate;
+
+        int normal_record_width;
+        int normal_record_height;
+        int normal_record_bitrate;
     };
 
     struct Scene

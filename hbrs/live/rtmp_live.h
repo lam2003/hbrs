@@ -14,16 +14,20 @@ struct Params
 };
 } // namespace rtmp
 
-class RtmpLive
+class RTMPLive : public AudioSink<AENCFrame>, public VideoSink<VENCFrame>
 {
 public:
-    explicit RtmpLive();
+    explicit RTMPLive();
 
-    virtual ~RtmpLive();
+    virtual ~RTMPLive();
 
     int Initialize(const rtmp::Params &params);
 
     void Close();
+
+    void OnFrame(const AENCFrame &frame) override;
+
+    void OnFrame(const VENCFrame &frame) override;
 
 private:
     rtmp::Params params_;

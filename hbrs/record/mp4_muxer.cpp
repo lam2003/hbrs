@@ -5,7 +5,8 @@
 namespace rs
 {
 
-MP4Muxer::MP4Muxer() : hdl_(MP4_INVALID_FILE_HANDLE),
+MP4Muxer::MP4Muxer() : mmz_buffer_(2 * 1024 * 1024),
+                       hdl_(MP4_INVALID_FILE_HANDLE),
                        vtrack_(MP4_INVALID_TRACK_ID),
                        atrack_(MP4_INVALID_TRACK_ID),
                        width_(0),
@@ -16,11 +17,6 @@ MP4Muxer::MP4Muxer() : hdl_(MP4_INVALID_FILE_HANDLE),
                        pps_(""),
                        sei_(""),
                        vts_base_(0),
-                       set_ts_(false),
-                       aone_frame_duration_(0),
-                       vone_frame_duration_(0),
-                       aduration_(0),
-                       vduration_(0),
                        init_ctx_(false),
                        init_(false)
 
@@ -32,12 +28,11 @@ MP4Muxer::~MP4Muxer()
     Close();
 }
 
-int MP4Muxer::Initialize(int width, int height, int frame_rate, int samplate_rate, const std::string filename, bool set_ts)
+int MP4Muxer::Initialize(int width, int height, int frame_rate, int samplate_rate, const std::string filename)
 {
     if (init_)
         return KInitialized;
 
-    allocator_2048k::mmz_malloc(mmz_buffer_);
     hdl_ = MP4Create(filename.c_str(), MP4_CREATE_64BIT_TIME | MP4_CREATE_64BIT_DATA | MP4_CLOSE_DO_NOT_COMPUTE_BITRATE);
     if (hdl_ == MP4_INVALID_FILE_HANDLE)
     {
@@ -60,13 +55,6 @@ int MP4Muxer::Initialize(int width, int height, int frame_rate, int samplate_rat
     pps_ = "";
     sei_ = "";
     vts_base_ = 0;
-
-    set_ts_ = set_ts;
-    aone_frame_duration_ = (1024 * 1000000) / samplate_rate_;
-    vone_frame_duration_ = 1000000 / frame_rate_;
-    aduration_ = 0;
-    vduration_ = 0;
-
     init_ctx_ = false;
 
     init_ = true;
@@ -123,7 +111,6 @@ void MP4Muxer::Close()
         return;
 
     MP4Close(hdl_);
-    allocator_2048k::mmz_free(mmz_buffer_);
     init_ = false;
 }
 
@@ -151,19 +138,10 @@ int MP4Muxer::WriteVideoFrame(const VENCFrame &frame)
     if (frame.type == H264E_NALU_SPS || frame.type == H264E_NALU_PPS || frame.type == H264E_NALU_SEI)
         return KSuccess;
 
-    uint64_t duration;
-    if (set_ts_)
-    {
-        duration = vone_frame_duration_;
-        vduration_ += duration;
-    }
-    else
-    {
-        if (vts_base_ == 0)
-            vts_base_ = frame.ts;
-        duration = frame.ts - vts_base_;
+    if (vts_base_ == 0)
         vts_base_ = frame.ts;
-    }
+    uint64_t duration = frame.ts - vts_base_;
+    vts_base_ = frame.ts;
 
     uint32_t *tmp = reinterpret_cast<uint32_t *>(mmz_buffer_.vir_addr);
     uint8_t *buf = mmz_buffer_.vir_addr + 4;
@@ -179,13 +157,6 @@ int MP4Muxer::WriteVideoFrame(const VENCFrame &frame)
         memcpy(buf + pos, frame.data, frame.len);
         pos += frame.len;
         *tmp = htonl(pos);
-
-        if (set_ts_ && aduration_ > vduration_)
-        {
-            duration += (aduration_ - vduration_);
-            vduration_ = aduration_;
-
-        }
 
         if (!MP4WriteSample(hdl_, vtrack_, mmz_buffer_.vir_addr, pos + 4, duration, 0, true))
         {
@@ -215,9 +186,6 @@ int MP4Muxer::WriteAudioFrame(const AENCFrame &frame)
 
     if (!init_ctx_)
         return KSuccess;
-
-    if (set_ts_)
-        aduration_ += aone_frame_duration_;
 
     if (!MP4WriteSample(hdl_, atrack_, frame.data, frame.len, MP4_INVALID_DURATION))
     {

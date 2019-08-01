@@ -6,16 +6,18 @@ namespace rs
 
 using namespace rtmp;
 
-RtmpLive::RtmpLive()
+RTMPLive::RTMPLive() : run_(false),
+                       thread_(nullptr),
+                       init_(false)
 {
 }
 
-RtmpLive::~RtmpLive()
+RTMPLive::~RTMPLive()
 {
     Close();
 }
 
-int RtmpLive::Initialize(const Params &params)
+int RTMPLive::Initialize(const Params &params)
 {
     if (init_)
         return KInitialized;
@@ -27,8 +29,7 @@ int RtmpLive::Initialize(const Params &params)
         RTMPStreamer streamer;
 
         Frame frame;
-        MMZBuffer mmz_buffer;
-        allocator_2048k::mmz_malloc(mmz_buffer);
+        MMZBuffer mmz_buffer(2 * 1024 * 1024);
 
         bool init = false;
 
@@ -86,6 +87,7 @@ int RtmpLive::Initialize(const Params &params)
                     ret = streamer.WriteAudioFrame(frame.data.aframe);
                     if (ret != KSuccess)
                     {
+                        log_w("disconnect....,try to connect after 5 sec");
                         streamer.Close();
                         init = false; //断开连接,尝试重连
                     }
@@ -95,6 +97,7 @@ int RtmpLive::Initialize(const Params &params)
                     ret = streamer.WriteVideoFrame(frame.data.vframe);
                     if (ret != KSuccess)
                     {
+                        log_w("disconnect....,try to connect after 5 sec");
                         streamer.Close();
                         init = false; //断开连接,尝试重连
                     }
@@ -103,19 +106,72 @@ int RtmpLive::Initialize(const Params &params)
         }
 
         streamer.Close();
-        allocator_2048k::mmz_free(mmz_buffer);
     }));
 
     init_ = true;
     return KSuccess;
 }
 
-void RtmpLive::Close()
+void RTMPLive::Close()
 {
     if (!init_)
         return;
 
+    run_ = false;
+    cond_.notify_all();
+    thread_->join();
+    thread_.reset();
+    thread_ = nullptr;
+
     init_ = false;
+}
+
+void RTMPLive::OnFrame(const VENCFrame &video_frame)
+{
+    if (!init_)
+        return;
+    mux_.lock();
+
+    if (buffer_.FreeSpace() < sizeof(Frame) + video_frame.len)
+    {
+        mux_.unlock();
+        log_e("[%s]buffer fill", params_.url.c_str());
+        return;
+    }
+
+    Frame frame;
+    frame.type = Frame::VIDEO;
+    frame.data.vframe = video_frame;
+
+    buffer_.Append(reinterpret_cast<uint8_t *>(&frame), sizeof(frame));
+    buffer_.Append(video_frame.data, video_frame.len);
+
+    cond_.notify_one();
+    mux_.unlock();
+}
+
+void RTMPLive::OnFrame(const AENCFrame &audio_frame)
+{
+    if (!init_)
+        return;
+    mux_.lock();
+
+    if (buffer_.FreeSpace() < sizeof(Frame) + audio_frame.len)
+    {
+        mux_.unlock();
+        log_e("[%s]buffer fill", params_.url.c_str());
+        return;
+    }
+
+    Frame frame;
+    frame.type = Frame::AUDIO;
+    frame.data.aframe = audio_frame;
+
+    buffer_.Append(reinterpret_cast<uint8_t *>(&frame), sizeof(frame));
+    buffer_.Append(audio_frame.data, audio_frame.len);
+
+    cond_.notify_one();
+    mux_.unlock();
 }
 
 } // namespace rs

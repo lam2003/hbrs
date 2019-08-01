@@ -49,30 +49,39 @@ int Config::Initialize(const std::string &path)
     }
 
     Json::Value video = root["video"];
-    if (!video.isMember("record_width") ||
-        !video["record_width"].isInt() ||
-        !video.isMember("record_height") ||
-        !video["record_height"].isInt() ||
-        !video.isMember("record_bitrate") ||
-        !video["record_bitrate"].isInt() ||
-        !video.isMember("live_width") ||
-        !video["live_width"].isInt() ||
-        !video.isMember("live_height") ||
-        !video["live_height"].isInt() ||
-        !video.isMember("live_bitrate") ||
-        !video["live_bitrate"].isInt())
+    if (!video.isMember("res_height") ||
+        !video["res_height"].isInt() ||
+        !video.isMember("res_width") ||
+        !video["res_width"].isInt() ||
+        !video.isMember("res_bitrate") ||
+        !video["res_bitrate"].isInt() ||
+        !video.isMember("normal_live_height") ||
+        !video["normal_live_height"].isInt() ||
+        !video.isMember("normal_live_width") ||
+        !video["normal_live_width"].isInt() ||
+        !video.isMember("normal_live_bitrate") ||
+        !video["normal_live_bitrate"].isInt() ||
+        !video.isMember("normal_record_height") ||
+        !video["normal_record_height"].isInt() ||
+        !video.isMember("normal_record_width") ||
+        !video["normal_record_width"].isInt() ||
+        !video.isMember("normal_record_bitrate") ||
+        !video["normal_record_bitrate"].isInt())
     {
         log_e("check video error");
         return KParamsError;
     }
 
-    video_.record_width = video["record_width"].asInt();
-    video_.record_height = video["record_height"].asInt();
-    video_.record_bitrate = video["record_bitrate"].asInt();
-    video_.live_width = video["live_width"].asInt();
-    video_.live_height = video["live_height"].asInt();
-    video_.live_bitrate = video["live_bitrate"].asInt();
-    
+    video_.res_height = video["res_height"].asInt();
+    video_.res_width = video["res_width"].asInt();
+    video_.res_bitrate = video["res_bitrate"].asInt();
+    video_.normal_live_height = video["normal_live_height"].asInt();
+    video_.normal_live_width = video["normal_live_width"].asInt();
+    video_.normal_live_bitrate = video["normal_live_bitrate"].asInt();
+    video_.normal_record_height = video["normal_record_height"].asInt();
+    video_.normal_record_width = video["normal_record_width"].asInt();
+    video_.normal_record_bitrate = video["normal_record_bitrate"].asInt();
+
     {
         //scene
         if (!root.isMember("scene") ||

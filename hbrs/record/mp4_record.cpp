@@ -30,8 +30,7 @@ int MP4Record::Initialize(const Params &params)
         std::string filename;
         MP4Muxer muxer;
         Frame frame;
-        MMZBuffer mmz_buffer;
-        allocator_2048k::mmz_malloc(mmz_buffer);
+        MMZBuffer mmz_buffer(2*1024*1024);
         bool wait_sps_pps;
         uint64_t cur_frame_num;
 
@@ -55,7 +54,7 @@ int MP4Record::Initialize(const Params &params)
                     filename = params_.filename;
                 }
 
-                ret = muxer.Initialize(params_.width, params_.height, params_.frame_rate, params_.samplate_rate, filename,params_.set_ts);
+                ret = muxer.Initialize(params_.width, params_.height, params_.frame_rate, params_.samplate_rate, filename);
                 if (ret != KSuccess)
                     return;
 
@@ -121,7 +120,6 @@ int MP4Record::Initialize(const Params &params)
         }
 
         muxer.Close();
-        allocator_2048k::mmz_free(mmz_buffer);
     }));
 
     init_ = true;

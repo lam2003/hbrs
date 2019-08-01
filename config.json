@@ -23,12 +23,15 @@
       ]
    },
    "video": {
-      "record_height": 720,
-      "record_width": 1280,
-      "record_bitrate": 4000,
-      "live_height": 720,
-      "live_width": 1280,
-      "live_bitrate": 4000
+      "res_height": 720,
+      "res_width": 1280,
+      "res_bitrate": 4000,
+      "normal_live_height": 720,
+      "normal_live_width": 1280,
+      "normal_live_bitrate": 4000,
+      "normal_record_height": 1080,
+      "normal_record_width": 1920,
+      "normal_record_bitrate": 10000
    },
    "system": {
       "disp_vo_intf_sync": 10,

@@ -1,5 +1,6 @@
 #include "live/rtmp_streamer.h"
 #include "common/err_code.h"
+#include "common/utils.h"
 
 namespace rs
 {
@@ -7,6 +8,7 @@ namespace rs
 const int RTMPStreamer::DefaultTimeOut = 1000;
 
 RTMPStreamer::RTMPStreamer() : rtmp_(nullptr),
+                               //    ts_(0),
                                ats_base_(0),
                                vts_base_(0),
                                init_(false)
@@ -60,6 +62,7 @@ int RTMPStreamer::Initialize(const std::string &url)
         return KSDKError;
     }
 
+    // ts_ = 0;
     ats_base_ = 0;
     vts_base_ = 0;
 
@@ -82,10 +85,15 @@ int RTMPStreamer::WriteAudioFrame(const AENCFrame &frame)
         return KUnInitialized;
     int ret;
 
+    // if (frame.ts > ts_)
+    //     ts_ = frame.ts;
+
     if (ats_base_ == 0)
         ats_base_ = frame.ts;
-    uint64_t ts = frame.ts - ats_base_;
-    ret = srs_audio_write_raw_frame(rtmp_, 10, 3, 1, 1,reinterpret_cast<char *>(frame.data), frame.len, ts);
+
+    uint64_t ts = (frame.ts - ats_base_) / 1000;
+
+    ret = srs_audio_write_raw_frame(rtmp_, 10, 3, 1, 1, reinterpret_cast<char *>(frame.data), frame.len, ts);
     if (ret != KSuccess)
     {
         log_e("srs_audio_write_raw_frame failed with %#x", ret);
@@ -105,9 +113,14 @@ int RTMPStreamer::WriteVideoFrame(const VENCFrame &frame)
 
     int ret;
 
+    // if (frame.ts > ts_)
+    //     ts_ = frame.ts;
+
     if (vts_base_ == 0)
         vts_base_ = frame.ts;
-    uint64_t ts = frame.ts - vts_base_;
+
+    uint64_t ts = (frame.ts - vts_base_) / 1000;
+
     ret = srs_h264_write_raw_frames(rtmp_, reinterpret_cast<char *>(frame.data), frame.len, ts, ts);
     if (ret != KSuccess)
     {
