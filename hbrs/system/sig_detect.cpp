@@ -224,7 +224,9 @@ int SigDetect::Initialize(pciv::Context *ctx, ADV7842_MODE mode)
                 }
             }
 
-            usleep(1000000);
+            int wait_time = 10;
+            while(run_ && wait_time--)
+                usleep(500000); //500ms
         }
     }));
 

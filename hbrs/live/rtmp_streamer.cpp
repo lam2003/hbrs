@@ -8,9 +8,6 @@ namespace rs
 const int RTMPStreamer::DefaultTimeOut = 1000;
 
 RTMPStreamer::RTMPStreamer() : rtmp_(nullptr),
-                               //    ts_(0),
-                               ats_base_(0),
-                               vts_base_(0),
                                init_(false)
 {
 }
@@ -37,6 +34,7 @@ int RTMPStreamer::Initialize(const std::string &url)
     ret = srs_rtmp_set_timeout(rtmp_, DefaultTimeOut, DefaultTimeOut);
     if (ret != KSuccess)
     {
+        srs_rtmp_destroy(rtmp_);
         log_e("srs_rtmp_set_timeout failed with %#x", ret);
         return KSDKError;
     }
@@ -44,6 +42,7 @@ int RTMPStreamer::Initialize(const std::string &url)
     ret = srs_rtmp_handshake(rtmp_);
     if (ret != KSuccess)
     {
+        srs_rtmp_destroy(rtmp_);
         log_e("srs_rtmp_handshake failed with %#x", ret);
         return KSDKError;
     }
@@ -51,6 +50,7 @@ int RTMPStreamer::Initialize(const std::string &url)
     ret = srs_rtmp_connect_app(rtmp_);
     if (ret != KSuccess)
     {
+        srs_rtmp_destroy(rtmp_);
         log_e("srs_rtmp_connect_app failed with %#x", ret);
         return KSDKError;
     }
@@ -58,13 +58,10 @@ int RTMPStreamer::Initialize(const std::string &url)
     ret = srs_rtmp_publish_stream(rtmp_);
     if (ret != KSuccess)
     {
+        srs_rtmp_destroy(rtmp_);
         log_e("srs_rtmp_publish_stream failed with %#x", ret);
         return KSDKError;
     }
-
-    // ts_ = 0;
-    ats_base_ = 0;
-    vts_base_ = 0;
 
     init_ = true;
     return KSuccess;
@@ -85,15 +82,7 @@ int RTMPStreamer::WriteAudioFrame(const AENCFrame &frame)
         return KUnInitialized;
     int ret;
 
-    // if (frame.ts > ts_)
-    //     ts_ = frame.ts;
-
-    if (ats_base_ == 0)
-        ats_base_ = frame.ts;
-
-    uint64_t ts = (frame.ts - ats_base_) / 1000;
-
-    ret = srs_audio_write_raw_frame(rtmp_, 10, 3, 1, 1, reinterpret_cast<char *>(frame.data), frame.len, ts);
+    ret = srs_audio_write_raw_frame(rtmp_, 10, 3, 1, 1, reinterpret_cast<char *>(frame.data), frame.len, frame.ts);
     if (ret != KSuccess)
     {
         log_e("srs_audio_write_raw_frame failed with %#x", ret);
@@ -113,15 +102,7 @@ int RTMPStreamer::WriteVideoFrame(const VENCFrame &frame)
 
     int ret;
 
-    // if (frame.ts > ts_)
-    //     ts_ = frame.ts;
-
-    if (vts_base_ == 0)
-        vts_base_ = frame.ts;
-
-    uint64_t ts = (frame.ts - vts_base_) / 1000;
-
-    ret = srs_h264_write_raw_frames(rtmp_, reinterpret_cast<char *>(frame.data), frame.len, ts, ts);
+    ret = srs_h264_write_raw_frames(rtmp_, reinterpret_cast<char *>(frame.data), frame.len, frame.ts, frame.ts);
     if (ret != KSuccess)
     {
         if (ret == ERROR_H264_DROP_BEFORE_SPS_PPS ||

@@ -112,7 +112,6 @@ int32_t VideoEncode::Initialize(const Params &params)
         MMZBuffer mmz_buffer(2 * 1024 * 1024);
         MMZBuffer packet_mmz_buffer(128 * 1024);
 
-
         uint8_t *packet_buf = packet_mmz_buffer.vir_addr;
 
         uint64_t duration = 1000000 / params_.dst_frame_rate;
@@ -175,7 +174,7 @@ int32_t VideoEncode::Initialize(const Params &params)
                 return;
             }
             {
-                std::unique_lock<std::mutex> lock(video_sink_mux_);
+                std::unique_lock<std::mutex> lock(sinks_mux_);
                 for (uint32_t i = 0; i < stream.u32PackCount; i++)
                 {
                     uint32_t len = stream.pstPack[i].u32Len[0] + stream.pstPack[i].u32Len[1];
@@ -197,8 +196,8 @@ int32_t VideoEncode::Initialize(const Params &params)
                             frame_index++;
                     }
 
-                    for (VideoSink<VENCFrame> *video_sink : video_sinks_)
-                        video_sink->OnFrame(frame);
+                    for (VideoSink<VENCFrame> *sink : sinks_)
+                        sink->OnFrame(frame);
                 }
             }
 
@@ -216,7 +215,6 @@ int32_t VideoEncode::Initialize(const Params &params)
             log_e("HI_MPI_VENC_StopRecvPic failed with %#x", ret);
             return;
         }
-
     }));
 
     init_ = true;
@@ -244,20 +242,28 @@ void VideoEncode::Close()
     if (ret != KSuccess)
         log_e("HI_MPI_VENC_DestroyGroup failed with %#x", ret);
 
-    video_sinks_.clear();
+    sinks_.clear();
     init_ = false;
 }
 
-void VideoEncode::AddVideoSink(VideoSink<VENCFrame> *video_sink)
+void VideoEncode::AddVideoSink(VideoSink<VENCFrame> *sink)
 {
-    std::unique_lock<std::mutex> lock(video_sink_mux_);
-    video_sinks_.push_back(video_sink);
+    std::unique_lock<std::mutex> lock(sinks_mux_);
+    sinks_.push_back(sink);
 }
 
-void VideoEncode::RemoveAllVideoSink()
+void VideoEncode::RemoveVideoSink(VideoSink<VENCFrame> *sink)
 {
-    std::unique_lock<std::mutex> lock(video_sink_mux_);
-    video_sinks_.clear();
+    std::unique_lock<std::mutex> lock(sinks_mux_);
+
+    for (auto it = sinks_.begin(); it != sinks_.end(); it++)
+    {
+        if (*it == sink)
+        {
+            sinks_.erase(it);
+            break;
+        }
+    }
 }
 
 } // namespace rs

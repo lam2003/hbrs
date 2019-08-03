@@ -145,9 +145,17 @@ void AudioEncode::AddAudioSink(AudioSink<AENCFrame> *sink)
     sinks_.push_back(sink);
 }
 
-void AudioEncode::RemoveAllAudioSink()
+void AudioEncode::RemoveAudioSink(AudioSink<AENCFrame> *sink)
 {
     std::unique_lock<std::mutex> lock(sinks_mux_);
-    sinks_.clear();
+
+    for (auto it = sinks_.begin(); it != sinks_.end(); it++)
+    {
+        if (*it == sink)
+        {
+            sinks_.erase(it);
+            break;
+        }
+    }
 }
 } // namespace rs

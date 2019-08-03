@@ -11,6 +11,7 @@ namespace rtmp
 struct Params
 {
     std::string url;
+    bool has_audio;
 };
 } // namespace rtmp
 
@@ -28,6 +29,11 @@ public:
     void OnFrame(const AENCFrame &frame) override;
 
     void OnFrame(const VENCFrame &frame) override;
+
+protected:
+    void HandleVideoOnly();
+
+    void HandleAV();
 
 private:
     rtmp::Params params_;

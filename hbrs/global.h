@@ -106,7 +106,8 @@ enum RS_SCENE
     STU_FULL_VIEW,
     BLACK_BOARD_FEATURE,
     PC_CAPTURE,
-    MAIN
+    MAIN,
+    MAIN2
 };
 
 static std::map<int, int> Tw6874_1_DevChn2Scene = {

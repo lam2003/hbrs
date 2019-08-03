@@ -30,7 +30,7 @@ int MP4Record::Initialize(const Params &params)
         std::string filename;
         MP4Muxer muxer;
         Frame frame;
-        MMZBuffer mmz_buffer(2*1024*1024);
+        MMZBuffer mmz_buffer(2 * 1024 * 1024);
         bool wait_sps_pps;
         uint64_t cur_frame_num;
 
@@ -100,7 +100,10 @@ int MP4Record::Initialize(const Params &params)
                 {
                     ret = muxer.WriteAudioFrame(frame.data.aframe);
                     if (ret != KSuccess)
+                    {
+                        muxer.Close();
                         return;
+                    }
                 }
                 else
                 {
@@ -108,7 +111,10 @@ int MP4Record::Initialize(const Params &params)
                         cur_frame_num++;
                     ret = muxer.WriteVideoFrame(frame.data.vframe);
                     if (ret != KSuccess)
+                    {
+                        muxer.Close();
                         return;
+                    }
                 }
             }
 

@@ -25,7 +25,7 @@
    "video": {
       "res_height": 720,
       "res_width": 1280,
-      "res_bitrate": 4000,
+      "res_bitrate": 2000,
       "normal_live_height": 720,
       "normal_live_width": 1280,
       "normal_live_bitrate": 4000,

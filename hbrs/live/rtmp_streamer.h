@@ -23,9 +23,6 @@ public:
 
 private:
     srs_rtmp_t rtmp_;
-    // uint64_t ts_;
-    uint64_t ats_base_;
-    uint64_t vts_base_;
     bool init_;
 
     static const int DefaultTimeOut;

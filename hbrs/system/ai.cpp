@@ -274,7 +274,7 @@ static int StartTlv320(AIO_MODE_E mode, AUDIO_SAMPLE_RATE_E samplerate)
     }
 
     close(fd);
-    log_d("set aic31 ok: master = %d, mode = %d, samplerate = %d", master, mode, samplerate);
+
     return KSuccess;
 }
 

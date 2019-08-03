@@ -33,6 +33,7 @@ private:
     int height_;
     int frame_rate_;
     int samplate_rate_;
+    std::string filename_;
     std::string sps_;
     std::string pps_;
     std::string sei_;

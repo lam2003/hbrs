@@ -20,7 +20,7 @@ public:
 
     void AddAudioSink(AudioSink<AENCFrame> *sink);
 
-    void RemoveAllAudioSink();
+    void RemoveAudioSink(AudioSink<AENCFrame> *sink);
 
     void OnFrame(const AIFrame &frame) override;
 
