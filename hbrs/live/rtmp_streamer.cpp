@@ -7,7 +7,8 @@ namespace rs
 
 const int RTMPStreamer::DefaultTimeOut = 1000;
 
-RTMPStreamer::RTMPStreamer() : rtmp_(nullptr),
+RTMPStreamer::RTMPStreamer() : url_(""),
+                               rtmp_(nullptr),
                                init_(false)
 {
 }
@@ -65,6 +66,8 @@ int RTMPStreamer::Initialize(const std::string &url, bool has_audio)
         return KSDKError;
     }
 
+    url_ = url;
+
     init_ = true;
     return KSuccess;
 }
@@ -73,7 +76,8 @@ void RTMPStreamer::Close()
 {
     if (!init_)
         return;
-
+        
+    log_d("[%s]stop", url_.c_str());
     srs_rtmp_destroy(rtmp_);
     init_ = false;
 }

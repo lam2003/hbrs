@@ -360,7 +360,7 @@ int AudioInput::Initialize(const Params &params)
 
     AI_CHN_PARAM_S param;
     memset(&param, 0, sizeof(param));
-    
+
     param.u32UsrFrmDepth = 20;
     ret = HI_MPI_AI_SetChnParam(params_.dev, params_.chn, &param);
     if (ret != HI_SUCCESS)
@@ -450,13 +450,12 @@ void AudioInput::Close()
     if (!init_)
         return;
 
-    int ret;
-
     run_ = false;
     thread_->join();
     thread_.reset();
     thread_ = nullptr;
-
+#if 0
+    int ret;
     ret = HI_MPI_AI_DisableChn(params_.dev, params_.chn);
     if (ret != KSuccess)
         log_e("HI_MPI_AI_DisableChn failed with %#x", ret);
@@ -464,7 +463,7 @@ void AudioInput::Close()
     ret = HI_MPI_AI_Disable(params_.dev);
     if (ret != KSuccess)
         log_e("HI_MPI_AI_Disable failed with %#x", ret);
-
+#endif
     StopTlv320();
 
     sinks_.clear();

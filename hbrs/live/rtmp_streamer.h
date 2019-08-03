@@ -22,6 +22,7 @@ public:
     int WriteAudioFrame(const AENCFrame &frame);
 
 private:
+    std::string url_;
     srs_rtmp_t rtmp_;
     bool init_;
 

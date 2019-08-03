@@ -37,6 +37,8 @@ struct option g_LongOpts[] = {
 static RS_SCENE g_CurMainScene = PC_CAPTURE;
 
 static bool g_Run = true;
+static bool g_LiveStart = false;
+static bool g_RecordStart = false;
 
 static void SignalHandler(int signo)
 {
@@ -474,6 +476,8 @@ static void CloseVideoEncode()
 
 static int StartRecord(const std::vector<std::pair<RS_SCENE, mp4::Params>> &records)
 {
+	if (g_RecordStart)
+		return KInitialized;
 	int ret;
 	for (const std::pair<RS_SCENE, mp4::Params> &rec : records)
 	{
@@ -547,12 +551,14 @@ static int StartRecord(const std::vector<std::pair<RS_SCENE, mp4::Params>> &reco
 			break;
 		}
 	}
-
+	g_RecordStart = true;
 	return KSuccess;
 }
 
 static void CloseRecord()
 {
+	if (!g_RecordStart)
+		return;
 	aenc_main.RemoveAudioSink(&rec_tea_fea);
 	venc_tea_fea.RemoveVideoSink(&rec_tea_fea);
 	aenc_main.RemoveAudioSink(&rec_stu_fea);
@@ -575,10 +581,14 @@ static void CloseRecord()
 	rec_black_board.Close();
 	rec_pc.Close();
 	rec_main.Close();
+
+	g_RecordStart = false;
 }
 
 static int StartLive(const std::vector<std::pair<RS_SCENE, rtmp::Params>> &lives)
 {
+	if (g_LiveStart)
+		return KInitialized;
 	int ret;
 	for (const std::pair<RS_SCENE, rtmp::Params> &live : lives)
 	{
@@ -669,18 +679,27 @@ static int StartLive(const std::vector<std::pair<RS_SCENE, rtmp::Params>> &lives
 			break;
 		}
 	}
-
+	g_LiveStart = true;
 	return KSuccess;
 }
 
 void CloseLive()
 {
-	venc_tea_fea.RemoveVideoSink(&rec_tea_fea);
-	venc_stu_fea.RemoveVideoSink(&rec_stu_fea);
-	venc_tea_full.RemoveVideoSink(&rec_tea_full);
-	venc_stu_full.RemoveVideoSink(&rec_stu_full);
-	venc_black_board.RemoveVideoSink(&rec_black_board);
-	venc_pc.RemoveVideoSink(&rec_pc);
+	if (!g_LiveStart)
+		return;
+	venc_tea_fea.RemoveVideoSink(&live_tea_fea);
+	live_tea_fea.Close();
+	venc_stu_fea.RemoveVideoSink(&live_stu_fea);
+	live_stu_fea.Close();
+	venc_tea_full.RemoveVideoSink(&live_tea_full);
+	live_tea_full.Close();
+	venc_stu_full.RemoveVideoSink(&live_stu_full);
+	live_stu_full.Close();
+	venc_black_board.RemoveVideoSink(&live_black_board);
+	live_black_board.Close();
+	venc_pc.RemoveVideoSink(&live_pc);
+	live_pc.Close();
+
 	aenc_main.RemoveAudioSink(&live_main);
 	aenc_main.RemoveAudioSink(&live_main2);
 	if (Config::Instance()->IsResourceMode())
@@ -693,6 +712,9 @@ void CloseLive()
 		venc_main2.RemoveVideoSink(&live_main);
 		venc_main2.RemoveVideoSink(&live_main2);
 	}
+	live_main.Close();
+	live_main2.Close();
+	g_LiveStart = false;
 }
 
 static void StartRecordHandler(evhttp_request *req, void *arg)
@@ -700,17 +722,20 @@ static void StartRecordHandler(evhttp_request *req, void *arg)
 	int ret;
 
 	std::string str = HttpServer::GetRequestData(req);
+	log_d("request body:%s", str.c_str());
 
 	Json::Value root;
 	if (JsonUtils::toJson(str, root) != KSuccess)
 	{
 		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"parse json root failed\"}");
+		log_d("parse json root failed");
 		return;
 	}
 
 	if (!RecordReq::IsOk(root))
 	{
 		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"check json format failed\"}");
+		log_d("check json format failed");
 		return;
 	}
 
@@ -722,16 +747,64 @@ static void StartRecordHandler(evhttp_request *req, void *arg)
 	if (ret != KSuccess)
 	{
 		HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start record failed\"}");
+		log_d("start record failed");
 		return;
 	}
 
 	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
+	log_d("request ok");
 }
 
 static void StopRecordHandler(evhttp_request *req, void *arg)
 {
 	CloseRecord();
 	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
+	log_d("request ok");
+}
+
+static void StartLiveHandler(evhttp_request *req, void *arg)
+{
+	int ret;
+
+	std::string str = HttpServer::GetRequestData(req);
+	log_d("request body:%s", str.c_str());
+
+	Json::Value root;
+	if (JsonUtils::toJson(str, root) != KSuccess)
+	{
+		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"parse json root failed\"}");
+		log_d("parse json root failed");
+		return;
+	}
+
+	if (!LiveReq::IsOk(root))
+	{
+		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"check json format failed\"}");
+		log_d("check json format failed");
+		return;
+	}
+
+	LiveReq live_req;
+	live_req = root;
+
+	CloseLive();
+	ret = StartLive(live_req.lives);
+	if (ret != KSuccess)
+	{
+		HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start live failed\"}");
+		log_d("start live failed");
+		return;
+	}
+
+	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
+	log_d("request ok");
+}
+
+static void StopLiveHandler(evhttp_request *req, void *arg)
+{
+	CloseLive();
+	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
+	log_d("request ok");
 }
 
 int32_t main(int32_t argc, char **argv)
@@ -875,29 +948,12 @@ int32_t main(int32_t argc, char **argv)
 	ret = StartMainScreen();
 	CHECK_ERROR(ret);
 
-	ret = StartLive({{MAIN, {"rtmp://127.0.0.1/live/main", true}},
-					 {TEA_FEATURE, {"rtmp://127.0.0.1/live/tea_fea", false}},
-					 {STU_FEATURE, {"rtmp://127.0.0.1/live/stu_fea", false}},
-					 {TEA_FULL_VIEW, {"rtmp://127.0.0.1/live/tea_full", false}},
-					 {STU_FULL_VIEW, {"rtmp://127.0.0.1/live/stu_full", false}},
-					 {BLACK_BOARD_FEATURE, {"rtmp://127.0.0.1/live/black_board", false}},
-					 {PC_CAPTURE, {"rtmp://127.0.0.1/live/pc", false}},
-					 {MAIN2, {"rtmp://127.0.0.1/live/main2", true}}});
-	CHECK_ERROR(ret)
-
-	// ret = StartRecord({{MAIN, {1280, 720, 25, 44100, "/nand/main.mp4", 0, false}},
-	// 				   {TEA_FEATURE, {1280, 720, 25, 44100, "/nand/tea_fea.mp4", 0, false}},
-	// 				   {STU_FEATURE, {1280, 720, 25, 44100, "/nand/stu_fea.mp4", 0, false}},
-	// 				   {TEA_FULL_VIEW, {1280, 720, 25, 44100, "/nand/tea_full.mp4", 0, false}},
-	// 				   {STU_FULL_VIEW, {1280, 720, 25, 44100, "/nand/stu_full", 0, false}},
-	// 				   {BLACK_BOARD_FEATURE, {1280, 720, 25, 44100, "/nand/black_board.mp4", 0, false}},
-	// 				   {PC_CAPTURE, {1280, 720, 25, 44100, "/nand/pc.mp4", 0, false}}});
-	// CHECK_ERROR(ret)
-
 	HttpServer http_server;
 	http_server.Initialize("0.0.0.0", 8081);
 	http_server.RegisterURI("/start_record", StartRecordHandler, nullptr);
 	http_server.RegisterURI("/stop_record", StopRecordHandler, nullptr);
+	http_server.RegisterURI("/start_live", StartLiveHandler, nullptr);
+	http_server.RegisterURI("/stop_live", StopLiveHandler, nullptr);
 
 	while (g_Run)
 		http_server.Dispatch();
@@ -907,6 +963,29 @@ int32_t main(int32_t argc, char **argv)
 	CloseMainScreen();
 	CloseDisplayScreen();
 	CloseVideoEncode();
+
+	ret = MPPSystem::UnBind<HI_ID_AI, HI_ID_AO>(4, 0, 4, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::UnBind<HI_ID_VDEC, HI_ID_VPSS>(0, 3, 5, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::UnBind<HI_ID_VDEC, HI_ID_VPSS>(0, 2, 4, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::UnBind<HI_ID_VDEC, HI_ID_VPSS>(0, 1, 3, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::UnBind<HI_ID_VDEC, HI_ID_VPSS>(0, 0, 2, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::UnBind<HI_ID_VOU, HI_ID_VPSS>(11, 0, 1, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::UnBind<HI_ID_VOU, HI_ID_VPSS>(10, 0, 0, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::UnBind<HI_ID_VPSS, HI_ID_VOU>(11, 4, 11, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::UnBind<HI_ID_VPSS, HI_ID_VOU>(10, 4, 10, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::UnBind<HI_ID_VIU, HI_ID_VPSS>(0, 4, 11, 0);
+	CHECK_ERROR(ret);
+	ret = MPPSystem::UnBind<HI_ID_VIU, HI_ID_VPSS>(0, 8, 10, 0);
+	CHECK_ERROR(ret);
 
 	SigDetect::Instance()->Close();
 	vo_main.Close();
