@@ -33,7 +33,7 @@ void RTMPLive::HandleVideoOnly()
 
         if (!init)
         {
-            ret = streamer.Initialize(params_.url);
+            ret = streamer.Initialize(params_.url, params_.has_audio);
             if (ret != KSuccess)
             {
                 int wait_sec = 10; //5秒后发起重连
@@ -102,7 +102,7 @@ void RTMPLive::HandleAV()
 
         if (!init)
         {
-            ret = streamer.Initialize(params_.url);
+            ret = streamer.Initialize(params_.url,params_.has_audio);
             if (ret != KSuccess)
             {
                 int wait_sec = 10; //5秒后发起重连

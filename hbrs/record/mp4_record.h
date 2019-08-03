@@ -16,6 +16,40 @@ struct Params
     std::string filename;
     int segment_duration;
     bool need_to_segment;
+
+    operator Json::Value() const
+    {
+        Json::Value root;
+        root["width"] = width;
+        root["height"] = height;
+        root["frame_rate"] = frame_rate;
+        root["samplate_rate"] = samplate_rate;
+        root["filename"] = filename;
+        root["segment_duration"] = segment_duration;
+        root["need_to_segment"] = need_to_segment;
+        return root;
+    }
+
+    static bool IsOk(const Json::Value &root)
+    {
+        if (!root.isMember("filename") ||
+            !root["filename"].isString() ||
+            !root.isMember("segment_duration") ||
+            !root["segment_duration"].isInt() ||
+            !root.isMember("need_to_segment") ||
+            !root["need_to_segment"].isBool())
+            return false;
+        return true;
+    }
+
+    Params &operator=(const Json::Value &root)
+    {
+        filename = root["filename"].asString();
+        segment_duration = root["segment_duration"].asInt();
+        need_to_segment = root["need_to_segment"].asBool();
+        return *this;
+    }
+
 };
 } // namespace mp4
 

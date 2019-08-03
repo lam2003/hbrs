@@ -14,8 +14,11 @@
 #include "common/config.h"
 #include "common/logger.h"
 #include "common/http_server.h"
+#include "common/json.h"
 #include "record/mp4_record.h"
 #include "live/rtmp_live.h"
+#include "model/record_req.h"
+#include "model/live_req.h"
 
 using namespace rs;
 
@@ -286,25 +289,25 @@ static int StartVideoEncode()
 		if (ret != KSuccess)
 			return ret;
 
-		ret = venc_tea_fea.Initialize({0, 0, Config::Instance()->video_.res_width, Config::Instance()->video_.res_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.res_bitrate, VENC_RC_MODE_H264CBR, false});
+		ret = venc_tea_fea.Initialize({0, 0, Config::Instance()->video_.res_width, Config::Instance()->video_.res_height, 25, 25, 0, Config::Instance()->video_.res_bitrate, VENC_RC_MODE_H264CBR, false});
 		if (ret != KSuccess)
 			return ret;
-		ret = venc_stu_fea.Initialize({1, 1, Config::Instance()->video_.res_width, Config::Instance()->video_.res_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.res_bitrate, VENC_RC_MODE_H264CBR, false});
+		ret = venc_stu_fea.Initialize({1, 1, Config::Instance()->video_.res_width, Config::Instance()->video_.res_height, 25, 25, 0, Config::Instance()->video_.res_bitrate, VENC_RC_MODE_H264CBR, false});
 		if (ret != KSuccess)
 			return ret;
-		ret = venc_tea_full.Initialize({2, 2, Config::Instance()->video_.res_width, Config::Instance()->video_.res_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.res_bitrate, VENC_RC_MODE_H264CBR, true});
+		ret = venc_tea_full.Initialize({2, 2, Config::Instance()->video_.res_width, Config::Instance()->video_.res_height, 25, 25, 0, Config::Instance()->video_.res_bitrate, VENC_RC_MODE_H264CBR, true});
 		if (ret != KSuccess)
 			return ret;
-		ret = venc_stu_full.Initialize({3, 3, Config::Instance()->video_.res_width, Config::Instance()->video_.res_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.res_bitrate, VENC_RC_MODE_H264CBR, true});
+		ret = venc_stu_full.Initialize({3, 3, Config::Instance()->video_.res_width, Config::Instance()->video_.res_height, 25, 25, 0, Config::Instance()->video_.res_bitrate, VENC_RC_MODE_H264CBR, true});
 		if (ret != KSuccess)
 			return ret;
-		ret = venc_black_board.Initialize({4, 4, Config::Instance()->video_.res_width, Config::Instance()->video_.res_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.res_bitrate, VENC_RC_MODE_H264CBR, true});
+		ret = venc_black_board.Initialize({4, 4, Config::Instance()->video_.res_width, Config::Instance()->video_.res_height, 25, 25, 0, Config::Instance()->video_.res_bitrate, VENC_RC_MODE_H264CBR, true});
 		if (ret != KSuccess)
 			return ret;
-		ret = venc_pc.Initialize({5, 5, Config::Instance()->video_.res_width, Config::Instance()->video_.res_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.res_bitrate, VENC_RC_MODE_H264CBR, true});
+		ret = venc_pc.Initialize({5, 5, Config::Instance()->video_.res_width, Config::Instance()->video_.res_height, 25, 25, 0, Config::Instance()->video_.res_bitrate, VENC_RC_MODE_H264CBR, true});
 		if (ret != KSuccess)
 			return ret;
-		ret = venc_main.Initialize({6, 6, Config::Instance()->video_.res_width, Config::Instance()->video_.res_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.res_bitrate, VENC_RC_MODE_H264CBR, false});
+		ret = venc_main.Initialize({6, 6, Config::Instance()->video_.res_width, Config::Instance()->video_.res_height, 25, 25, 0, Config::Instance()->video_.res_bitrate, VENC_RC_MODE_H264CBR, false});
 		if (ret != KSuccess)
 			return ret;
 
@@ -357,28 +360,28 @@ static int StartVideoEncode()
 		if (ret != KSuccess)
 			return ret;
 
-		ret = venc_tea_fea.Initialize({0, 0, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, false});
+		ret = venc_tea_fea.Initialize({0, 0, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, 25, 25, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, false});
 		if (ret != KSuccess)
 			return ret;
-		ret = venc_stu_fea.Initialize({1, 1, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, false});
+		ret = venc_stu_fea.Initialize({1, 1, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, 25, 25, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, false});
 		if (ret != KSuccess)
 			return ret;
-		ret = venc_tea_full.Initialize({2, 2, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, true});
+		ret = venc_tea_full.Initialize({2, 2, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, 25, 25, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, true});
 		if (ret != KSuccess)
 			return ret;
-		ret = venc_stu_full.Initialize({3, 3, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, true});
+		ret = venc_stu_full.Initialize({3, 3, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, 25, 25, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, true});
 		if (ret != KSuccess)
 			return ret;
-		ret = venc_black_board.Initialize({4, 4, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, true});
+		ret = venc_black_board.Initialize({4, 4, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, 25, 25, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, true});
 		if (ret != KSuccess)
 			return ret;
-		ret = venc_pc.Initialize({5, 5, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, true});
+		ret = venc_pc.Initialize({5, 5, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, 25, 25, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, true});
 		if (ret != KSuccess)
 			return ret;
-		ret = venc_main.Initialize({6, 6, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, false});
+		ret = venc_main.Initialize({6, 6, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, 25, 25, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, false});
 		if (ret != KSuccess)
 			return ret;
-		ret = venc_main2.Initialize({7, 7, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, RS_FRAME_RATE, RS_FRAME_RATE, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR});
+		ret = venc_main2.Initialize({7, 7, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, 25, 25, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, false});
 		if (ret != KSuccess)
 			return ret;
 
@@ -565,19 +568,12 @@ static void CloseRecord()
 	aenc_main.RemoveAudioSink(&rec_main);
 	venc_main.RemoveVideoSink(&rec_main);
 
-	log_w("close rec_tea_fea");
 	rec_tea_fea.Close();
-	log_w("close rec_stu_fea");
 	rec_stu_fea.Close();
-	log_w("close rec_tea_full");
 	rec_tea_full.Close();
-	log_w("close rec_stu_full");
 	rec_stu_full.Close();
-	log_w("close rec_black_board");
 	rec_black_board.Close();
-	log_w("close rec_pc");
 	rec_pc.Close();
-	log_w("close rec_main");
 	rec_main.Close();
 }
 
@@ -697,6 +693,45 @@ void CloseLive()
 		venc_main2.RemoveVideoSink(&live_main);
 		venc_main2.RemoveVideoSink(&live_main2);
 	}
+}
+
+static void StartRecordHandler(evhttp_request *req, void *arg)
+{
+	int ret;
+
+	std::string str = HttpServer::GetRequestData(req);
+
+	Json::Value root;
+	if (JsonUtils::toJson(str, root) != KSuccess)
+	{
+		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"parse json root failed\"}");
+		return;
+	}
+
+	if (!RecordReq::IsOk(root))
+	{
+		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"check json format failed\"}");
+		return;
+	}
+
+	RecordReq record_req;
+	record_req = root;
+
+	CloseRecord();
+	ret = StartRecord(record_req.recs);
+	if (ret != KSuccess)
+	{
+		HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start record failed\"}");
+		return;
+	}
+
+	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
+}
+
+static void StopRecordHandler(evhttp_request *req, void *arg)
+{
+	CloseRecord();
+	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
 }
 
 int32_t main(int32_t argc, char **argv)
@@ -850,17 +885,19 @@ int32_t main(int32_t argc, char **argv)
 					 {MAIN2, {"rtmp://127.0.0.1/live/main2", true}}});
 	CHECK_ERROR(ret)
 
-	ret = StartRecord({{MAIN, {1280, 720, 25, 44100, "/nand/main.mp4", 0, false}},
-					   {TEA_FEATURE, {1280, 720, 25, 44100, "/nand/tea_fea.mp4", 0, false}},
-					   {STU_FEATURE, {1280, 720, 25, 44100, "/nand/stu_fea.mp4", 0, false}},
-					   {TEA_FULL_VIEW, {1280, 720, 25, 44100, "/nand/tea_full.mp4", 0, false}},
-					   {STU_FULL_VIEW, {1280, 720, 25, 44100, "/nand/stu_full", 0, false}},
-					   {BLACK_BOARD_FEATURE, {1280, 720, 25, 44100, "/nand/black_board.mp4", 0, false}},
-					   {PC_CAPTURE, {1280, 720, 25, 44100, "/nand/pc.mp4", 0, false}}});
-	CHECK_ERROR(ret)
+	// ret = StartRecord({{MAIN, {1280, 720, 25, 44100, "/nand/main.mp4", 0, false}},
+	// 				   {TEA_FEATURE, {1280, 720, 25, 44100, "/nand/tea_fea.mp4", 0, false}},
+	// 				   {STU_FEATURE, {1280, 720, 25, 44100, "/nand/stu_fea.mp4", 0, false}},
+	// 				   {TEA_FULL_VIEW, {1280, 720, 25, 44100, "/nand/tea_full.mp4", 0, false}},
+	// 				   {STU_FULL_VIEW, {1280, 720, 25, 44100, "/nand/stu_full", 0, false}},
+	// 				   {BLACK_BOARD_FEATURE, {1280, 720, 25, 44100, "/nand/black_board.mp4", 0, false}},
+	// 				   {PC_CAPTURE, {1280, 720, 25, 44100, "/nand/pc.mp4", 0, false}}});
+	// CHECK_ERROR(ret)
 
 	HttpServer http_server;
 	http_server.Initialize("0.0.0.0", 8081);
+	http_server.RegisterURI("/start_record", StartRecordHandler, nullptr);
+	http_server.RegisterURI("/stop_record", StopRecordHandler, nullptr);
 
 	while (g_Run)
 		http_server.Dispatch();
@@ -870,6 +907,30 @@ int32_t main(int32_t argc, char **argv)
 	CloseMainScreen();
 	CloseDisplayScreen();
 	CloseVideoEncode();
+
+	SigDetect::Instance()->Close();
+	vo_main.Close();
+	vo_stu_fea.Close();
+	vo_tea_fea.Close();
+	vpss_main.Close();
+	vpss_pc.Close();
+	vpss_black_board.Close();
+	vpss_stu_full.Close();
+	vpss_tea_full.Close();
+	vpss_stu_fea.Close();
+	vpss_tea_fea.Close();
+	vpss_stu_fea_2vo.Close();
+	vpss_tea_fea_2vo.Close();
+	vdec_pc.Close();
+	vdec_black_board.Close();
+	vdec_stu_full.Close();
+	vdec_tea_full.Close();
+	PCIVTrans::Instance()->Close();
+	PCIVComm::Instance()->Close();
+	ao_main.Close();
+	aenc_main.Close();
+	ai_main.Close();
+	MPPSystem::Instance()->Close();
 
 	return 0;
 }

@@ -17,12 +17,14 @@ RTMPStreamer::~RTMPStreamer()
     Close();
 }
 
-int RTMPStreamer::Initialize(const std::string &url)
+int RTMPStreamer::Initialize(const std::string &url, bool has_audio)
 {
     if (init_)
         return KInitialized;
 
     int ret;
+
+    log_d("[%s]start,has_audio:%d", url.c_str(), has_audio);
 
     rtmp_ = srs_rtmp_create(url.c_str());
     if (rtmp_ == nullptr)

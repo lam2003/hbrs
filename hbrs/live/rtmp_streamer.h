@@ -13,7 +13,7 @@ public:
 
     virtual ~RTMPStreamer();
 
-    int Initialize(const std::string &url);
+    int Initialize(const std::string &url, bool has_audio);
 
     void Close();
 

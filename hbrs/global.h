@@ -88,8 +88,6 @@
 #define RS_MASTER_SDI_NUM 2                             //主片SDI通道的数量
 #define RS_SLAVE_SDI_BASE 1                             //从片SDI通道起始偏移
 #define RS_SLAVE_SDI_NUM 4                              //从片SDI通道的数量
-#define RS_FRAME_RATE 25                                //输出帧率
-#define RS_MAIN_FRAME_RATE 60                           //主画面帧率
 
 #define RS_ASSERT(cond)     \
     while (!(cond))         \

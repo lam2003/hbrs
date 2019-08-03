@@ -12,6 +12,28 @@ struct Params
 {
     std::string url;
     bool has_audio;
+
+    operator Json::Value() const
+    {
+        Json::Value root;
+        root["url"] = url;
+        root["has_audio"] = has_audio;
+        return root;
+    }
+
+    static bool IsOk(const Json::Value &root)
+    {
+        if (!root.isMember("url") ||
+            !root["url"].isString())
+            return false;
+        return true;
+    }
+
+    Params &operator=(const Json::Value &root)
+    {
+        url = root["url"].asString();
+        return *this;
+    }
 };
 } // namespace rtmp
 

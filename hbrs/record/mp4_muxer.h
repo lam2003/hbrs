@@ -37,7 +37,7 @@ private:
     std::string sps_;
     std::string pps_;
     std::string sei_;
-    uint64_t vts_base_;
+    // uint64_t vts_base_;
     std::atomic<bool> init_ctx_;
 
     bool init_;
