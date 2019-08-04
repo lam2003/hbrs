@@ -17,8 +17,11 @@
 #include "common/json.h"
 #include "record/mp4_record.h"
 #include "live/rtmp_live.h"
+
 #include "model/record_req.h"
 #include "model/live_req.h"
+#include "model/change_pc_capture_req.h"
+#include "model/change_main_scene_req.h"
 
 using namespace rs;
 
@@ -39,6 +42,7 @@ static RS_SCENE g_CurMainScene = PC_CAPTURE;
 static bool g_Run = true;
 static bool g_LiveStart = false;
 static bool g_RecordStart = false;
+static bool g_MainScreenStart = false;
 
 static void SignalHandler(int signo)
 {
@@ -99,6 +103,9 @@ static RTMPLive live_main2;
 
 static int StartMainScreen()
 {
+	if (g_MainScreenStart)
+		return KInitialized;
+
 	int ret;
 	std::map<int, std::pair<RECT_S, int>> scene_pos = VideoOutput::GetScenePos(Config::Instance()->scene_.mode);
 	for (auto it = Config::Instance()->scene_.mapping.begin(); it != Config::Instance()->scene_.mapping.end(); it++)
@@ -164,11 +171,14 @@ static int StartMainScreen()
 	if (ret != KSuccess)
 		return ret;
 
+	g_MainScreenStart = true;
 	return KSuccess;
 }
 
 static void CloseMainScreen()
 {
+	if (!g_MainScreenStart)
+		return;
 	MPPSystem::UnBind<HI_ID_VOU, HI_ID_VPSS>(12, 0, 6, 0);
 
 	std::map<int, std::pair<RECT_S, int>> scene_pos = VideoOutput::GetScenePos(Config::Instance()->scene_.mode);
@@ -212,6 +222,7 @@ static void CloseMainScreen()
 	}
 
 	vo_main.StopAllChn();
+	g_MainScreenStart = false;
 }
 
 static int StartDisplayScreen()
@@ -807,6 +818,92 @@ static void StopLiveHandler(evhttp_request *req, void *arg)
 	log_d("request ok");
 }
 
+static void ChangePCCaptureHandler(evhttp_request *req, void *arg)
+{
+	int ret;
+
+	std::string str = HttpServer::GetRequestData(req);
+	log_d("request body:%s", str.c_str());
+
+	Json::Value root;
+	if (JsonUtils::toJson(str, root) != KSuccess)
+	{
+		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"parse json root failed\"}");
+		log_d("parse json root failed");
+		return;
+	}
+
+	if (!ChangePCCaptureReq::IsOk(root))
+	{
+		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"check json format failed\"}");
+		log_d("check json format failed");
+		return;
+	}
+	ChangePCCaptureReq change_pc_capture_req;
+	change_pc_capture_req = root;
+
+	ADV7842_MODE old_config = Config::Instance()->system_.pc_capture_mode;
+	Config::Instance()->system_.pc_capture_mode = change_pc_capture_req.mode;
+
+	ret = SigDetect::Instance()->SetPCCaptureMode(change_pc_capture_req.mode);
+	if (ret != KSuccess)
+	{
+		Config::Instance()->system_.pc_capture_mode = old_config;
+		HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"change pc capture mode failed\"}");
+		log_d("change pc capture mode failed");
+		return;
+	}
+
+	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
+	log_d("request ok");
+}
+
+static void ChangeMainScreenHandler(evhttp_request *req, void *arg)
+{
+	int ret;
+
+	std::string str = HttpServer::GetRequestData(req);
+	log_d("request body:%s", str.c_str());
+
+	Json::Value root;
+	if (JsonUtils::toJson(str, root) != KSuccess)
+	{
+		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"parse json root failed\"}");
+		log_d("parse json root failed");
+		return;
+	}
+
+	if (!ChangeMainScreenReq::IsOk(root))
+	{
+		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"check json format failed\"}");
+		log_d("check json format failed");
+		return;
+	}
+
+	ChangeMainScreenReq change_main_screen_req;
+	change_main_screen_req = root;
+
+	CloseRecord();
+	CloseLive();
+	CloseMainScreen();
+
+	Config::Scene old_config = Config::Instance()->scene_;
+	Config::Instance()->scene_.mode = change_main_screen_req.mode;
+	Config::Instance()->scene_.mapping = change_main_screen_req.mapping;
+
+	ret = StartMainScreen();
+	if (ret != KSuccess)
+	{
+		Config::Instance()->scene_ = old_config;
+		HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start main screen failed\"}");
+		log_d("start main screen failed");
+		return;
+	}
+
+	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
+	log_d("request ok");
+}
+
 int32_t main(int32_t argc, char **argv)
 {
 	int ret;
@@ -954,7 +1051,28 @@ int32_t main(int32_t argc, char **argv)
 	http_server.RegisterURI("/stop_record", StopRecordHandler, nullptr);
 	http_server.RegisterURI("/start_live", StartLiveHandler, nullptr);
 	http_server.RegisterURI("/stop_live", StopLiveHandler, nullptr);
+	http_server.RegisterURI("/change_pc_capture", ChangePCCaptureHandler, nullptr);
+	http_server.RegisterURI("/change_main_screen", ChangeMainScreenHandler, nullptr);
 
+#if 0
+	ChangeMainScreenReq test_req;
+	test_req.mode = Config::Instance()->scene_.mode;
+	test_req.mapping = Config::Instance()->scene_.mapping;
+
+	Json::Value test_json = test_req;
+	std::string test_str = JsonUtils::toStr(test_json);
+		printf("test_req:%s\n", test_str.c_str());
+
+	Json::Value test_json2;
+	if (JsonUtils::toJson(test_str, test_json2) == 0)
+	{
+		if (ChangeMainScreenReq::IsOk(test_json2))
+		{
+			std::string test_str2 = JsonUtils::toStr(test_json2);
+			printf("#####:%s\n",test_str2.c_str());
+		}
+	}
+#endif
 	while (g_Run)
 		http_server.Dispatch();
 
@@ -963,29 +1081,6 @@ int32_t main(int32_t argc, char **argv)
 	CloseMainScreen();
 	CloseDisplayScreen();
 	CloseVideoEncode();
-
-	ret = MPPSystem::UnBind<HI_ID_AI, HI_ID_AO>(4, 0, 4, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::UnBind<HI_ID_VDEC, HI_ID_VPSS>(0, 3, 5, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::UnBind<HI_ID_VDEC, HI_ID_VPSS>(0, 2, 4, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::UnBind<HI_ID_VDEC, HI_ID_VPSS>(0, 1, 3, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::UnBind<HI_ID_VDEC, HI_ID_VPSS>(0, 0, 2, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::UnBind<HI_ID_VOU, HI_ID_VPSS>(11, 0, 1, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::UnBind<HI_ID_VOU, HI_ID_VPSS>(10, 0, 0, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::UnBind<HI_ID_VPSS, HI_ID_VOU>(11, 4, 11, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::UnBind<HI_ID_VPSS, HI_ID_VOU>(10, 4, 10, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::UnBind<HI_ID_VIU, HI_ID_VPSS>(0, 4, 11, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::UnBind<HI_ID_VIU, HI_ID_VPSS>(0, 8, 10, 0);
-	CHECK_ERROR(ret);
 
 	SigDetect::Instance()->Close();
 	vo_main.Close();

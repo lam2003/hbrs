@@ -42,7 +42,8 @@ SigDetect::~SigDetect()
     Close();
 }
 
-SigDetect::SigDetect() : ctx_(nullptr),
+SigDetect::SigDetect() : status_listeners_(nullptr),
+                         ctx_(nullptr),
                          run_(false),
                          thread_(nullptr),
                          init_(false)
@@ -105,7 +106,7 @@ int SigDetect::Initialize(pciv::Context *ctx, ADV7842_MODE mode)
         msg.type = pciv::Msg::Type::CONF_ADV7842;
         pciv::Adv7842Conf *conf = reinterpret_cast<pciv::Adv7842Conf *>(msg.data);
         conf->mode = mode;
-        ret = PCIVComm::Instance()->Send(RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+        ret = ctx_->Send(RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
         if (ret != KSuccess)
             return;
 
@@ -155,79 +156,87 @@ int SigDetect::Initialize(pciv::Context *ctx, ADV7842_MODE mode)
             }
 
             msg.type = pciv::Msg::Type::QUERY_ADV7842;
-            ret = ctx_->Send(RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
-            if (ret != KSuccess)
-                return;
+            {
+                std::unique_lock<std::mutex> lock(mux_);
+                ret = ctx_->Send(RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+                if (ret != KSuccess)
+                    return;
 
-            ret = Recv(ctx_, RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, tmp_buf, sizeof(tmp_buf), msg_buf, msg, 3);
-            if (ret != KSuccess)
-                return;
+                ret = Recv(ctx_, RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, tmp_buf, sizeof(tmp_buf), msg_buf, msg, 3);
+                if (ret != KSuccess)
+                    return;
+            }
             if (msg.type != pciv::Msg::Type::ACK)
             {
                 log_e("unknow msg type:%d", msg.type);
                 return;
             }
+        }
 
-            memcpy(&tmp_fmts[PC_CAPTURE], msg.data, sizeof(tmp_fmts[PC_CAPTURE]));
-            if (!tmp_fmts[PC_CAPTURE].has_signal)
+        memcpy(&tmp_fmts[PC_CAPTURE], msg.data, sizeof(tmp_fmts[PC_CAPTURE]));
+        if (!tmp_fmts[PC_CAPTURE].has_signal)
+        {
+            no_signal_times[PC_CAPTURE]++;
+        }
+        else
+        {
+            no_signal_times[PC_CAPTURE] = 0;
+        }
+
+        for (int i = TEA_FEATURE; i <= PC_CAPTURE; i++)
+        {
+            if (!tmp_fmts[i].has_signal && no_signal_times[i] < 2)
+                continue;
+
+            if (fmts_[i] != tmp_fmts[i])
             {
-                no_signal_times[PC_CAPTURE]++;
+                changes[i] = true;
+                fmts_[i] = tmp_fmts[i];
             }
             else
             {
-                no_signal_times[PC_CAPTURE] = 0;
+                changes[i] = false;
             }
+        }
 
+        if (changes[TEA_FULL_VIEW] || changes[STU_FULL_VIEW] || changes[BLACK_BOARD_FEATURE])
+        {
+            pciv::Tw6874Query query;
+            for (int i = TEA_FULL_VIEW; i <= BLACK_BOARD_FEATURE; i++)
+                query.fmts[i - TEA_FULL_VIEW] = fmts_[i];
+
+            msg.type = pciv::Msg::Type::QUERY_TW6874;
+            memcpy(msg.data, &query, sizeof(query));
             {
                 std::unique_lock<std::mutex> lock(mux_);
-                for (int i = TEA_FEATURE; i <= PC_CAPTURE; i++)
-                {
-                    if (!tmp_fmts[i].has_signal && no_signal_times[i] < 2)
-                        continue;
-
-                    if (fmts_[i] != tmp_fmts[i])
-                    {
-                        changes[i] = true;
-                        fmts_[i] = tmp_fmts[i];
-                    }
-                    else
-                    {
-                        changes[i] = false;
-                    }
-                }
-            }
-
-            if (changes[TEA_FULL_VIEW] || changes[STU_FULL_VIEW] || changes[BLACK_BOARD_FEATURE])
-            {
-                pciv::Tw6874Query query;
-                for (int i = TEA_FULL_VIEW; i <= BLACK_BOARD_FEATURE; i++)
-                    query.fmts[i - TEA_FULL_VIEW] = fmts_[i];
-
-                msg.type = pciv::Msg::Type::QUERY_TW6874;
-                memcpy(msg.data, &query, sizeof(query));
                 ret = ctx_->Send(RS_PCIV_SLAVE3_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
                 if (ret != KSuccess)
                     return;
             }
+        }
+        {
+            std::unique_lock<std::mutex> lock(mux_);
+            if (changes[TEA_FEATURE])
             {
-                std::unique_lock<std::mutex> lock(mux_);
-                if (changes[TEA_FEATURE])
-                {
-                    for (size_t i = 0; i < listeners_.size(); i++)
-                        listeners_[i]->OnChange(fmts_[TEA_FEATURE], Scene2ViChn[TEA_FEATURE]);
-                }
-
-                if (changes[STU_FEATURE])
-                {
-                    for (size_t i = 0; i < listeners_.size(); i++)
-                        listeners_[i]->OnChange(fmts_[STU_FEATURE], Scene2ViChn[STU_FEATURE]);
-                }
+                for (size_t i = 0; i < listeners_.size(); i++)
+                    listeners_[i]->OnChange(fmts_[TEA_FEATURE], Scene2ViChn[TEA_FEATURE]);
             }
 
-            int wait_time = 10;
-            while(run_ && wait_time--)
-                usleep(500000); //500ms
+            if (changes[STU_FEATURE])
+            {
+                for (size_t i = 0; i < listeners_.size(); i++)
+                    listeners_[i]->OnChange(fmts_[STU_FEATURE], Scene2ViChn[STU_FEATURE]);
+            }
         }
+        {
+            std::unique_lock<std::mutex> lock(mux_);
+            if (status_listeners_ != nullptr)
+                status_listeners_->OnUpdate(fmts_);
+        }
+
+        int wait_time = 10;
+        while (run_ && wait_time--)
+            usleep(500000); //500ms
     }));
 
     init_ = true;
@@ -263,6 +272,26 @@ void SigDetect::RemoveAllVIFmtListener()
 {
     std::unique_lock<std::mutex> lock(mux_);
     listeners_.clear();
+}
+
+void SigDetect::SetSignalStatusListener(SignalStatusListener *listener)
+{
+    std::unique_lock<std::mutex> lock(mux_);
+    status_listeners_ = listener;
+}
+
+int SigDetect::SetPCCaptureMode(ADV7842_MODE mode)
+{
+    if (!init_)
+        return KUnInitialized;
+    pciv::Msg msg;
+    msg.type = pciv::Msg::Type::CONF_ADV7842;
+    pciv::Adv7842Conf *conf = reinterpret_cast<pciv::Adv7842Conf *>(msg.data);
+    conf->mode = mode;
+    int ret = ctx_->Send(RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+    if (ret != KSuccess)
+        return ret;
+    return KSuccess;
 }
 
 } // namespace rs
