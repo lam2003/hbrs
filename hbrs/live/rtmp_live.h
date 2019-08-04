@@ -12,12 +12,14 @@ struct Params
 {
     std::string url;
     bool has_audio;
+    bool only_try_once;
 
     operator Json::Value() const
     {
         Json::Value root;
         root["url"] = url;
         root["has_audio"] = has_audio;
+        root["only_try_once"] = only_try_once;
         return root;
     }
 

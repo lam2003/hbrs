@@ -171,72 +171,72 @@ int SigDetect::Initialize(pciv::Context *ctx, ADV7842_MODE mode)
                 log_e("unknow msg type:%d", msg.type);
                 return;
             }
-        }
 
-        memcpy(&tmp_fmts[PC_CAPTURE], msg.data, sizeof(tmp_fmts[PC_CAPTURE]));
-        if (!tmp_fmts[PC_CAPTURE].has_signal)
-        {
-            no_signal_times[PC_CAPTURE]++;
-        }
-        else
-        {
-            no_signal_times[PC_CAPTURE] = 0;
-        }
-
-        for (int i = TEA_FEATURE; i <= PC_CAPTURE; i++)
-        {
-            if (!tmp_fmts[i].has_signal && no_signal_times[i] < 2)
-                continue;
-
-            if (fmts_[i] != tmp_fmts[i])
+            memcpy(&tmp_fmts[PC_CAPTURE], msg.data, sizeof(tmp_fmts[PC_CAPTURE]));
+            if (!tmp_fmts[PC_CAPTURE].has_signal)
             {
-                changes[i] = true;
-                fmts_[i] = tmp_fmts[i];
+                no_signal_times[PC_CAPTURE]++;
             }
             else
             {
-                changes[i] = false;
+                no_signal_times[PC_CAPTURE] = 0;
             }
-        }
 
-        if (changes[TEA_FULL_VIEW] || changes[STU_FULL_VIEW] || changes[BLACK_BOARD_FEATURE])
-        {
-            pciv::Tw6874Query query;
-            for (int i = TEA_FULL_VIEW; i <= BLACK_BOARD_FEATURE; i++)
-                query.fmts[i - TEA_FULL_VIEW] = fmts_[i];
+            for (int i = TEA_FEATURE; i <= PC_CAPTURE; i++)
+            {
+                if (!tmp_fmts[i].has_signal && no_signal_times[i] < 2)
+                    continue;
 
-            msg.type = pciv::Msg::Type::QUERY_TW6874;
-            memcpy(msg.data, &query, sizeof(query));
+                if (fmts_[i] != tmp_fmts[i])
+                {
+                    changes[i] = true;
+                    fmts_[i] = tmp_fmts[i];
+                }
+                else
+                {
+                    changes[i] = false;
+                }
+            }
+
+            if (changes[TEA_FULL_VIEW] || changes[STU_FULL_VIEW] || changes[BLACK_BOARD_FEATURE])
+            {
+                pciv::Tw6874Query query;
+                for (int i = TEA_FULL_VIEW; i <= BLACK_BOARD_FEATURE; i++)
+                    query.fmts[i - TEA_FULL_VIEW] = fmts_[i];
+
+                msg.type = pciv::Msg::Type::QUERY_TW6874;
+                memcpy(msg.data, &query, sizeof(query));
+                {
+                    std::unique_lock<std::mutex> lock(mux_);
+                    ret = ctx_->Send(RS_PCIV_SLAVE3_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+                    if (ret != KSuccess)
+                        return;
+                }
+            }
             {
                 std::unique_lock<std::mutex> lock(mux_);
-                ret = ctx_->Send(RS_PCIV_SLAVE3_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
-                if (ret != KSuccess)
-                    return;
+                if (changes[TEA_FEATURE])
+                {
+                    for (size_t i = 0; i < listeners_.size(); i++)
+                        listeners_[i]->OnChange(fmts_[TEA_FEATURE], Scene2ViChn[TEA_FEATURE]);
+                }
+
+                if (changes[STU_FEATURE])
+                {
+                    for (size_t i = 0; i < listeners_.size(); i++)
+                        listeners_[i]->OnChange(fmts_[STU_FEATURE], Scene2ViChn[STU_FEATURE]);
+                }
             }
-        }
-        {
-            std::unique_lock<std::mutex> lock(mux_);
-            if (changes[TEA_FEATURE])
             {
-                for (size_t i = 0; i < listeners_.size(); i++)
-                    listeners_[i]->OnChange(fmts_[TEA_FEATURE], Scene2ViChn[TEA_FEATURE]);
+                std::unique_lock<std::mutex> lock(mux_);
+                if (status_listeners_ != nullptr)
+                    status_listeners_->OnUpdate(fmts_);
             }
 
-            if (changes[STU_FEATURE])
-            {
-                for (size_t i = 0; i < listeners_.size(); i++)
-                    listeners_[i]->OnChange(fmts_[STU_FEATURE], Scene2ViChn[STU_FEATURE]);
-            }
+            int wait_time = 10;
+            while (run_ && wait_time--)
+                usleep(500000); //500ms
         }
-        {
-            std::unique_lock<std::mutex> lock(mux_);
-            if (status_listeners_ != nullptr)
-                status_listeners_->OnUpdate(fmts_);
-        }
-
-        int wait_time = 10;
-        while (run_ && wait_time--)
-            usleep(500000); //500ms
     }));
 
     init_ = true;

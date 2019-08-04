@@ -102,9 +102,14 @@ void RTMPLive::HandleAV()
 
         if (!init)
         {
-            ret = streamer.Initialize(params_.url,params_.has_audio);
+            ret = streamer.Initialize(params_.url, params_.has_audio);
             if (ret != KSuccess)
             {
+                if (params_.only_try_once)
+                {
+                    log_w("[%s]thread quit because set only_try_once", params_.url.c_str());
+                    return;
+                }
                 int wait_sec = 10; //5秒后发起重连
                 while (run_ && wait_sec--)
                     usleep(500000); //500ms
@@ -158,9 +163,11 @@ void RTMPLive::HandleAV()
 
                     if (nb_videos >= 50 || nb_audios >= 50)
                     {
-                        streamer.Close();
-                        log_e("[%s]-->nb_videos:%d,nb_audios:%d,close connection", params_.url.c_str(), nb_videos, nb_audios);
-                        return;
+                        log_w("[%s]-->nb_videos:%d,nb_audios:%d,clear buffer", params_.url.c_str(), nb_videos, nb_audios);
+                        nb_videos = 0;
+                        nb_audios = 0;
+                        frms.clear();
+                        continue;
                     }
                 }
                 else if (run_)
@@ -179,9 +186,13 @@ void RTMPLive::HandleAV()
                     ret = streamer.WriteAudioFrame(it->second.first.data.aframe);
                     if (ret != KSuccess)
                     {
-                        log_w("disconnect....,try to connect after 5 sec");
+                        log_w("send failed,disconnect....,try to connect after 5 sec");
                         streamer.Close();
-                        init = false; //断开连接,尝试重连
+                        init = false;
+
+                        int wait_sec = 10; //5秒后发起重连
+                        while (run_ && wait_sec--)
+                            usleep(500000); //500ms
                     }
                     nb_audios--;
                 }
@@ -191,9 +202,13 @@ void RTMPLive::HandleAV()
                     ret = streamer.WriteVideoFrame(it->second.first.data.vframe);
                     if (ret != KSuccess)
                     {
-                        log_w("disconnect....,try to connect after 5 sec");
+                        log_w("send failed,disconnect....,try to connect after 5 sec");
                         streamer.Close();
-                        init = false; //断开连接,尝试重连
+                        init = false;
+
+                        int wait_sec = 10; //5秒后发起重连
+                        while (run_ && wait_sec--)
+                            usleep(500000); //500ms
                     }
                     nb_videos--;
                 }

@@ -20,6 +20,7 @@
 
 #include "model/record_req.h"
 #include "model/live_req.h"
+#include "model/remote_live_req.h"
 #include "model/change_pc_capture_req.h"
 #include "model/change_main_scene_req.h"
 
@@ -41,6 +42,7 @@ static RS_SCENE g_CurMainScene = PC_CAPTURE;
 
 static bool g_Run = true;
 static bool g_LiveStart = false;
+static bool g_RemoteLiveStart = false;
 static bool g_RecordStart = false;
 static bool g_MainScreenStart = false;
 
@@ -391,7 +393,7 @@ static int StartVideoEncode()
 		ret = venc_pc.Initialize({5, 5, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, 25, 25, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, true});
 		if (ret != KSuccess)
 			return ret;
-		ret = venc_main.Initialize({6, 6, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, 25, 25, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, false});
+		ret = venc_main.Initialize({6, 6, Config::Instance()->video_.normal_record_width, Config::Instance()->video_.normal_record_height, 25, 25, 0, Config::Instance()->video_.normal_record_bitrate, VENC_RC_MODE_H264CBR, false});
 		if (ret != KSuccess)
 			return ret;
 		ret = venc_main2.Initialize({7, 7, Config::Instance()->video_.normal_live_width, Config::Instance()->video_.normal_live_height, 25, 25, 0, Config::Instance()->video_.normal_live_bitrate, VENC_RC_MODE_H264CBR, false});
@@ -670,22 +672,6 @@ static int StartLive(const std::vector<std::pair<RS_SCENE, rtmp::Params>> &lives
 			}
 			break;
 		}
-		case MAIN2:
-		{
-			ret = live_main2.Initialize(live.second);
-			if (ret != KSuccess)
-				return ret;
-			aenc_main.AddAudioSink(&live_main2);
-			if (Config::Instance()->IsResourceMode())
-			{
-				venc_main.AddVideoSink(&live_main2);
-			}
-			else
-			{
-				venc_main2.AddVideoSink(&live_main2);
-			}
-			break;
-		}
 		default:
 			break;
 		}
@@ -712,20 +698,56 @@ void CloseLive()
 	live_pc.Close();
 
 	aenc_main.RemoveAudioSink(&live_main);
-	aenc_main.RemoveAudioSink(&live_main2);
 	if (Config::Instance()->IsResourceMode())
 	{
 		venc_main.RemoveVideoSink(&live_main);
-		venc_main.RemoveVideoSink(&live_main2);
 	}
 	else
 	{
 		venc_main2.RemoveVideoSink(&live_main);
-		venc_main2.RemoveVideoSink(&live_main2);
 	}
 	live_main.Close();
-	live_main2.Close();
 	g_LiveStart = false;
+}
+
+int StartRemoteLive(const rtmp::Params &params)
+{
+	if (g_RemoteLiveStart)
+		return KInitialized;
+	int ret;
+	ret = live_main2.Initialize(params);
+	if (ret != KSuccess)
+		return ret;
+	aenc_main.AddAudioSink(&live_main2);
+	if (Config::Instance()->IsResourceMode())
+	{
+		venc_main.AddVideoSink(&live_main2);
+	}
+	else
+	{
+		venc_main2.AddVideoSink(&live_main2);
+	}
+
+	g_RemoteLiveStart = true;
+	return KSuccess;
+}
+
+void CloseRemoteLive()
+{
+	if (!g_RemoteLiveStart)
+		return;
+
+	aenc_main.RemoveAudioSink(&live_main2);
+	if (Config::Instance()->IsResourceMode())
+	{
+		venc_main.RemoveVideoSink(&live_main2);
+	}
+	else
+	{
+		venc_main2.RemoveVideoSink(&live_main2);
+	}
+	live_main2.Close();
+	g_RemoteLiveStart = false;
 }
 
 static void StartRecordHandler(evhttp_request *req, void *arg)
@@ -739,14 +761,14 @@ static void StartRecordHandler(evhttp_request *req, void *arg)
 	if (JsonUtils::toJson(str, root) != KSuccess)
 	{
 		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"parse json root failed\"}");
-		log_d("parse json root failed");
+		log_w("parse json root failed");
 		return;
 	}
 
 	if (!RecordReq::IsOk(root))
 	{
 		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"check json format failed\"}");
-		log_d("check json format failed");
+		log_w("check json format failed");
 		return;
 	}
 
@@ -758,7 +780,7 @@ static void StartRecordHandler(evhttp_request *req, void *arg)
 	if (ret != KSuccess)
 	{
 		HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start record failed\"}");
-		log_d("start record failed");
+		log_w("start record failed");
 		return;
 	}
 
@@ -784,14 +806,14 @@ static void StartLiveHandler(evhttp_request *req, void *arg)
 	if (JsonUtils::toJson(str, root) != KSuccess)
 	{
 		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"parse json root failed\"}");
-		log_d("parse json root failed");
+		log_w("parse json root failed");
 		return;
 	}
 
 	if (!LiveReq::IsOk(root))
 	{
 		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"check json format failed\"}");
-		log_d("check json format failed");
+		log_w("check json format failed");
 		return;
 	}
 
@@ -803,12 +825,15 @@ static void StartLiveHandler(evhttp_request *req, void *arg)
 	if (ret != KSuccess)
 	{
 		HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start live failed\"}");
-		log_d("start live failed");
+		log_w("start live failed");
 		return;
 	}
 
 	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
 	log_d("request ok");
+
+	Config::Instance()->local_lives_ = live_req.lives;
+	Config::Instance()->WriteToFile();
 }
 
 static void StopLiveHandler(evhttp_request *req, void *arg)
@@ -816,6 +841,60 @@ static void StopLiveHandler(evhttp_request *req, void *arg)
 	CloseLive();
 	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
 	log_d("request ok");
+
+	Config::Instance()->local_lives_ = {};
+	Config::Instance()->WriteToFile();
+}
+
+static void StartRemoteLiveHandler(evhttp_request *req, void *arg)
+{
+	int ret;
+
+	std::string str = HttpServer::GetRequestData(req);
+	log_d("request body:%s", str.c_str());
+
+	Json::Value root;
+	if (JsonUtils::toJson(str, root) != KSuccess)
+	{
+		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"parse json root failed\"}");
+		log_w("parse json root failed");
+		return;
+	}
+
+	if (!RemoteLiveReq::IsOk(root))
+	{
+		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"check json format failed\"}");
+		log_w("check json format failed");
+		return;
+	}
+
+	RemoteLiveReq remote_live_req;
+	remote_live_req = root;
+
+	CloseRemoteLive();
+	ret = StartRemoteLive(remote_live_req.params);
+	if (ret != KSuccess)
+	{
+		HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start remote live failed\"}");
+		log_w("start remote live failed");
+		return;
+	}
+
+	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
+	log_d("request ok");
+
+	Config::Instance()->remote_live_ = remote_live_req.params;
+	Config::Instance()->WriteToFile();
+}
+
+static void StopRemoteLiveHandler(evhttp_request *req, void *arg)
+{
+	CloseRemoteLive();
+	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
+	log_d("request ok");
+
+	Config::Instance()->remote_live_.url = "";
+	Config::Instance()->WriteToFile();
 }
 
 static void ChangePCCaptureHandler(evhttp_request *req, void *arg)
@@ -829,14 +908,14 @@ static void ChangePCCaptureHandler(evhttp_request *req, void *arg)
 	if (JsonUtils::toJson(str, root) != KSuccess)
 	{
 		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"parse json root failed\"}");
-		log_d("parse json root failed");
+		log_w("parse json root failed");
 		return;
 	}
 
 	if (!ChangePCCaptureReq::IsOk(root))
 	{
 		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"check json format failed\"}");
-		log_d("check json format failed");
+		log_w("check json format failed");
 		return;
 	}
 	ChangePCCaptureReq change_pc_capture_req;
@@ -850,12 +929,14 @@ static void ChangePCCaptureHandler(evhttp_request *req, void *arg)
 	{
 		Config::Instance()->system_.pc_capture_mode = old_config;
 		HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"change pc capture mode failed\"}");
-		log_d("change pc capture mode failed");
+		log_w("change pc capture mode failed");
 		return;
 	}
 
 	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
 	log_d("request ok");
+
+	Config::Instance()->WriteToFile();
 }
 
 static void ChangeMainScreenHandler(evhttp_request *req, void *arg)
@@ -869,14 +950,14 @@ static void ChangeMainScreenHandler(evhttp_request *req, void *arg)
 	if (JsonUtils::toJson(str, root) != KSuccess)
 	{
 		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"parse json root failed\"}");
-		log_d("parse json root failed");
+		log_w("parse json root failed");
 		return;
 	}
 
 	if (!ChangeMainScreenReq::IsOk(root))
 	{
 		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"check json format failed\"}");
-		log_d("check json format failed");
+		log_w("check json format failed");
 		return;
 	}
 
@@ -885,19 +966,58 @@ static void ChangeMainScreenHandler(evhttp_request *req, void *arg)
 
 	CloseRecord();
 	CloseLive();
+	CloseRemoteLive();
 	CloseMainScreen();
 
 	Config::Scene old_config = Config::Instance()->scene_;
-	Config::Instance()->scene_.mode = change_main_screen_req.mode;
-	Config::Instance()->scene_.mapping = change_main_screen_req.mapping;
+	if (Config::IsResourceMode(change_main_screen_req.scene.mode) != Config::Instance()->IsResourceMode())
+	{
+		log_d("need to restart video encode module");
+		CloseVideoEncode();
+		Config::Instance()->scene_.mode = change_main_screen_req.scene.mode;
+		ret = StartVideoEncode();
+		if (ret != KSuccess)
+		{
+			Config::Instance()->scene_ = old_config;
+			HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start video encode failed\"}");
+			log_w("start video encode failed");
+			return;
+		}
+	}
+
+	old_config = Config::Instance()->scene_;
+	Config::Instance()->scene_ = change_main_screen_req.scene;
 
 	ret = StartMainScreen();
 	if (ret != KSuccess)
 	{
 		Config::Instance()->scene_ = old_config;
 		HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start main screen failed\"}");
-		log_d("start main screen failed");
+		log_w("start main screen failed");
 		return;
+	}
+
+	Config::Instance()->WriteToFile();
+	if (!Config::Instance()->local_lives_.empty())
+	{
+		ret = StartLive(Config::Instance()->local_lives_);
+		if (ret != KSuccess)
+		{
+			HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start local live failed\"}");
+			log_w("start local live failed");
+			return;
+		}
+	}
+
+	if (Config::Instance()->remote_live_.url != "")
+	{
+		ret = StartRemoteLive(Config::Instance()->remote_live_);
+		if (ret != KSuccess)
+		{
+			HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start remote live failed\"}");
+			log_w("start remote live failed");
+			return;
+		}
 	}
 
 	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
@@ -1045,12 +1165,20 @@ int32_t main(int32_t argc, char **argv)
 	ret = StartMainScreen();
 	CHECK_ERROR(ret);
 
+	ret = StartLive(Config::Instance()->local_lives_);
+	CHECK_ERROR(ret);
+
+	ret = StartRemoteLive(Config::Instance()->remote_live_);
+	CHECK_ERROR(ret);
+
 	HttpServer http_server;
 	http_server.Initialize("0.0.0.0", 8081);
 	http_server.RegisterURI("/start_record", StartRecordHandler, nullptr);
 	http_server.RegisterURI("/stop_record", StopRecordHandler, nullptr);
 	http_server.RegisterURI("/start_live", StartLiveHandler, nullptr);
 	http_server.RegisterURI("/stop_live", StopLiveHandler, nullptr);
+	http_server.RegisterURI("/start_remote_live", StartRemoteLiveHandler, nullptr);
+	http_server.RegisterURI("/stop_remote_live", StopRemoteLiveHandler, nullptr);
 	http_server.RegisterURI("/change_pc_capture", ChangePCCaptureHandler, nullptr);
 	http_server.RegisterURI("/change_main_screen", ChangeMainScreenHandler, nullptr);
 
@@ -1073,11 +1201,14 @@ int32_t main(int32_t argc, char **argv)
 		}
 	}
 #endif
+
+	Config::Instance()->WriteToFile();
 	while (g_Run)
 		http_server.Dispatch();
 
 	CloseRecord();
 	CloseLive();
+	CloseRemoteLive();
 	CloseMainScreen();
 	CloseDisplayScreen();
 	CloseVideoEncode();

@@ -73,6 +73,9 @@ struct LiveReq
                 {
                     params.has_audio = false;
                 }
+                
+                params.only_try_once = false;
+
                 lives.push_back(std::make_pair(scene, params));
             }
         }

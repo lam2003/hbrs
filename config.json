@@ -1,116 +1,173 @@
 {
-   "scene": {
-      "mode": 7,
-      "mapping": [
-         {
-            "0": 5
-         },
-         {
-            "1": 1
-         },
-         {
-            "2": 2
-         },
-         {
-            "3": 3
-         },
-         {
-            "4": 0
-         },
-         {
-            "5": 6
+   "local_lives" : [
+      {
+         "6" : {
+            "has_audio" : true,
+            "only_try_once" : false,
+            "url" : "rtmp://127.0.0.1/live/main"
          }
-      ]
+      },
+      {
+         "0" : {
+            "has_audio" : false,
+            "only_try_once" : false,
+            "url" : "rtmp://127.0.0.1/live/tea_fea"
+         }
+      },
+      {
+         "1" : {
+            "has_audio" : false,
+            "only_try_once" : false,
+            "url" : "rtmp://127.0.0.1/live/stu_fea"
+         }
+      },
+      {
+         "2" : {
+            "has_audio" : false,
+            "only_try_once" : false,
+            "url" : "rtmp://127.0.0.1/live/tea_full"
+         }
+      },
+      {
+         "3" : {
+            "has_audio" : false,
+            "only_try_once" : false,
+            "url" : "rtmp://127.0.0.1/live/stu_full"
+         }
+      },
+      {
+         "4" : {
+            "has_audio" : false,
+            "only_try_once" : false,
+            "url" : "rtmp://127.0.0.1/live/black_board"
+         }
+      },
+      {
+         "5" : {
+            "has_audio" : false,
+            "only_try_once" : false,
+            "url" : "rtmp://127.0.0.1/live/pc"
+         }
+      }
+   ],
+   "remote_live" : {
+      "has_audio" : true,
+      "only_try_once" : true,
+      "url" : "rtmp://127.0.0.1/live/main2"
    },
-   "video": {
-      "res_height": 720,
-      "res_width": 1280,
-      "res_bitrate": 2000,
-      "normal_live_height": 720,
-      "normal_live_width": 1280,
-      "normal_live_bitrate": 4000,
-      "normal_record_height": 1080,
-      "normal_record_width": 1920,
-      "normal_record_bitrate": 10000
+   "scene" : {
+      "mapping" : [
+         {
+            "0" : 3
+         },
+         {
+            "1" : 5
+         },
+         {
+            "2" : 2
+         },
+         {
+            "3" : 0
+         },
+         {
+            "4" : 4
+         },
+         {
+            "5" : 1
+         }
+      ],
+      "mode" : 6
    },
-   "system": {
-      "disp_vo_intf_sync": 10,
-      "chns": [
+   "system" : {
+      "chns" : [
          {
-            "chn": 0,
-            "rect": {
-               "x": 0,
-               "y": 0,
-               "width": 1280,
-               "height": 720
+            "chn" : 0,
+            "rect" : {
+               "height" : 720,
+               "width" : 1280,
+               "x" : 0,
+               "y" : 0
             }
          },
          {
-            "chn": 1,
-            "rect": {
-               "x": 1280,
-               "y": 0,
-               "width": 640,
-               "height": 360
+            "chn" : 1,
+            "rect" : {
+               "height" : 360,
+               "width" : 640,
+               "x" : 1280,
+               "y" : 0
             }
          },
          {
-            "chn": 2,
-            "rect": {
-               "x": 1280,
-               "y": 360,
-               "width": 640,
-               "height": 360
+            "chn" : 2,
+            "rect" : {
+               "height" : 360,
+               "width" : 640,
+               "x" : 1280,
+               "y" : 360
             }
          },
          {
-            "chn": 3,
-            "rect": {
-               "x": 1280,
-               "y": 720,
-               "width": 640,
-               "height": 360
+            "chn" : 3,
+            "rect" : {
+               "height" : 360,
+               "width" : 640,
+               "x" : 1280,
+               "y" : 720
             }
          },
          {
-            "chn": 4,
-            "rect": {
-               "x": 640,
-               "y": 720,
-               "width": 640,
-               "height": 360
+            "chn" : 4,
+            "rect" : {
+               "height" : 360,
+               "width" : 640,
+               "x" : 640,
+               "y" : 720
             }
          },
          {
-            "chn": 5,
-            "rect": {
-               "x": 0,
-               "y": 720,
-               "width": 640,
-               "height": 360
+            "chn" : 5,
+            "rect" : {
+               "height" : 360,
+               "width" : 640,
+               "x" : 0,
+               "y" : 720
             }
          }
       ],
-      "mapping": [
+      "disp_vo_intf_sync" : 10,
+      "mapping" : [
          {
-            "0": 6
+            "0" : 6
          },
          {
-            "1": 0
+            "1" : 0
          },
          {
-            "2": 2
+            "2" : 2
          },
          {
-            "3": 3
+            "3" : 3
          },
          {
-            "4": 4
+            "4" : 4
          },
          {
-            "5": 5
+            "5" : 5
          }
       ],
-      "pc_capture_mode": 0
+      "pc_capture_mode" : 0
+   },
+   "video" : {
+      "normal_live_bitrate" : 2000,
+      "normal_live_height" : 720,
+      "normal_live_width" : 1280,
+      "normal_record_bitrate" : 6000,
+      "normal_record_height" : 1080,
+      "normal_record_width" : 1920,
+      "res_bitrate" : 2000,
+      "res_height" : 720,
+      "res_width" : 1280
    }
 }
+

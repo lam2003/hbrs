@@ -1,5 +1,6 @@
 #include "common/config.h"
 #include "common/err_code.h"
+#include "model/live_req.h"
 
 namespace rs
 {
@@ -37,165 +38,63 @@ int Config::Initialize(const std::string &path)
     Json::Value root;
     if (!reader.parse(ifs, root))
     {
-        log_e("parse root failed");
+        log_e("parse json root failed");
         return KParamsError;
     }
 
-    if (!root.isMember("video") ||
+    if (!root.isMember("scene") ||
+        !root["scene"].isObject() ||
+        !root.isMember("system") ||
+        !root["system"].isObject() ||
+        !root.isMember("video") ||
         !root["video"].isObject())
     {
-        log_e("parse video failed");
+        log_e("check root format failed");
         return KParamsError;
     }
 
-    Json::Value video = root["video"];
-    if (!video.isMember("res_height") ||
-        !video["res_height"].isInt() ||
-        !video.isMember("res_width") ||
-        !video["res_width"].isInt() ||
-        !video.isMember("res_bitrate") ||
-        !video["res_bitrate"].isInt() ||
-        !video.isMember("normal_live_height") ||
-        !video["normal_live_height"].isInt() ||
-        !video.isMember("normal_live_width") ||
-        !video["normal_live_width"].isInt() ||
-        !video.isMember("normal_live_bitrate") ||
-        !video["normal_live_bitrate"].isInt() ||
-        !video.isMember("normal_record_height") ||
-        !video["normal_record_height"].isInt() ||
-        !video.isMember("normal_record_width") ||
-        !video["normal_record_width"].isInt() ||
-        !video.isMember("normal_record_bitrate") ||
-        !video["normal_record_bitrate"].isInt())
+    if (!Config::Scene::IsOk(root["scene"]))
     {
-        log_e("check video error");
+        log_e("check scene format failed");
+        return KParamsError;
+    }
+    if (!Config::System::IsOk(root["system"]))
+    {
+        log_e("check system format failed");
+        return KParamsError;
+    }
+    if (!Config::Video::IsOk(root["video"]))
+    {
+        log_e("check video format failed");
         return KParamsError;
     }
 
-    video_.res_height = video["res_height"].asInt();
-    video_.res_width = video["res_width"].asInt();
-    video_.res_bitrate = video["res_bitrate"].asInt();
-    video_.normal_live_height = video["normal_live_height"].asInt();
-    video_.normal_live_width = video["normal_live_width"].asInt();
-    video_.normal_live_bitrate = video["normal_live_bitrate"].asInt();
-    video_.normal_record_height = video["normal_record_height"].asInt();
-    video_.normal_record_width = video["normal_record_width"].asInt();
-    video_.normal_record_bitrate = video["normal_record_bitrate"].asInt();
+    scene_ = root["scene"];
+    system_ = root["system"];
+    video_ = root["video"];
 
+    if (root.isMember("local_lives") ||
+        root["local_lives"].isArray())
     {
-        //scene
-        if (!root.isMember("scene") ||
-            !root["scene"].isObject())
+        if (LiveReq::IsOk(root["local_lives"]))
         {
-            log_e("parse scene failed");
-            return KParamsError;
-        }
-
-        Json::Value scene = root["scene"];
-        if (!scene.isMember("mode") ||
-            !scene["mode"].isInt() ||
-            !scene.isMember("mapping") ||
-            !scene["mapping"].isArray())
-        {
-            log_e("check scene error");
-            return KParamsError;
-        }
-
-        scene_.mode = static_cast<Scene::Mode>(scene["mode"].asInt());
-        Json::Value mapping = scene["mapping"];
-        for (size_t i = 0; i < mapping.size(); i++)
-        {
-            Json::Value item = mapping[i];
-            if (!item.isObject())
-                continue;
-            Json::Value::Members members = item.getMemberNames();
-            for (auto it = members.begin(); it != members.end(); it++)
-            {
-                try
-                {
-                    if (item[*it].isInt())
-                        scene_.mapping[std::stoi(*it)] = static_cast<RS_SCENE>(item[*it].asInt());
-                }
-                catch (std::exception &e)
-                {
-                    continue;
-                }
-            }
+            LiveReq req;
+            Json::Value local_lives_json = root["local_lives"];
+            req = local_lives_json;
+            local_lives_ = req.lives;
         }
     }
 
+    if (root.isMember("remote_live") ||
+        root["remote_live"].isObject())
     {
-        //system
-        Json::Value system = root["system"];
-        if (!system.isMember("disp_vo_intf_sync") ||
-            !system["disp_vo_intf_sync"].isInt() ||
-            !system.isMember("chns") ||
-            !system["chns"].isArray() ||
-            !system.isMember("mapping") ||
-            !system["mapping"].isArray() ||
-            !system.isMember("pc_capture_mode") ||
-            !system["pc_capture_mode"].isInt())
+        if (rtmp::Params::IsOk(root["remote_live"]))
         {
-            log_e("check system error");
-            return KParamsError;
+            Json::Value remote_live_json = root["remote_live"];
+            remote_live_ = remote_live_json;
+            remote_live_.has_audio = true;
+            remote_live_.only_try_once = true;
         }
-
-        system_.disp_vo_intf_sync = static_cast<VO_INTF_SYNC_E>(system["disp_vo_intf_sync"].asInt());
-
-        system_.chns.clear();
-        Json::Value chns = system["chns"];
-        for (size_t i = 0; i < chns.size(); i++)
-        {
-            Json::Value item = chns[i];
-            if (!item.isObject())
-                continue;
-
-            if (!item.isMember("chn") ||
-                !item["chn"].isInt() ||
-                !item.isMember("rect") ||
-                !item["rect"].isObject())
-                continue;
-
-            Json::Value rect = item["rect"];
-            if (!rect.isMember("x") ||
-                !rect["x"].isInt() ||
-                !rect.isMember("y") ||
-                !rect["y"].isInt() ||
-                !rect.isMember("width") ||
-                !rect["width"].isUInt() ||
-                !rect.isMember("height") ||
-                !rect["height"].isUInt())
-                continue;
-
-            system_.chns.push_back({item["chn"].asInt(),
-                                    {rect["x"].asInt(),
-                                     rect["y"].asInt(),
-                                     rect["width"].asUInt(),
-                                     rect["height"].asUInt()}});
-        }
-
-        Json::Value mapping = system["mapping"];
-        for (size_t i = 0; i < mapping.size(); i++)
-        {
-            Json::Value item = mapping[i];
-            if (!item.isObject())
-                continue;
-            Json::Value::Members members = item.getMemberNames();
-            for (auto it = members.begin(); it != members.end(); it++)
-            {
-                try
-                {
-                    if (item[*it].isInt())
-                        system_.mapping[std::stoi(*it)] = static_cast<RS_SCENE>(item[*it].asInt());
-                }
-                catch (std::exception &e)
-                {
-                    continue;
-                }
-            }
-        }
-
-        system_.pc_capture_mode = static_cast<ADV7842_MODE>(system["pc_capture_mode"].asInt());
     }
 
     init_ = true;
@@ -226,39 +125,56 @@ bool Config::IsResourceMode()
     }
 }
 
+bool Config::IsResourceMode(Config::Scene::Mode mode)
+{
+    switch (mode)
+    {
+    case Scene::Mode::NORMAL_MODE:
+    case Scene::Mode::PIP_MODE:
+        return false;
+    case Scene::Mode::TWO:
+    case Scene::Mode::THREE:
+    case Scene::Mode::FOUR:
+    case Scene::Mode::FOUR1:
+    case Scene::Mode::FIVE:
+    case Scene::Mode::SIX:
+    case Scene::Mode::SIX1:
+        return true;
+
+    default:
+        RS_ASSERT(0);
+    }
+}
+
 int Config::WriteToFile()
 {
     if (!init_)
         return KUnInitialized;
 
-    // std::ofstream ofs(path_);
+    std::ofstream ofs(path_);
+    Json::Value root;
 
-    // Json::Value root;
+    root["video"] = video_;
+    root["scene"] = scene_;
+    root["system"] = system_;
 
-    // Json::Value video;
-    // video["width"] = video_.width;
-    // video["height"] = video_.height;
-    // video["frame_rate"] = video_.frame_rate;
-    // root["video"] = video;
+    if (remote_live_.url != "")
+        root["remote_live"] = remote_live_;
 
-    // Json::Value scene;
-    // Json::Value normal;
-    // normal["main_scene"] = scene_.normal.main_scene;
-    // Json::Value pip;
-    // pip["main_scene"] = scene_.pip.main_scene;
-    // pip["minor_scene"] = scene_.pip.minor_scene;
-    // Json::Value resource;
-    // resource["mode"] = scene_.resource.mode;
-    // resource["relations"] = Json::arrayValue;
-    // for (size_t i = 0; i < scene_.resource.relations.size(); i++)
-    //     resource["relations"].append(scene_.resource.relations[i]);
-    // scene["normal"] = normal;
-    // scene["pip"] = pip;
-    // scene["resource"] = resource;
-    // root["scene"] = scene;
+    if (!local_lives_.empty())
+    {
+        Json::Value local_lives_json;
+        for (const std::pair<RS_SCENE, rtmp::Params> live : local_lives_)
+        {
+            Json::Value item_json;
+            item_json[std::to_string(live.first)] = live.second;
+            local_lives_json.append(item_json);
+        }
 
-    // ofs << root.toStyledString() << std::endl;
-    // ofs.close();
+        root["local_lives"] = local_lives_json;
+    }
+    ofs << root.toStyledString() << std::endl;
+    ofs.close();
     return KSuccess;
 }
 

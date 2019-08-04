@@ -25,6 +25,17 @@ int32_t VideoEncode::Initialize(const Params &params)
 
     int ret;
 
+    log_d("venc[%d,%d]width:%d,height:%d,src_frame_rate:%d,dst_frame_rate:%d,profile:%d,bitrate:%d,mode:%d,set_ts:%d",
+          params.grp,
+          params.chn,
+          params.width,
+          params.height,
+          params.src_frame_rate,
+          params.dst_frame_rate,
+          params.profile,
+          params.bitrate,
+          params.mode,
+          params.set_ts);
     params_ = params;
 
     VENC_ATTR_H264_S h264_attr;
@@ -226,6 +237,8 @@ void VideoEncode::Close()
     if (!init_)
         return;
     int ret;
+
+    log_d("venc[%d,%d]stop", params_.grp, params_.chn);
 
     run_ = false;
     thread_->join();

@@ -30,7 +30,7 @@ int RTMPStreamer::Initialize(const std::string &url, bool has_audio)
     rtmp_ = srs_rtmp_create(url.c_str());
     if (rtmp_ == nullptr)
     {
-        log_e("srs_rtmp_create failed");
+        log_e("[%s]srs_rtmp_create failed", url.c_str());
         return KSDKError;
     }
 
@@ -38,7 +38,7 @@ int RTMPStreamer::Initialize(const std::string &url, bool has_audio)
     if (ret != KSuccess)
     {
         srs_rtmp_destroy(rtmp_);
-        log_e("srs_rtmp_set_timeout failed with %#x", ret);
+        log_e("[%s]srs_rtmp_set_timeout failed with %#x", url.c_str(), ret);
         return KSDKError;
     }
 
@@ -46,7 +46,7 @@ int RTMPStreamer::Initialize(const std::string &url, bool has_audio)
     if (ret != KSuccess)
     {
         srs_rtmp_destroy(rtmp_);
-        log_e("srs_rtmp_handshake failed with %#x", ret);
+        log_e("[%s]srs_rtmp_handshake failed with %#x", url.c_str(), ret);
         return KSDKError;
     }
 
@@ -54,7 +54,7 @@ int RTMPStreamer::Initialize(const std::string &url, bool has_audio)
     if (ret != KSuccess)
     {
         srs_rtmp_destroy(rtmp_);
-        log_e("srs_rtmp_connect_app failed with %#x", ret);
+        log_e("[%s]srs_rtmp_connect_app failed with %#x", url.c_str(), ret);
         return KSDKError;
     }
 
@@ -62,7 +62,7 @@ int RTMPStreamer::Initialize(const std::string &url, bool has_audio)
     if (ret != KSuccess)
     {
         srs_rtmp_destroy(rtmp_);
-        log_e("srs_rtmp_publish_stream failed with %#x", ret);
+        log_e("[%s]srs_rtmp_publish_stream failed with %#x", url.c_str(), ret);
         return KSDKError;
     }
 
@@ -76,7 +76,7 @@ void RTMPStreamer::Close()
 {
     if (!init_)
         return;
-        
+
     log_d("[%s]stop", url_.c_str());
     srs_rtmp_destroy(rtmp_);
     init_ = false;
@@ -91,7 +91,7 @@ int RTMPStreamer::WriteAudioFrame(const AENCFrame &frame)
     ret = srs_audio_write_raw_frame(rtmp_, 10, 3, 1, 1, reinterpret_cast<char *>(frame.data), frame.len, frame.ts);
     if (ret != KSuccess)
     {
-        log_e("srs_audio_write_raw_frame failed with %#x", ret);
+        log_e("[%s]srs_audio_write_raw_frame failed with %#x", url_.c_str(), ret);
         return KSDKError;
     }
     return KSuccess;
@@ -115,7 +115,7 @@ int RTMPStreamer::WriteVideoFrame(const VENCFrame &frame)
             ret == ERROR_H264_DUPLICATED_SPS ||
             ret == ERROR_H264_DUPLICATED_PPS)
             return KSuccess;
-        log_e("srs_h264_write_raw_frames failed with %#x", ret);
+        log_e("[%s]srs_h264_write_raw_frames failed with %#x", url_.c_str(), ret);
         return KSDKError;
     }
 
