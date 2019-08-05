@@ -7,25 +7,25 @@
 namespace rs
 {
 
-struct RemoteLiveReq
+struct LocalLiveReq
 {
-    Config::RemoteLive remote_live;
+    Config::LocalLive local_lives;
 
     operator Json::Value() const
     {
-        return remote_live;
+        return local_lives;
     }
 
     static bool IsOk(const Json::Value &root)
     {
-        if (!rtmp::Params::IsOk(root))
+        if (!Config::LocalLive::IsOk(root))
             return false;
         return true;
     }
 
-    RemoteLiveReq &operator=(const Json::Value &root)
+    LocalLiveReq &operator=(const Json::Value &root)
     {
-        remote_live = root;
+        local_lives = root;
         return *this;
     }
 };

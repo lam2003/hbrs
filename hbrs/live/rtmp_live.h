@@ -25,7 +25,8 @@ struct Params
 
     static bool IsOk(const Json::Value &root)
     {
-        if (!root.isMember("url") ||
+        if (!root.isObject() ||
+            !root.isMember("url") ||
             !root["url"].isString())
             return false;
         return true;

@@ -2,6 +2,7 @@
 
 #include "global.h"
 #include "live/rtmp_live.h"
+#include "record/mp4_record.h"
 
 namespace rs
 {
@@ -40,7 +41,8 @@ public:
 
         static bool IsOk(const Json::Value &root)
         {
-            if (!root.isMember("res_width") ||
+            if (!root.isObject() ||
+                !root.isMember("res_width") ||
                 !root["res_width"].isInt() ||
                 !root.isMember("res_height") ||
                 !root["res_height"].isInt() ||
@@ -114,7 +116,8 @@ public:
 
         static bool IsOk(const Json::Value &root)
         {
-            if (!root.isMember("mode") ||
+            if (!root.isObject() ||
+                !root.isMember("mode") ||
                 !root["mode"].isInt() ||
                 !root.isMember("mapping") ||
                 !root["mapping"].isArray())
@@ -185,7 +188,8 @@ public:
 
             static bool IsOk(const Json::Value &root)
             {
-                if (!root.isMember("chn") ||
+                if (!root.isObject() ||
+                    !root.isMember("chn") ||
                     !root["chn"].isInt() ||
                     !root.isMember("rect") ||
                     !root["rect"].isObject())
@@ -248,7 +252,8 @@ public:
 
         static bool IsOk(const Json::Value &root)
         {
-            if (!root.isMember("disp_vo_intf_sync") ||
+            if (!root.isObject() ||
+                !root.isMember("disp_vo_intf_sync") ||
                 !root["disp_vo_intf_sync"].isInt() ||
                 !root.isMember("chns") ||
                 !root["chns"].isArray() ||
@@ -323,6 +328,189 @@ public:
         }
     };
 
+    struct Record
+    {
+        operator Json::Value() const
+        {
+            Json::Value root;
+            for (const std::pair<RS_SCENE, mp4::Params> &rec : recs)
+            {
+                Json::Value rec_json;
+                rec_json[std::to_string(rec.first)] = rec.second;
+                root.append(rec_json);
+            }
+            return root;
+        }
+
+        static bool IsOk(const Json::Value &root)
+        {
+            if (!root.isArray())
+                return false;
+
+            for (size_t i = 0; i < root.size(); i++)
+            {
+                Json::Value item = root[i];
+                if (!item.isObject())
+                    return false;
+
+                Json::Value::Members members = item.getMemberNames();
+                for (auto it = members.begin(); it != members.end(); it++)
+                {
+                    try
+                    {
+                        std::stoi(*it);
+                    }
+                    catch (...)
+                    {
+                        return false;
+                    }
+
+                    Json::Value params = item[*it];
+                    if (!params.isObject())
+                        return false;
+                    if (!mp4::Params::IsOk(params))
+                        return false;
+                }
+            }
+            return true;
+        }
+
+        Record &operator=(const Json::Value &root)
+        {
+            for (size_t i = 0; i < root.size(); i++)
+            {
+                Json::Value item = root[i];
+                Json::Value::Members members = item.getMemberNames();
+                for (auto it = members.begin(); it != members.end(); it++)
+                {
+                    RS_SCENE scene = static_cast<RS_SCENE>(std::stoi(*it));
+                    mp4::Params params;
+                    params = item[*it];
+
+                    if (Config::Instance()->IsResourceMode())
+                    {
+                        params.width = Config::Instance()->video_.res_width;
+                        params.height = Config::Instance()->video_.res_height;
+                    }
+                    else
+                    {
+                        params.width = Config::Instance()->video_.normal_record_width;
+                        params.height = Config::Instance()->video_.normal_record_height;
+                    }
+                    params.frame_rate = 25;
+                    params.samplate_rate = 44100;
+                    recs.push_back(std::make_pair(scene, params));
+                }
+            }
+            return *this;
+        }
+
+        std::vector<std::pair<RS_SCENE, mp4::Params>> recs;
+    };
+
+    struct LocalLive
+    {
+        operator Json::Value() const
+        {
+            Json::Value root;
+            for (const std::pair<RS_SCENE, rtmp::Params> &live : lives)
+            {
+                Json::Value live_json;
+                live_json[std::to_string(live.first)] = live.second;
+                root.append(live_json);
+            }
+            return root;
+        }
+
+        static bool IsOk(const Json::Value &root)
+        {
+            if (!root.isArray())
+                return false;
+
+            for (size_t i = 0; i < root.size(); i++)
+            {
+                Json::Value item = root[i];
+                if (!item.isObject())
+                    return false;
+
+                Json::Value::Members members = item.getMemberNames();
+                for (auto it = members.begin(); it != members.end(); it++)
+                {
+                    try
+                    {
+                        std::stoi(*it);
+                    }
+                    catch (...)
+                    {
+                        return false;
+                    }
+
+                    Json::Value params = item[*it];
+                    if (!params.isObject())
+                        return false;
+                    if (!rtmp::Params::IsOk(params))
+                        return false;
+                }
+            }
+            return true;
+        }
+
+        LocalLive &operator=(const Json::Value &root)
+        {
+            for (size_t i = 0; i < root.size(); i++)
+            {
+                Json::Value item = root[i];
+                Json::Value::Members members = item.getMemberNames();
+                for (auto it = members.begin(); it != members.end(); it++)
+                {
+                    RS_SCENE scene = static_cast<RS_SCENE>(std::stoi(*it));
+                    rtmp::Params params;
+                    params = item[*it];
+                    if (scene == MAIN || scene == MAIN2)
+                    {
+                        params.has_audio = true;
+                    }
+                    else
+                    {
+                        params.has_audio = false;
+                    }
+
+                    params.only_try_once = true;
+
+                    lives.push_back(std::make_pair(scene, params));
+                }
+            }
+            return *this;
+        }
+
+        std::vector<std::pair<RS_SCENE, rtmp::Params>> lives;
+    };
+
+    struct RemoteLive
+    {
+        operator Json::Value() const
+        {
+            return live;
+        }
+
+        static bool IsOk(const Json::Value &root)
+        {
+            if (!rtmp::Params::IsOk(root))
+                return false;
+            return true;
+        }
+
+        RemoteLive &operator=(const Json::Value &root)
+        {
+            live = root;
+            live.has_audio = true;
+            live.only_try_once = true;
+            return *this;
+        }
+
+        rtmp::Params live;
+    };
+
     static Config *Instance();
 
     virtual ~Config();
@@ -344,8 +532,8 @@ public:
     Video video_;
     Scene scene_;
     System system_;
-    rtmp::Params remote_live_;
-    std::vector<std::pair<RS_SCENE, rtmp::Params>> local_lives_;
+    RemoteLive remote_live_;
+    LocalLive local_lives_;
 
 private:
     std::string path_;

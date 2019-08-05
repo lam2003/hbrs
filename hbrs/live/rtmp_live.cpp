@@ -36,6 +36,11 @@ void RTMPLive::HandleVideoOnly()
             ret = streamer.Initialize(params_.url, params_.has_audio);
             if (ret != KSuccess)
             {
+                if (params_.only_try_once)
+                {
+                    log_w("[%s]thread quit because set only_try_once", params_.url.c_str());
+                    return;
+                }
                 int wait_sec = 10; //5秒后发起重连
                 while (run_ && wait_sec--)
                     usleep(500000); //500ms
@@ -266,7 +271,7 @@ void RTMPLive::OnFrame(const VENCFrame &video_frame)
     if (buffer_.FreeSpace() < sizeof(Frame) + video_frame.len)
     {
         mux_.unlock();
-        log_e("[%s]buffer fill", params_.url.c_str());
+        // log_e("[%s]buffer fill", params_.url.c_str());
         return;
     }
 
@@ -290,7 +295,7 @@ void RTMPLive::OnFrame(const AENCFrame &audio_frame)
     if (buffer_.FreeSpace() < sizeof(Frame) + audio_frame.len)
     {
         mux_.unlock();
-        log_e("[%s]buffer fill", params_.url.c_str());
+        // log_e("[%s]buffer fill", params_.url.c_str());
         return;
     }
 

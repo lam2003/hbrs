@@ -156,7 +156,7 @@ void MP4Record::OnFrame(const VENCFrame &video_frame)
     if (buffer_.FreeSpace() < sizeof(Frame) + video_frame.len)
     {
         mux_.unlock();
-        log_e("buffer fill");
+        // log_e("buffer fill");
         return;
     }
 
@@ -180,7 +180,7 @@ void MP4Record::OnFrame(const AENCFrame &audio_frame)
     if (buffer_.FreeSpace() < sizeof(Frame) + audio_frame.len)
     {
         mux_.unlock();
-        log_e("buffer fill");
+        // log_e("buffer fill");
         return;
     }
 

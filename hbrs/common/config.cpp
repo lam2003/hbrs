@@ -1,6 +1,5 @@
 #include "common/config.h"
 #include "common/err_code.h"
-#include "model/live_req.h"
 
 namespace rs
 {
@@ -73,28 +72,16 @@ int Config::Initialize(const std::string &path)
     system_ = root["system"];
     video_ = root["video"];
 
-    if (root.isMember("local_lives") ||
-        root["local_lives"].isArray())
+    if (root.isMember("local_lives"))
     {
-        if (LiveReq::IsOk(root["local_lives"]))
-        {
-            LiveReq req;
-            Json::Value local_lives_json = root["local_lives"];
-            req = local_lives_json;
-            local_lives_ = req.lives;
-        }
+        if (Config::LocalLive::IsOk(root["local_lives"]))
+            local_lives_ = root["local_lives"];
     }
 
-    if (root.isMember("remote_live") ||
-        root["remote_live"].isObject())
+    if (root.isMember("remote_live"))
     {
-        if (rtmp::Params::IsOk(root["remote_live"]))
-        {
-            Json::Value remote_live_json = root["remote_live"];
-            remote_live_ = remote_live_json;
-            remote_live_.has_audio = true;
-            remote_live_.only_try_once = true;
-        }
+        if (Config::RemoteLive::IsOk(root["remote_live"]))
+            remote_live_ = root["remote_live"];
     }
 
     init_ = true;
@@ -158,21 +145,12 @@ int Config::WriteToFile()
     root["scene"] = scene_;
     root["system"] = system_;
 
-    if (remote_live_.url != "")
+    if (remote_live_.live.url != "")
         root["remote_live"] = remote_live_;
 
-    if (!local_lives_.empty())
-    {
-        Json::Value local_lives_json;
-        for (const std::pair<RS_SCENE, rtmp::Params> live : local_lives_)
-        {
-            Json::Value item_json;
-            item_json[std::to_string(live.first)] = live.second;
-            local_lives_json.append(item_json);
-        }
+    if (!local_lives_.lives.empty())
+        root["local_lives"] = local_lives_;
 
-        root["local_lives"] = local_lives_json;
-    }
     ofs << root.toStyledString() << std::endl;
     ofs.close();
     return KSuccess;

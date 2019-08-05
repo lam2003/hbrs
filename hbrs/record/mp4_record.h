@@ -32,7 +32,8 @@ struct Params
 
     static bool IsOk(const Json::Value &root)
     {
-        if (!root.isMember("filename") ||
+        if (!root.isObject() ||
+            !root.isMember("filename") ||
             !root["filename"].isString() ||
             !root.isMember("segment_duration") ||
             !root["segment_duration"].isInt() ||
@@ -49,7 +50,6 @@ struct Params
         need_to_segment = root["need_to_segment"].asBool();
         return *this;
     }
-
 };
 } // namespace mp4
 

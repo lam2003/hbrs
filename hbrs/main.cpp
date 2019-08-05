@@ -19,7 +19,7 @@
 #include "live/rtmp_live.h"
 
 #include "model/record_req.h"
-#include "model/live_req.h"
+#include "model/local_live_req.h"
 #include "model/remote_live_req.h"
 #include "model/change_pc_capture_req.h"
 #include "model/change_main_scene_req.h"
@@ -498,6 +498,8 @@ static int StartRecord(const std::vector<std::pair<RS_SCENE, mp4::Params>> &reco
 		{
 		case TEA_FEATURE:
 		{
+			if (!Config::Instance()->IsResourceMode())
+				continue;
 			ret = rec_tea_fea.Initialize(rec.second);
 			if (ret != KSuccess)
 				return ret;
@@ -507,6 +509,8 @@ static int StartRecord(const std::vector<std::pair<RS_SCENE, mp4::Params>> &reco
 		}
 		case STU_FEATURE:
 		{
+			if (!Config::Instance()->IsResourceMode())
+				continue;
 			ret = rec_stu_fea.Initialize(rec.second);
 			if (ret != KSuccess)
 				return ret;
@@ -517,6 +521,8 @@ static int StartRecord(const std::vector<std::pair<RS_SCENE, mp4::Params>> &reco
 
 		case TEA_FULL_VIEW:
 		{
+			if (!Config::Instance()->IsResourceMode())
+				continue;
 			ret = rec_tea_full.Initialize(rec.second);
 			if (ret != KSuccess)
 				return ret;
@@ -526,6 +532,8 @@ static int StartRecord(const std::vector<std::pair<RS_SCENE, mp4::Params>> &reco
 		}
 		case STU_FULL_VIEW:
 		{
+			if (!Config::Instance()->IsResourceMode())
+				continue;
 			ret = rec_stu_full.Initialize(rec.second);
 			if (ret != KSuccess)
 				return ret;
@@ -535,6 +543,8 @@ static int StartRecord(const std::vector<std::pair<RS_SCENE, mp4::Params>> &reco
 		}
 		case BLACK_BOARD_FEATURE:
 		{
+			if (!Config::Instance()->IsResourceMode())
+				continue;
 			ret = rec_black_board.Initialize(rec.second);
 			if (ret != KSuccess)
 				return ret;
@@ -544,6 +554,8 @@ static int StartRecord(const std::vector<std::pair<RS_SCENE, mp4::Params>> &reco
 		}
 		case PC_CAPTURE:
 		{
+			if (!Config::Instance()->IsResourceMode())
+				continue;
 			ret = rec_pc.Initialize(rec.second);
 			if (ret != KSuccess)
 				return ret;
@@ -776,7 +788,7 @@ static void StartRecordHandler(evhttp_request *req, void *arg)
 	record_req = root;
 
 	CloseRecord();
-	ret = StartRecord(record_req.recs);
+	ret = StartRecord(record_req.records.recs);
 	if (ret != KSuccess)
 	{
 		HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start record failed\"}");
@@ -810,18 +822,18 @@ static void StartLiveHandler(evhttp_request *req, void *arg)
 		return;
 	}
 
-	if (!LiveReq::IsOk(root))
+	if (!LocalLiveReq::IsOk(root))
 	{
 		HttpServer::MakeResponse(req, HTTP_SERVUNAVAIL, "format error", "{\"errMsg\":\"check json format failed\"}");
 		log_w("check json format failed");
 		return;
 	}
 
-	LiveReq live_req;
+	LocalLiveReq live_req;
 	live_req = root;
 
 	CloseLive();
-	ret = StartLive(live_req.lives);
+	ret = StartLive(live_req.local_lives.lives);
 	if (ret != KSuccess)
 	{
 		HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start live failed\"}");
@@ -832,7 +844,7 @@ static void StartLiveHandler(evhttp_request *req, void *arg)
 	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
 	log_d("request ok");
 
-	Config::Instance()->local_lives_ = live_req.lives;
+	Config::Instance()->local_lives_ = live_req.local_lives;
 	Config::Instance()->WriteToFile();
 }
 
@@ -842,7 +854,7 @@ static void StopLiveHandler(evhttp_request *req, void *arg)
 	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
 	log_d("request ok");
 
-	Config::Instance()->local_lives_ = {};
+	Config::Instance()->local_lives_.lives = {};
 	Config::Instance()->WriteToFile();
 }
 
@@ -872,7 +884,7 @@ static void StartRemoteLiveHandler(evhttp_request *req, void *arg)
 	remote_live_req = root;
 
 	CloseRemoteLive();
-	ret = StartRemoteLive(remote_live_req.params);
+	ret = StartRemoteLive(remote_live_req.remote_live.live);
 	if (ret != KSuccess)
 	{
 		HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start remote live failed\"}");
@@ -883,7 +895,7 @@ static void StartRemoteLiveHandler(evhttp_request *req, void *arg)
 	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
 	log_d("request ok");
 
-	Config::Instance()->remote_live_ = remote_live_req.params;
+	Config::Instance()->remote_live_ = remote_live_req.remote_live;
 	Config::Instance()->WriteToFile();
 }
 
@@ -893,7 +905,7 @@ static void StopRemoteLiveHandler(evhttp_request *req, void *arg)
 	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
 	log_d("request ok");
 
-	Config::Instance()->remote_live_.url = "";
+	Config::Instance()->remote_live_.live.url = "";
 	Config::Instance()->WriteToFile();
 }
 
@@ -921,13 +933,10 @@ static void ChangePCCaptureHandler(evhttp_request *req, void *arg)
 	ChangePCCaptureReq change_pc_capture_req;
 	change_pc_capture_req = root;
 
-	ADV7842_MODE old_config = Config::Instance()->system_.pc_capture_mode;
 	Config::Instance()->system_.pc_capture_mode = change_pc_capture_req.mode;
-
 	ret = SigDetect::Instance()->SetPCCaptureMode(change_pc_capture_req.mode);
 	if (ret != KSuccess)
 	{
-		Config::Instance()->system_.pc_capture_mode = old_config;
 		HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"change pc capture mode failed\"}");
 		log_w("change pc capture mode failed");
 		return;
@@ -969,7 +978,6 @@ static void ChangeMainScreenHandler(evhttp_request *req, void *arg)
 	CloseRemoteLive();
 	CloseMainScreen();
 
-	Config::Scene old_config = Config::Instance()->scene_;
 	if (Config::IsResourceMode(change_main_screen_req.scene.mode) != Config::Instance()->IsResourceMode())
 	{
 		log_d("need to restart video encode module");
@@ -978,29 +986,25 @@ static void ChangeMainScreenHandler(evhttp_request *req, void *arg)
 		ret = StartVideoEncode();
 		if (ret != KSuccess)
 		{
-			Config::Instance()->scene_ = old_config;
 			HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start video encode failed\"}");
 			log_w("start video encode failed");
 			return;
 		}
 	}
 
-	old_config = Config::Instance()->scene_;
 	Config::Instance()->scene_ = change_main_screen_req.scene;
 
 	ret = StartMainScreen();
 	if (ret != KSuccess)
 	{
-		Config::Instance()->scene_ = old_config;
 		HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start main screen failed\"}");
 		log_w("start main screen failed");
 		return;
 	}
 
-	Config::Instance()->WriteToFile();
-	if (!Config::Instance()->local_lives_.empty())
+	if (!Config::Instance()->local_lives_.lives.empty())
 	{
-		ret = StartLive(Config::Instance()->local_lives_);
+		ret = StartLive(Config::Instance()->local_lives_.lives);
 		if (ret != KSuccess)
 		{
 			HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start local live failed\"}");
@@ -1009,9 +1013,9 @@ static void ChangeMainScreenHandler(evhttp_request *req, void *arg)
 		}
 	}
 
-	if (Config::Instance()->remote_live_.url != "")
+	if (Config::Instance()->remote_live_.live.url != "")
 	{
-		ret = StartRemoteLive(Config::Instance()->remote_live_);
+		ret = StartRemoteLive(Config::Instance()->remote_live_.live);
 		if (ret != KSuccess)
 		{
 			HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"start remote live failed\"}");
@@ -1022,6 +1026,7 @@ static void ChangeMainScreenHandler(evhttp_request *req, void *arg)
 
 	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
 	log_d("request ok");
+	Config::Instance()->WriteToFile();
 }
 
 int32_t main(int32_t argc, char **argv)
@@ -1165,18 +1170,21 @@ int32_t main(int32_t argc, char **argv)
 	ret = StartMainScreen();
 	CHECK_ERROR(ret);
 
-	ret = StartLive(Config::Instance()->local_lives_);
+	ret = StartLive(Config::Instance()->local_lives_.lives);
 	CHECK_ERROR(ret);
 
-	ret = StartRemoteLive(Config::Instance()->remote_live_);
-	CHECK_ERROR(ret);
+	if (Config::Instance()->remote_live_.live.url != "")
+	{
+		ret = StartRemoteLive(Config::Instance()->remote_live_.live);
+		CHECK_ERROR(ret);
+	}
 
 	HttpServer http_server;
 	http_server.Initialize("0.0.0.0", 8081);
 	http_server.RegisterURI("/start_record", StartRecordHandler, nullptr);
 	http_server.RegisterURI("/stop_record", StopRecordHandler, nullptr);
-	http_server.RegisterURI("/start_live", StartLiveHandler, nullptr);
-	http_server.RegisterURI("/stop_live", StopLiveHandler, nullptr);
+	http_server.RegisterURI("/start_local_live", StartLiveHandler, nullptr);
+	http_server.RegisterURI("/stop_local_live", StopLiveHandler, nullptr);
 	http_server.RegisterURI("/start_remote_live", StartRemoteLiveHandler, nullptr);
 	http_server.RegisterURI("/stop_remote_live", StopRemoteLiveHandler, nullptr);
 	http_server.RegisterURI("/change_pc_capture", ChangePCCaptureHandler, nullptr);
