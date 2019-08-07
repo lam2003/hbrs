@@ -17,29 +17,27 @@ class PCIVTrans
 public:
     virtual ~PCIVTrans();
 
-    static PCIVTrans *Instance();
+    explicit PCIVTrans();
 
-    int32_t Initialize(pciv::Context *ctx);
+    int32_t Initialize(std::shared_ptr<PCIVComm> pciv_comm);
 
     void Close();
 
-    void AddVideoSink(VideoSink<VDEC_STREAM_S> *sink);
+    void AddVideoSink(std::shared_ptr<VideoSink<VDEC_STREAM_S>> sink);
 
     void RemoveAllVideoSink();
 
 protected:
-    static void UnpackAndSendStream(uint8_t *data, int32_t len, const std::vector<VideoSink<VDEC_STREAM_S> *> &video_sinks);
-
-    explicit PCIVTrans();
+    static void UnpackAndSendStream(uint8_t *data, int32_t len, const std::vector<std::shared_ptr<VideoSink<VDEC_STREAM_S>>> &video_sinks);
 
 private:
     std::mutex mux_;
-    std::vector<VideoSink<VDEC_STREAM_S> *> sinks_;
+    std::vector<std::shared_ptr<VideoSink<VDEC_STREAM_S>>> sinks_;
     std::vector<PCIVBuffer> bufs_;
     std::vector<std::shared_ptr<std::thread>> threads_;
 
     std::atomic<bool> run_;
-    pciv::Context *ctx_;
+    std::shared_ptr<PCIVComm> pciv_comm_;
     bool init_;
 };
 }; // namespace rs

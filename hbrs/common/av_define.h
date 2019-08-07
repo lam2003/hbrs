@@ -82,7 +82,6 @@ public:
     virtual ~VIFmtListener() {}
     virtual void OnChange(const VideoInputFormat &fmt){};
     virtual void OnChange(const VideoInputFormat &fmt, int chn) {}
-    virtual void OnStop() = 0;
 };
 
 } // namespace rs

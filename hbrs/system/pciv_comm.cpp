@@ -10,12 +10,6 @@ using namespace pciv;
 const int32_t PCIVComm::MsgPortBase = 100;
 const int32_t PCIVComm::MaxPortNum = 3;
 
-PCIVComm *PCIVComm::Instance()
-{
-    static PCIVComm *instance = new PCIVComm;
-    return instance;
-}
-
 PCIVComm::PCIVComm() : init_(false)
 {
 }
@@ -31,6 +25,8 @@ int32_t PCIVComm::Initialize()
         return KInitialized;
 
     int32_t ret;
+
+    log_d("pciv_comm start");
 
     ret = EnumChip();
     if (ret != KSuccess)
@@ -79,6 +75,9 @@ void PCIVComm::Close()
 {
     if (!init_)
         return;
+
+    log_d("pciv_comm stop");
+
     remote_fds_.resize(PCIV_MAX_CHIPNUM);
     for (int32_t i = 0; i < PCIV_MAX_CHIPNUM; i++)
     {
@@ -119,8 +118,6 @@ int32_t PCIVComm::WaitConn(int32_t remote_id)
     while (ioctl(fd, HI_MCC_IOC_CHECK, &attr))
         usleep(10000); //10ms
 
-    log_d("chip[%d] connected", remote_id);
-
     close(fd);
     return KSuccess;
 }
@@ -151,7 +148,6 @@ int32_t PCIVComm::OpenPort(int32_t remote_id, int32_t port, std::vector<std::vec
         return KSystemError;
     }
 
-    log_d("chip[%d] port[%d] fd[%d]", remote_id, port + MsgPortBase, fd);
     remote_fds[remote_id][port] = fd;
     return KSuccess;
 }

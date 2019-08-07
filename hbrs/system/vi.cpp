@@ -135,6 +135,12 @@ int32_t VideoInput::Initialize(const Params &params)
     if (init_)
         return KInitialized;
 
+    log_d("vi[%d,%d]start width:%d,height:%d,interlaced:%d",
+          params.dev,
+          params.chn,
+          params.width,
+          params.height,
+          params.interlaced);
     params_ = params;
 
     run_ = true;
@@ -207,6 +213,8 @@ void VideoInput::Close()
 {
     if (!init_)
         return;
+
+    log_d("vi[%d,%d]stop", params_.dev, params_.chn);
     run_ = false;
     thread_->join();
     thread_.reset();
@@ -215,44 +223,57 @@ void VideoInput::Close()
     init_ = false;
 }
 
-void VIHelper::OnStop()
-{
-    vo_->ClearDispBuffer(0);
-    vi_.Close();
-}
-
 void VIHelper::OnChange(const VideoInputFormat &fmt, int chn)
 {
     if (chn != chn_)
         return;
-    log_d("vi[%d][%d]has_signal:%d,fmt.width:%d,height:%d,fps:%d,interlaced:%d",
-          dev_,
-          chn_,
-          fmt.has_signal,
-          fmt.width,
-          fmt.height,
-          fmt.frame_rate,
-          fmt.interlaced);
-
-    vi_.Close();
     if (fmt.has_signal)
     {
-        vi_.Initialize({dev_, chn_, fmt.width, fmt.height, fmt.interlaced});
+        vi::Params params = {dev_, chn_, fmt.width, fmt.height, fmt.interlaced};
+        if (cur_params_ != params)
+        {
+            vi_.Close();
+            if (KSuccess == vi_.Initialize(params))
+                cur_params_ = params;
+        }
+        return;
     }
-    else
-    {
+
+    vi_.Close();
+    std::unique_lock<std::mutex> lock(mux_);
+    if (vo_ != nullptr)
         vo_->ClearDispBuffer(0);
-    }
 }
 
-VIHelper::VIHelper(int dev, int chn, VideoOutput *vo) : dev_(dev),
-                                                        chn_(chn),
-                                                        vo_(vo)
+VIHelper::VIHelper(int dev, int chn) : dev_(dev),
+                                       chn_(chn),
+                                       vo_(nullptr)
 {
 }
 
 VIHelper::~VIHelper()
 {
+    vi_.Close();
+    vo_.reset();
+    vo_ = nullptr;
+}
+
+void VIHelper::SetVideoOutput(std::shared_ptr<VideoOutput> vo)
+{
+    std::unique_lock<std::mutex> lock(mux_);
+    vo_ = vo;
+}
+
+void VIHelper::Start(int width, int height, bool interlaced)
+{
+    Params params = {dev_, chn_, width, height, interlaced};
+    if (KSuccess == vi_.Initialize(params))
+        cur_params_ = params;
+}
+
+void VIHelper::Stop()
+{
+    vi_.Close();
 }
 
 } // namespace rs

@@ -17,29 +17,26 @@ class SigDetect
 public:
     virtual ~SigDetect();
 
-    static SigDetect *Instance();
+    explicit SigDetect();
 
-    int Initialize(pciv::Context *ctx, ADV7842_MODE mode);
+    int Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode);
 
     int SetPCCaptureMode(ADV7842_MODE mode);
 
     void Close();
 
-    void AddVIFmtListener(VIFmtListener *listener);
+    void AddVIFmtListener(std::shared_ptr<VIFmtListener> listener);
 
     void RemoveAllVIFmtListener();
 
     void SetSignalStatusListener(SignalStatusListener *listener);
 
-protected:
-    explicit SigDetect();
-
 private:
     std::mutex mux_;
-    std::vector<VIFmtListener *> listeners_;
+    std::vector<std::shared_ptr<VIFmtListener>> listeners_;
     std::vector<VideoInputFormat> fmts_;
     SignalStatusListener *status_listeners_;
-    pciv::Context *ctx_;
+    std::shared_ptr<PCIVComm> pciv_comm_;
     std::atomic<bool> run_;
     std::unique_ptr<std::thread> thread_;
     bool init_;

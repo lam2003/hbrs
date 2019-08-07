@@ -24,6 +24,8 @@ int32_t VideoProcess::Initialize(const Params &params)
 
     int32_t ret;
 
+    log_d("vpss[%d]start", params.grp);
+
     params_ = params;
 
     VPSS_GRP_ATTR_S attr;
@@ -119,6 +121,8 @@ void VideoProcess::Close()
     if (!init_)
         return;
     int ret;
+
+    log_d("vpss[%d]stop", params_.grp);
 
     ret = HI_MPI_VPSS_StopGrp(params_.grp);
     if (ret != KSuccess)

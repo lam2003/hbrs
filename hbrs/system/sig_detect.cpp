@@ -8,12 +8,12 @@
 namespace rs
 {
 
-static int Recv(pciv::Context *ctx, int remote_id, int port, uint8_t *tmp_buf, int32_t buf_len, Buffer<allocator_1k> &msg_buf, pciv::Msg &msg, int try_time)
+static int Recv(std::shared_ptr<PCIVComm> pciv_comm, int remote_id, int port, uint8_t *tmp_buf, int32_t buf_len, Buffer<allocator_1k> &msg_buf, pciv::Msg &msg, int try_time)
 {
     int ret;
     while (try_time-- && msg_buf.Size() < sizeof(msg))
     {
-        ret = ctx->Recv(remote_id, port, tmp_buf, buf_len, 500000); //500ms
+        ret = pciv_comm->Recv(remote_id, port, tmp_buf, buf_len, 500000); //500ms
         if (ret > 0)
         {
             if (!msg_buf.Append(tmp_buf, ret))
@@ -43,25 +43,21 @@ SigDetect::~SigDetect()
 }
 
 SigDetect::SigDetect() : status_listeners_(nullptr),
-                         ctx_(nullptr),
+                         pciv_comm_(nullptr),
                          run_(false),
                          thread_(nullptr),
                          init_(false)
 {
 }
 
-SigDetect *SigDetect::Instance()
-{
-    static SigDetect *instance = new SigDetect;
-    return instance;
-}
-
-int SigDetect::Initialize(pciv::Context *ctx, ADV7842_MODE mode)
+int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode)
 {
     if (init_)
         return KInitialized;
 
-    ctx_ = ctx;
+    log_d("sig_detect start");
+
+    pciv_comm_ = pciv_comm;
     fmts_.resize(RS_TOTAL_SCENE_NUM);
 
     run_ = true;
@@ -106,7 +102,7 @@ int SigDetect::Initialize(pciv::Context *ctx, ADV7842_MODE mode)
         msg.type = pciv::Msg::Type::CONF_ADV7842;
         pciv::Adv7842Conf *conf = reinterpret_cast<pciv::Adv7842Conf *>(msg.data);
         conf->mode = mode;
-        ret = ctx_->Send(RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+        ret = pciv_comm_->Send(RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
         if (ret != KSuccess)
             return;
 
@@ -158,11 +154,11 @@ int SigDetect::Initialize(pciv::Context *ctx, ADV7842_MODE mode)
             msg.type = pciv::Msg::Type::QUERY_ADV7842;
             {
                 std::unique_lock<std::mutex> lock(mux_);
-                ret = ctx_->Send(RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+                ret = pciv_comm_->Send(RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
                 if (ret != KSuccess)
                     return;
 
-                ret = Recv(ctx_, RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, tmp_buf, sizeof(tmp_buf), msg_buf, msg, 3);
+                ret = Recv(pciv_comm_, RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, tmp_buf, sizeof(tmp_buf), msg_buf, msg, 3);
                 if (ret != KSuccess)
                     return;
             }
@@ -208,7 +204,7 @@ int SigDetect::Initialize(pciv::Context *ctx, ADV7842_MODE mode)
                 memcpy(msg.data, &query, sizeof(query));
                 {
                     std::unique_lock<std::mutex> lock(mux_);
-                    ret = ctx_->Send(RS_PCIV_SLAVE3_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+                    ret = pciv_comm_->Send(RS_PCIV_SLAVE3_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
                     if (ret != KSuccess)
                         return;
                 }
@@ -249,6 +245,8 @@ void SigDetect::Close()
     if (!init_)
         return;
 
+    log_d("sig_detect stop");
+
     run_ = false;
     thread_->join();
     thread_.reset();
@@ -257,12 +255,13 @@ void SigDetect::Close()
     fmts_.clear();
     listeners_.clear();
 
-    ctx_ = nullptr;
+    pciv_comm_.reset();
+    pciv_comm_ = nullptr;
 
     init_ = false;
 }
 
-void SigDetect::AddVIFmtListener(VIFmtListener *listener)
+void SigDetect::AddVIFmtListener(std::shared_ptr<VIFmtListener> listener)
 {
     std::unique_lock<std::mutex> lock(mux_);
     listeners_.push_back(listener);
@@ -288,7 +287,7 @@ int SigDetect::SetPCCaptureMode(ADV7842_MODE mode)
     msg.type = pciv::Msg::Type::CONF_ADV7842;
     pciv::Adv7842Conf *conf = reinterpret_cast<pciv::Adv7842Conf *>(msg.data);
     conf->mode = mode;
-    int ret = ctx_->Send(RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+    int ret = pciv_comm_->Send(RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
     if (ret != KSuccess)
         return ret;
     return KSuccess;

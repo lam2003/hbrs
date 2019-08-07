@@ -6,12 +6,12 @@ namespace rs
 {
 using namespace pciv;
 
-static int Recv(pciv::Context *ctx, int remote_id, int port, uint8_t *tmp_buf, int32_t buf_len, Buffer<allocator_1k> &msg_buf, const std::atomic<bool> &run, pciv::Msg &msg)
+static int Recv(std::shared_ptr<PCIVComm> pciv_comm, int remote_id, int port, uint8_t *tmp_buf, int32_t buf_len, Buffer<allocator_1k> &msg_buf, const std::atomic<bool> &run, pciv::Msg &msg)
 {
     int ret;
     do
     {
-        ret = ctx->Recv(remote_id, port, tmp_buf, buf_len, 500000); //500ms
+        ret = pciv_comm->Recv(remote_id, port, tmp_buf, buf_len, 500000); //500ms
         if (ret > 0)
         {
             if (!msg_buf.Append(tmp_buf, ret))
@@ -35,7 +35,7 @@ static int Recv(pciv::Context *ctx, int remote_id, int port, uint8_t *tmp_buf, i
 }
 
 PCIVTrans::PCIVTrans() : run_(false),
-                         ctx_(nullptr),
+                         pciv_comm_(nullptr),
                          init_(false)
 {
 }
@@ -45,12 +45,6 @@ PCIVTrans::~PCIVTrans()
     Close();
 }
 
-PCIVTrans *PCIVTrans::Instance()
-{
-    static PCIVTrans *instance = new PCIVTrans;
-    return instance;
-}
-
 void PCIVTrans::Close()
 {
     if (!init_)
@@ -58,12 +52,14 @@ void PCIVTrans::Close()
 
     int ret;
 
+    log_d("pciv_trans stop");
+
     std::vector<int> remote_ids = {RS_PCIV_SLAVE1_ID, RS_PCIV_SLAVE3_ID};
     for (int remote_id : remote_ids)
     {
         Msg msg;
         msg.type = Msg::Type::STOP_TRANS;
-        ctx_->Send(remote_id, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+        pciv_comm_->Send(remote_id, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
     }
 
     run_ = false;
@@ -88,12 +84,13 @@ void PCIVTrans::Close()
     threads_.clear();
     sinks_.clear();
 
-    ctx_ = nullptr;
+    pciv_comm_.reset();
+    pciv_comm_ = nullptr;
 
     init_ = false;
 }
 
-void PCIVTrans::UnpackAndSendStream(uint8_t *data, int32_t len, const std::vector<VideoSink<VDEC_STREAM_S> *> &sinks)
+void PCIVTrans::UnpackAndSendStream(uint8_t *data, int32_t len, const std::vector<std::shared_ptr<VideoSink<VDEC_STREAM_S>>> &sinks)
 {
     VDEC_STREAM_S st;
     for (uint8_t *cur_pos = data; cur_pos < data + len;)
@@ -102,20 +99,22 @@ void PCIVTrans::UnpackAndSendStream(uint8_t *data, int32_t len, const std::vecto
         st.pu8Addr = cur_pos + sizeof(StreamInfo);
         st.u32Len = stream_info->len;
         st.u64PTS = stream_info->pts;
-        for (VideoSink<VDEC_STREAM_S> *sink : sinks)
+        for (std::shared_ptr<VideoSink<VDEC_STREAM_S>> sink : sinks)
             sink->OnFrame(st, stream_info->vdec_chn);
         cur_pos += (sizeof(StreamInfo) + stream_info->align_len);
     }
 }
 
-int32_t PCIVTrans::Initialize(pciv::Context *ctx)
+int32_t PCIVTrans::Initialize(std::shared_ptr<PCIVComm> pciv_comm)
 {
     if (init_)
         return KInitialized;
 
     int ret;
 
-    ctx_ = ctx;
+    log_d("pciv_trans start");
+
+    pciv_comm_ = pciv_comm;
     std::vector<int> remote_ids = {RS_PCIV_SLAVE1_ID, RS_PCIV_SLAVE3_ID};
 
     run_ = true;
@@ -143,7 +142,7 @@ int32_t PCIVTrans::Initialize(pciv::Context *ctx)
         mem_info->phy_addr = buf.phy_addr[0];
         bufs_.push_back(buf);
 
-        ret = ctx_->Send(remote_id, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+        ret = pciv_comm_->Send(remote_id, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
         if (ret != KSuccess)
             return ret;
 
@@ -155,7 +154,7 @@ int32_t PCIVTrans::Initialize(pciv::Context *ctx)
 
             while (run_)
             {
-                ret = Recv(ctx_, remote_id, RS_PCIV_TRANS_READ_PORT, tmp_buf, sizeof(tmp_buf), msg_buf, run_, msg);
+                ret = Recv(pciv_comm_, remote_id, RS_PCIV_TRANS_READ_PORT, tmp_buf, sizeof(tmp_buf), msg_buf, run_, msg);
                 if (ret != KSuccess)
                     return;
 
@@ -173,7 +172,7 @@ int32_t PCIVTrans::Initialize(pciv::Context *ctx)
                     mux_.unlock();
 
                     msg.type = Msg::Type::READ_DONE;
-                    ret = ctx_->Send(remote_id, RS_PCIV_TRANS_WRITE_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+                    ret = pciv_comm_->Send(remote_id, RS_PCIV_TRANS_WRITE_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
                     if (ret != KSuccess)
                         return;
                 }
@@ -193,7 +192,7 @@ int32_t PCIVTrans::Initialize(pciv::Context *ctx)
     return KSuccess;
 }
 
-void PCIVTrans::AddVideoSink(VideoSink<VDEC_STREAM_S> *sink)
+void PCIVTrans::AddVideoSink(std::shared_ptr<VideoSink<VDEC_STREAM_S>> sink)
 {
     std::unique_lock<std::mutex> lock(mux_);
     sinks_.push_back(sink);

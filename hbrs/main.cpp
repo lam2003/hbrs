@@ -10,6 +10,7 @@
 #include "system/ai.h"
 #include "system/ao.h"
 #include "system/aenc.h"
+#include "system/vm.h"
 #include "common/buffer.h"
 #include "common/config.h"
 #include "common/logger.h"
@@ -934,13 +935,13 @@ static void ChangePCCaptureHandler(evhttp_request *req, void *arg)
 	change_pc_capture_req = root;
 
 	Config::Instance()->system_.pc_capture_mode = change_pc_capture_req.mode;
-	ret = SigDetect::Instance()->SetPCCaptureMode(change_pc_capture_req.mode);
-	if (ret != KSuccess)
-	{
-		HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"change pc capture mode failed\"}");
-		log_w("change pc capture mode failed");
-		return;
-	}
+	// ret = SigDetect::Instance()->SetPCCaptureMode(change_pc_capture_req.mode);
+	// if (ret != KSuccess)
+	// {
+	// 	HttpServer::MakeResponse(req, HTTP_INTERNAL, "system error", "{\"errMsg\":\"change pc capture mode failed\"}");
+	// 	log_w("change pc capture mode failed");
+	// 	return;
+	// }
 
 	HttpServer::MakeResponse(req, HTTP_OK, "ok", "{\"errMsg\":\"success\"}");
 	log_d("request ok");
@@ -1071,179 +1072,185 @@ int32_t main(int32_t argc, char **argv)
 	ret = MPPSystem::Instance()->Initialize();
 	CHECK_ERROR(ret);
 
-	ret = ai_main.Initialize({4, 0});
-	CHECK_ERROR(ret);
+	VideoManager vm;
+	vm.Initialize();
 
-	ret = aenc_main.Initialize();
-	CHECK_ERROR(ret);
 
-	ret = ao_main.Initialize({4, 0});
-	CHECK_ERROR(ret);
 
-	ret = PCIVComm::Instance()->Initialize();
-	CHECK_ERROR(ret);
-	ret = PCIVTrans::Instance()->Initialize(PCIVComm::Instance());
-	CHECK_ERROR(ret);
+// 	ret = ai_main.Initialize({4, 0});
+// 	CHECK_ERROR(ret);
 
-	ret = vdec_tea_full.Initialize({0, RS_MAX_WIDTH, RS_MAX_HEIGHT});
-	CHECK_ERROR(ret);
-	ret = vdec_stu_full.Initialize({1, RS_MAX_WIDTH, RS_MAX_HEIGHT});
-	CHECK_ERROR(ret);
-	ret = vdec_black_board.Initialize({2, RS_MAX_WIDTH, RS_MAX_WIDTH});
-	CHECK_ERROR(ret);
-	ret = vdec_pc.Initialize({3, RS_MAX_WIDTH, RS_MAX_HEIGHT});
-	CHECK_ERROR(ret);
+// 	ret = aenc_main.Initialize();
+// 	CHECK_ERROR(ret);
 
-	ret = vpss_tea_fea_2vo.Initialize({10});
-	CHECK_ERROR(ret);
-	ret = vpss_stu_fea_2vo.Initialize({11});
-	CHECK_ERROR(ret);
-	ret = vpss_tea_fea.Initialize({0});
-	CHECK_ERROR(ret);
-	ret = vpss_stu_fea.Initialize({1});
-	CHECK_ERROR(ret);
-	ret = vpss_tea_full.Initialize({2});
-	CHECK_ERROR(ret);
-	ret = vpss_stu_full.Initialize({3});
-	CHECK_ERROR(ret);
-	ret = vpss_black_board.Initialize({4});
-	CHECK_ERROR(ret);
-	ret = vpss_pc.Initialize({5});
-	CHECK_ERROR(ret);
-	ret = vpss_main.Initialize({6});
-	CHECK_ERROR(ret);
+// 	ret = ao_main.Initialize({4, 0});
+// 	CHECK_ERROR(ret);
 
-	ret = vo_tea_fea.Initialize({10, 0, VO_OUTPUT_1080P25});
-	CHECK_ERROR(ret);
-	ret = vo_stu_fea.Initialize({11, 0, VO_OUTPUT_1080P25});
-	CHECK_ERROR(ret);
-	ret = vo_main.Initialize({12, 0, VO_OUTPUT_1080P25});
-	CHECK_ERROR(ret);
+// 	ret = PCIVComm::Instance()->Initialize();
+// 	CHECK_ERROR(ret);
+// 	ret = PCIVTrans::Instance()->Initialize(PCIVComm::Instance());
+// 	CHECK_ERROR(ret);
 
-	ret = SigDetect::Instance()->Initialize(PCIVComm::Instance(), Config::Instance()->system_.pc_capture_mode);
-	CHECK_ERROR(ret);
+// 	ret = vdec_tea_full.Initialize({0, RS_MAX_WIDTH, RS_MAX_HEIGHT});
+// 	CHECK_ERROR(ret);
+// 	ret = vdec_stu_full.Initialize({1, RS_MAX_WIDTH, RS_MAX_HEIGHT});
+// 	CHECK_ERROR(ret);
+// 	ret = vdec_black_board.Initialize({2, RS_MAX_WIDTH, RS_MAX_WIDTH});
+// 	CHECK_ERROR(ret);
+// 	ret = vdec_pc.Initialize({3, RS_MAX_WIDTH, RS_MAX_HEIGHT});
+// 	CHECK_ERROR(ret);
 
-	VIHelper vi_tea_fea(4, 8, &vo_tea_fea);
-	VIHelper vi_stu_fea(2, 4, &vo_stu_fea);
-	ret = vo_tea_fea.StartChannel(0, {0, 0, RS_MAX_WIDTH, RS_MAX_HEIGHT}, 0);
-	CHECK_ERROR(ret);
-	ret = vo_stu_fea.StartChannel(0, {0, 0, RS_MAX_WIDTH, RS_MAX_HEIGHT}, 0);
-	CHECK_ERROR(ret);
-	ai_main.AddAudioSink(&aenc_main);
+// 	ret = vpss_tea_fea_2vo.Initialize({10});
+// 	CHECK_ERROR(ret);
+// 	ret = vpss_stu_fea_2vo.Initialize({11});
+// 	CHECK_ERROR(ret);
+// 	ret = vpss_tea_fea.Initialize({0});
+// 	CHECK_ERROR(ret);
+// 	ret = vpss_stu_fea.Initialize({1});
+// 	CHECK_ERROR(ret);
+// 	ret = vpss_tea_full.Initialize({2});
+// 	CHECK_ERROR(ret);
+// 	ret = vpss_stu_full.Initialize({3});
+// 	CHECK_ERROR(ret);
+// 	ret = vpss_black_board.Initialize({4});
+// 	CHECK_ERROR(ret);
+// 	ret = vpss_pc.Initialize({5});
+// 	CHECK_ERROR(ret);
+// 	ret = vpss_main.Initialize({6});
+// 	CHECK_ERROR(ret);
 
-	SigDetect::Instance()->AddVIFmtListener(&vi_tea_fea);
-	SigDetect::Instance()->AddVIFmtListener(&vi_stu_fea);
-	PCIVTrans::Instance()->AddVideoSink(&vdec_tea_full);
-	PCIVTrans::Instance()->AddVideoSink(&vdec_stu_full);
-	PCIVTrans::Instance()->AddVideoSink(&vdec_black_board);
-	PCIVTrans::Instance()->AddVideoSink(&vdec_pc);
+// 	ret = vo_tea_fea.Initialize({10, 0, VO_OUTPUT_1080P25});
+// 	CHECK_ERROR(ret);
+// 	ret = vo_stu_fea.Initialize({11, 0, VO_OUTPUT_1080P25});
+// 	CHECK_ERROR(ret);
+// 	ret = vo_main.Initialize({12, 0, VO_OUTPUT_1080P25});
+// 	CHECK_ERROR(ret);
 
-	ret = MPPSystem::Bind<HI_ID_VIU, HI_ID_VPSS>(0, 8, 10, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::Bind<HI_ID_VIU, HI_ID_VPSS>(0, 4, 11, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(10, 4, 10, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(11, 4, 11, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::Bind<HI_ID_VOU, HI_ID_VPSS>(10, 0, 0, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::Bind<HI_ID_VOU, HI_ID_VPSS>(11, 0, 1, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 0, 2, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 1, 3, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 2, 4, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 3, 5, 0);
-	CHECK_ERROR(ret);
-	ret = MPPSystem::Bind<HI_ID_AI, HI_ID_AO>(4, 0, 4, 0);
-	CHECK_ERROR(ret);
+// 	ret = SigDetect::Instance()->Initialize(PCIVComm::Instance(), Config::Instance()->system_.pc_capture_mode);
+// 	CHECK_ERROR(ret);
 
-	ret = StartVideoEncode();
-	CHECK_ERROR(ret);
+// 	VIHelper vi_tea_fea(4, 8, &vo_tea_fea);
+// 	VIHelper vi_stu_fea(2, 4, &vo_stu_fea);
+// 	ret = vo_tea_fea.StartChannel(0, {0, 0, RS_MAX_WIDTH, RS_MAX_HEIGHT}, 0);
+// 	CHECK_ERROR(ret);
+// 	ret = vo_stu_fea.StartChannel(0, {0, 0, RS_MAX_WIDTH, RS_MAX_HEIGHT}, 0);
+// 	CHECK_ERROR(ret);
+// 	ai_main.AddAudioSink(&aenc_main);
 
-	ret = StartDisplayScreen();
-	CHECK_ERROR(ret);
+// 	SigDetect::Instance()->AddVIFmtListener(&vi_tea_fea);
+// 	SigDetect::Instance()->AddVIFmtListener(&vi_stu_fea);
+// 	PCIVTrans::Instance()->AddVideoSink(&vdec_tea_full);
+// 	PCIVTrans::Instance()->AddVideoSink(&vdec_stu_full);
+// 	PCIVTrans::Instance()->AddVideoSink(&vdec_black_board);
+// 	PCIVTrans::Instance()->AddVideoSink(&vdec_pc);
 
-	ret = StartMainScreen();
-	CHECK_ERROR(ret);
+// 	ret = MPPSystem::Bind<HI_ID_VIU, HI_ID_VPSS>(0, 8, 10, 0);
+// 	CHECK_ERROR(ret);
+// 	ret = MPPSystem::Bind<HI_ID_VIU, HI_ID_VPSS>(0, 4, 11, 0);
+// 	CHECK_ERROR(ret);
+// 	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(10, 4, 10, 0);
+// 	CHECK_ERROR(ret);
+// 	ret = MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(11, 4, 11, 0);
+// 	CHECK_ERROR(ret);
+// 	ret = MPPSystem::Bind<HI_ID_VOU, HI_ID_VPSS>(10, 0, 0, 0);
+// 	CHECK_ERROR(ret);
+// 	ret = MPPSystem::Bind<HI_ID_VOU, HI_ID_VPSS>(11, 0, 1, 0);
+// 	CHECK_ERROR(ret);
+// 	ret = MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 0, 2, 0);
+// 	CHECK_ERROR(ret);
+// 	ret = MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 1, 3, 0);
+// 	CHECK_ERROR(ret);
+// 	ret = MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 2, 4, 0);
+// 	CHECK_ERROR(ret);
+// 	ret = MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 3, 5, 0);
+// 	CHECK_ERROR(ret);
+// 	ret = MPPSystem::Bind<HI_ID_AI, HI_ID_AO>(4, 0, 4, 0);
+// 	CHECK_ERROR(ret);
 
-	ret = StartLive(Config::Instance()->local_lives_.lives);
-	CHECK_ERROR(ret);
+	// ret = StartVideoEncode();
+	// CHECK_ERROR(ret);
 
-	if (Config::Instance()->remote_live_.live.url != "")
-	{
-		ret = StartRemoteLive(Config::Instance()->remote_live_.live);
-		CHECK_ERROR(ret);
-	}
+// 	ret = StartDisplayScreen();
+// 	CHECK_ERROR(ret);
+
+// 	ret = StartMainScreen();
+// 	CHECK_ERROR(ret);
+
+// 	ret = StartLive(Config::Instance()->local_lives_.lives);
+// 	CHECK_ERROR(ret);
+
+// 	if (Config::Instance()->remote_live_.live.url != "")
+// 	{
+// 		ret = StartRemoteLive(Config::Instance()->remote_live_.live);
+// 		CHECK_ERROR(ret);
+// 	}
 
 	HttpServer http_server;
 	http_server.Initialize("0.0.0.0", 8081);
-	http_server.RegisterURI("/start_record", StartRecordHandler, nullptr);
-	http_server.RegisterURI("/stop_record", StopRecordHandler, nullptr);
-	http_server.RegisterURI("/start_local_live", StartLiveHandler, nullptr);
-	http_server.RegisterURI("/stop_local_live", StopLiveHandler, nullptr);
-	http_server.RegisterURI("/start_remote_live", StartRemoteLiveHandler, nullptr);
-	http_server.RegisterURI("/stop_remote_live", StopRemoteLiveHandler, nullptr);
-	http_server.RegisterURI("/change_pc_capture", ChangePCCaptureHandler, nullptr);
-	http_server.RegisterURI("/change_main_screen", ChangeMainScreenHandler, nullptr);
+// 	http_server.RegisterURI("/start_record", StartRecordHandler, nullptr);
+// 	http_server.RegisterURI("/stop_record", StopRecordHandler, nullptr);
+// 	http_server.RegisterURI("/start_local_live", StartLiveHandler, nullptr);
+// 	http_server.RegisterURI("/stop_local_live", StopLiveHandler, nullptr);
+// 	http_server.RegisterURI("/start_remote_live", StartRemoteLiveHandler, nullptr);
+// 	http_server.RegisterURI("/stop_remote_live", StopRemoteLiveHandler, nullptr);
+// 	http_server.RegisterURI("/change_pc_capture", ChangePCCaptureHandler, nullptr);
+// 	http_server.RegisterURI("/change_main_screen", ChangeMainScreenHandler, nullptr);
 
-#if 0
-	ChangeMainScreenReq test_req;
-	test_req.mode = Config::Instance()->scene_.mode;
-	test_req.mapping = Config::Instance()->scene_.mapping;
+// #if 0
+// 	ChangeMainScreenReq test_req;
+// 	test_req.mode = Config::Instance()->scene_.mode;
+// 	test_req.mapping = Config::Instance()->scene_.mapping;
 
-	Json::Value test_json = test_req;
-	std::string test_str = JsonUtils::toStr(test_json);
-		printf("test_req:%s\n", test_str.c_str());
+// 	Json::Value test_json = test_req;
+// 	std::string test_str = JsonUtils::toStr(test_json);
+// 		printf("test_req:%s\n", test_str.c_str());
 
-	Json::Value test_json2;
-	if (JsonUtils::toJson(test_str, test_json2) == 0)
-	{
-		if (ChangeMainScreenReq::IsOk(test_json2))
-		{
-			std::string test_str2 = JsonUtils::toStr(test_json2);
-			printf("#####:%s\n",test_str2.c_str());
-		}
-	}
-#endif
+// 	Json::Value test_json2;
+// 	if (JsonUtils::toJson(test_str, test_json2) == 0)
+// 	{
+// 		if (ChangeMainScreenReq::IsOk(test_json2))
+// 		{
+// 			std::string test_str2 = JsonUtils::toStr(test_json2);
+// 			printf("#####:%s\n",test_str2.c_str());
+// 		}
+// 	}
+// #endif
 
-	Config::Instance()->WriteToFile();
+// 	Config::Instance()->WriteToFile();
 	while (g_Run)
 		http_server.Dispatch();
 
-	CloseRecord();
-	CloseLive();
-	CloseRemoteLive();
-	CloseMainScreen();
-	CloseDisplayScreen();
-	CloseVideoEncode();
+	vm.Close();
+// 	CloseRecord();
+// 	CloseLive();
+// 	CloseRemoteLive();
+// 	CloseMainScreen();
+// 	CloseDisplayScreen();
+// 	CloseVideoEncode();
 
-	SigDetect::Instance()->Close();
-	vo_main.Close();
-	vo_stu_fea.Close();
-	vo_tea_fea.Close();
-	vpss_main.Close();
-	vpss_pc.Close();
-	vpss_black_board.Close();
-	vpss_stu_full.Close();
-	vpss_tea_full.Close();
-	vpss_stu_fea.Close();
-	vpss_tea_fea.Close();
-	vpss_stu_fea_2vo.Close();
-	vpss_tea_fea_2vo.Close();
-	vdec_pc.Close();
-	vdec_black_board.Close();
-	vdec_stu_full.Close();
-	vdec_tea_full.Close();
-	PCIVTrans::Instance()->Close();
-	PCIVComm::Instance()->Close();
-	ao_main.Close();
-	aenc_main.Close();
-	ai_main.Close();
-	MPPSystem::Instance()->Close();
+// 	SigDetect::Instance()->Close();
+// 	vo_main.Close();
+// 	vo_stu_fea.Close();
+// 	vo_tea_fea.Close();
+// 	vpss_main.Close();
+// 	vpss_pc.Close();
+// 	vpss_black_board.Close();
+// 	vpss_stu_full.Close();
+// 	vpss_tea_full.Close();
+// 	vpss_stu_fea.Close();
+// 	vpss_tea_fea.Close();
+// 	vpss_stu_fea_2vo.Close();
+// 	vpss_tea_fea_2vo.Close();
+// 	vdec_pc.Close();
+// 	vdec_black_board.Close();
+// 	vdec_stu_full.Close();
+// 	vdec_tea_full.Close();
+// 	PCIVTrans::Instance()->Close();
+// 	PCIVComm::Instance()->Close();
+// 	ao_main.Close();
+// 	aenc_main.Close();
+// 	ai_main.Close();
+// 	MPPSystem::Instance()->Close();
 
 	return 0;
 }
