@@ -43,8 +43,8 @@ int Config::Initialize(const std::string &path)
 
     if (!root.isMember("scene") ||
         !root["scene"].isObject() ||
-        !root.isMember("system") ||
-        !root["system"].isObject() ||
+        !root.isMember("display") ||
+        !root["display"].isObject() ||
         !root.isMember("video") ||
         !root["video"].isObject())
     {
@@ -57,9 +57,9 @@ int Config::Initialize(const std::string &path)
         log_e("check scene format failed");
         return KParamsError;
     }
-    if (!Config::System::IsOk(root["system"]))
+    if (!Config::Display::IsOk(root["display"]))
     {
-        log_e("check system format failed");
+        log_e("check display format failed");
         return KParamsError;
     }
     if (!Config::Video::IsOk(root["video"]))
@@ -69,7 +69,7 @@ int Config::Initialize(const std::string &path)
     }
 
     scene_ = root["scene"];
-    system_ = root["system"];
+    display_ = root["display"];
     video_ = root["video"];
 
     if (root.isMember("local_lives"))
@@ -143,7 +143,7 @@ int Config::WriteToFile()
 
     root["video"] = video_;
     root["scene"] = scene_;
-    root["system"] = system_;
+    root["display"] = display_;
 
     if (remote_live_.live.url != "")
         root["remote_live"] = remote_live_;
@@ -163,6 +163,430 @@ void Config::Close()
 
     WriteToFile();
     init_ = false;
+}
+
+Config::Video::operator Json::Value() const
+{
+    Json::Value root;
+    root["res_width"] = res_width;
+    root["res_height"] = res_height;
+    root["res_bitrate"] = res_bitrate;
+    root["normal_live_width"] = normal_live_width;
+    root["normal_live_height"] = normal_live_height;
+    root["normal_live_bitrate"] = normal_live_bitrate;
+    root["normal_record_width"] = normal_record_width;
+    root["normal_record_height"] = normal_record_height;
+    root["normal_record_bitrate"] = normal_record_bitrate;
+    root["pc_capture_mode"] = pc_capture_mode;
+    return root;
+}
+
+bool Config::Video::IsOk(const Json::Value &root)
+{
+    if (!root.isObject() ||
+        !root.isMember("res_width") ||
+        !root["res_width"].isInt() ||
+        !root.isMember("res_height") ||
+        !root["res_height"].isInt() ||
+        !root.isMember("res_bitrate") ||
+        !root["res_bitrate"].isInt() ||
+        !root.isMember("normal_live_width") ||
+        !root["normal_live_width"].isInt() ||
+        !root.isMember("normal_live_height") ||
+        !root["normal_live_height"].isInt() ||
+        !root.isMember("normal_live_bitrate") ||
+        !root["normal_live_bitrate"].isInt() ||
+        !root.isMember("normal_record_width") ||
+        !root["normal_record_width"].isInt() ||
+        !root.isMember("normal_record_height") ||
+        !root["normal_record_height"].isInt() ||
+        !root.isMember("normal_record_bitrate") ||
+        !root["normal_record_bitrate"].isInt() ||
+        !root.isMember("pc_capture_mode") ||
+        !root["pc_capture_mode"].isInt())
+        return false;
+    return true;
+}
+
+Config::Video &Config::Video::operator=(const Json::Value &root)
+{
+    res_width = root["res_width"].asInt();
+    res_height = root["res_height"].asInt();
+    res_bitrate = root["res_bitrate"].asInt();
+    normal_live_width = root["normal_live_width"].asInt();
+    normal_live_height = root["normal_live_height"].asInt();
+    normal_live_bitrate = root["normal_live_bitrate"].asInt();
+    normal_record_width = root["normal_record_width"].asInt();
+    normal_record_height = root["normal_record_height"].asInt();
+    normal_record_bitrate = root["normal_record_bitrate"].asInt();
+    pc_capture_mode = static_cast<ADV7842_MODE>(root["pc_capture_mode"].asInt());
+    return *this;
+}
+
+Config::Display::operator Json::Value() const
+{
+    Json::Value root;
+    root["disp_vo_intf_sync"] = disp_vo_intf_sync;
+
+    Json::Value display_pos_json;
+    for (auto it = display_pos.begin(); it != display_pos.end(); it++)
+    {
+        Json::Value item_json;
+
+        Json::Value rect_json;
+        rect_json["x"] = it->second.s32X;
+        rect_json["y"] = it->second.s32Y;
+        rect_json["width"] = it->second.u32Width;
+        rect_json["height"] = it->second.u32Height;
+        item_json[it->first] = rect_json;
+
+        display_pos_json.append(item_json);
+    }
+    root["display_pos"] = display_pos_json;
+
+    Json::Value mapping_json;
+    for (auto it = mapping.begin(); it != mapping.end(); it++)
+    {
+        Json::Value item_json;
+        item_json[std::to_string(it->first)] = it->second;
+        mapping_json.append(item_json);
+    }
+    root["mapping"] = mapping_json;
+    return root;
+}
+
+bool Config::Display::IsOk(const Json::Value &root)
+{
+    if (!root.isObject() ||
+        !root.isMember("disp_vo_intf_sync") ||
+        !root["disp_vo_intf_sync"].isInt() ||
+        !root.isMember("display_pos") ||
+        !root["display_pos"].isArray() ||
+        !root.isMember("mapping") ||
+        !root["mapping"].isArray())
+        return false;
+
+    Json::Value display_pos_json = root["display_pos"];
+    for (size_t i = 0; i < display_pos_json.size(); i++)
+    {
+        Json::Value item_json = display_pos_json[i];
+        if (!item_json.isObject())
+            return false;
+        Json::Value::Members members = item_json.getMemberNames();
+        for (auto it = members.begin(); it != members.end(); it++)
+        {
+            Json::Value::Members members = item_json.getMemberNames();
+            for (auto it = members.begin(); it != members.end(); it++)
+            {
+                try
+                {
+                    std::stoi(*it);
+                }
+                catch (...)
+                {
+                    return false;
+                }
+                if (!item_json[*it].isObject())
+                    return false;
+                Json::Value rect_json = item_json[*it];
+                if (!rect_json.isMember("x") ||
+                    !rect_json["x"].isInt() ||
+                    !rect_json.isMember("y") ||
+                    !rect_json["y"].isInt() ||
+                    !rect_json.isMember("width") ||
+                    !rect_json["width"].isUInt() ||
+                    !rect_json.isMember("height") ||
+                    !rect_json["height"].isUInt())
+                    return false;
+            }
+        }
+    }
+
+    Json::Value mapping_json = root["mapping"];
+    for (size_t i = 0; i < mapping_json.size(); i++)
+    {
+        Json::Value item_json = mapping_json[i];
+        if (!item_json.isObject())
+            return false;
+        Json::Value::Members members = item_json.getMemberNames();
+        for (auto it = members.begin(); it != members.end(); it++)
+        {
+            try
+            {
+                std::stoi(*it);
+            }
+            catch (...)
+            {
+                return false;
+            }
+            if (!item_json[*it].isInt())
+                return false;
+        }
+    }
+    return true;
+}
+
+Config::Display &Config::Display::operator=(const Json::Value &root)
+{
+    disp_vo_intf_sync = static_cast<VO_INTF_SYNC_E>(root["disp_vo_intf_sync"].asInt());
+    Json::Value display_pos_json = root["display_pos"];
+    for (size_t i = 0; i < display_pos_json.size(); i++)
+    {
+        Json::Value item_json = display_pos_json[i];
+        Json::Value::Members members = item_json.getMemberNames();
+        for (auto it = members.begin(); it != members.end(); it++)
+        {
+            int no = std::stoi(*it);
+
+            Json::Value rect_json = item_json[no];
+            RECT_S rect;
+            rect.s32X = rect_json["x"].asInt();
+            rect.s32Y = rect_json["y"].asInt();
+            rect.u32Width = rect_json["width"].asUInt();
+            rect.u32Height = rect_json["height"].asUInt();
+            display_pos[no] = rect;
+        }
+    }
+
+    Json::Value mapping_json = root["mapping"];
+    for (size_t i = 0; i < mapping_json.size(); i++)
+    {
+        Json::Value item_json = mapping_json[i];
+        Json::Value::Members members = item_json.getMemberNames();
+        for (auto it = members.begin(); it != members.end(); it++)
+        {
+            int no = std::stoi(*it);
+            RS_SCENE scene = static_cast<RS_SCENE>(item_json[*it].asInt());
+            mapping[no] = scene;
+        }
+    }
+    return *this;
+}
+
+Config::Scene::operator Json::Value() const
+{
+    Json::Value root;
+    root["mode"] = mode;
+
+    Json::Value mapping_json;
+    for (auto it = mapping.begin(); it != mapping.end(); it++)
+    {
+        Json::Value item_json;
+        item_json[std::to_string(it->first)] = it->second;
+        mapping_json.append(item_json);
+    }
+    root["mapping"] = mapping_json;
+    return root;
+}
+
+bool Config::Scene::IsOk(const Json::Value &root)
+{
+    if (!root.isObject() ||
+        !root.isMember("mode") ||
+        !root["mode"].isInt() ||
+        !root.isMember("mapping") ||
+        !root["mapping"].isArray())
+        return false;
+    Json::Value mapping_json = root["mapping"];
+    for (size_t i = 0; i < mapping_json.size(); i++)
+    {
+        Json::Value item = mapping_json[i];
+        if (!item.isObject())
+            return false;
+        Json::Value::Members members = item.getMemberNames();
+        for (auto it = members.begin(); it != members.end(); it++)
+        {
+            try
+            {
+                std::stoi(*it);
+            }
+            catch (...)
+            {
+                return false;
+            }
+            if (!item[*it].isInt())
+                return false;
+        }
+    }
+    return true;
+}
+
+Config::Scene &Config::Scene::operator=(const Json::Value &root)
+{
+    mode = static_cast<Config::Scene::Mode>(root["mode"].asInt());
+    Json::Value mapping_json = root["mapping"];
+    for (size_t i = 0; i < mapping_json.size(); i++)
+    {
+        Json::Value item = mapping_json[i];
+        Json::Value::Members members = item.getMemberNames();
+        for (auto it = members.begin(); it != members.end(); it++)
+        {
+            int no = std::stoi(*it);
+            RS_SCENE scene = static_cast<RS_SCENE>(item[*it].asInt());
+            mapping[no] = scene;
+        }
+    }
+    return *this;
+}
+
+Config::Record::operator Json::Value() const
+{
+    Json::Value root;
+    for (const std::pair<RS_SCENE, mp4::Params> &rec : recs)
+    {
+        Json::Value rec_json;
+        rec_json[std::to_string(rec.first)] = rec.second;
+        root.append(rec_json);
+    }
+    return root;
+}
+
+bool Config::Record::IsOk(const Json::Value &root)
+{
+    if (!root.isArray())
+        return false;
+
+    for (size_t i = 0; i < root.size(); i++)
+    {
+        Json::Value item = root[i];
+        if (!item.isObject())
+            return false;
+
+        Json::Value::Members members = item.getMemberNames();
+        for (auto it = members.begin(); it != members.end(); it++)
+        {
+            try
+            {
+                std::stoi(*it);
+            }
+            catch (...)
+            {
+                return false;
+            }
+
+            Json::Value params = item[*it];
+            if (!params.isObject())
+                return false;
+            if (!mp4::Params::IsOk(params))
+                return false;
+        }
+    }
+    return true;
+}
+
+Config::Record &Config::Record::operator=(const Json::Value &root)
+{
+    for (size_t i = 0; i < root.size(); i++)
+    {
+        Json::Value item = root[i];
+        Json::Value::Members members = item.getMemberNames();
+        for (auto it = members.begin(); it != members.end(); it++)
+        {
+            RS_SCENE scene = static_cast<RS_SCENE>(std::stoi(*it));
+            mp4::Params params;
+            params = item[*it];
+            params.frame_rate = 25;
+            params.samplate_rate = 44100;
+            if (Config::Instance()->IsResourceMode())
+            {
+                params.width = Config::Instance()->video_.res_width;
+                params.height = Config::Instance()->video_.res_height;
+            }
+            else
+            {
+                params.width = Config::Instance()->video_.normal_record_width;
+                params.height = Config::Instance()->video_.normal_record_height;
+            }
+            recs.push_back(std::make_pair(scene, params));
+        }
+    }
+    return *this;
+}
+
+Config::LocalLive::operator Json::Value() const
+{
+    Json::Value root;
+    for (const std::pair<RS_SCENE, rtmp::Params> &live : lives)
+    {
+        Json::Value live_json;
+        live_json[std::to_string(live.first)] = live.second;
+        root.append(live_json);
+    }
+    return root;
+}
+
+bool Config::LocalLive::IsOk(const Json::Value &root)
+{
+    if (!root.isArray())
+        return false;
+
+    for (size_t i = 0; i < root.size(); i++)
+    {
+        Json::Value item = root[i];
+        if (!item.isObject())
+            return false;
+
+        Json::Value::Members members = item.getMemberNames();
+        for (auto it = members.begin(); it != members.end(); it++)
+        {
+            try
+            {
+                std::stoi(*it);
+            }
+            catch (...)
+            {
+                return false;
+            }
+
+            Json::Value params = item[*it];
+            if (!params.isObject())
+                return false;
+            if (!rtmp::Params::IsOk(params))
+                return false;
+        }
+    }
+    return true;
+}
+
+Config::LocalLive &Config::LocalLive::operator=(const Json::Value &root)
+{
+    for (size_t i = 0; i < root.size(); i++)
+    {
+        Json::Value item = root[i];
+        Json::Value::Members members = item.getMemberNames();
+        for (auto it = members.begin(); it != members.end(); it++)
+        {
+            RS_SCENE scene = static_cast<RS_SCENE>(std::stoi(*it));
+            rtmp::Params params;
+            params = item[*it];
+            params.only_try_once = true;
+            params.has_audio = false;
+            if (scene == MAIN || scene == MAIN2)
+                params.has_audio = true;
+            lives.push_back(std::make_pair(scene, params));
+        }
+    }
+    return *this;
+}
+
+Config::RemoteLive::operator Json::Value() const
+{
+    return live;
+}
+
+bool Config::RemoteLive::IsOk(const Json::Value &root)
+{
+    if (!rtmp::Params::IsOk(root))
+        return false;
+    return true;
+}
+
+Config::RemoteLive &Config::RemoteLive::operator=(const Json::Value &root)
+{
+    live = root;
+    live.has_audio = true;
+    live.only_try_once = true;
+    return *this;
 }
 
 } // namespace rs

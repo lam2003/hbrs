@@ -22,7 +22,7 @@ public:
     explicit VideoManager();
 
     virtual ~VideoManager();
-    
+
     int Initialize();
 
     void Close();
@@ -34,12 +34,13 @@ protected:
 
 private:
     std::vector<std::shared_ptr<VIHelper>> vi_arr_;
+    std::vector<std::shared_ptr<VideoProcess>> vpss_tmp_arr_;
     std::vector<std::shared_ptr<VideoOutput>> vo_arr_;
     std::vector<std::shared_ptr<VideoDecode>> vdec_arr_;
     std::vector<std::shared_ptr<VideoProcess>> vpss_arr_;
     std::vector<std::shared_ptr<VideoEncode>> venc_arr_;
-    std::shared_ptr<VideoOutput> main_vo_;
     std::shared_ptr<VideoOutput> display_vo_;
+    std::shared_ptr<VideoOutput> main_vo_;
 
     std::shared_ptr<PCIVComm> pciv_comm_;
     std::shared_ptr<PCIVTrans> pciv_trans_;
@@ -48,6 +49,9 @@ private:
     std::shared_ptr<RTMPLive> live_arr_;
     std::shared_ptr<MP4Record> record_arr_;
 
+    bool encode_stared_;
+    bool live_started_;
+    bool record_started_;
     bool init_;
 };
 } // namespace rs

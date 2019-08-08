@@ -24,10 +24,14 @@ int VideoManager::Initialize()
 {
     if (init_)
         return KInitialized;
-    //create static module
+
     vi_arr_.resize(2);
     for (int i = 0; i < 2; i++)
-        vi_arr_[i] = std::make_shared<VIHelper>(4 - (i * 2), 8 - (i * 4)); //4,8、2,4
+        vi_arr_[i] = std::make_shared<VIHelper>(4 - (i * 2), 8 - (i * 4));
+
+    vpss_tmp_arr_.resize(2);
+    for (int i = 0; i < 2; i++)
+        vpss_tmp_arr_[i] = std::make_shared<VideoProcess>();
 
     vo_arr_.resize(2);
     for (int i = 0; i < 2; i++)
@@ -41,12 +45,11 @@ int VideoManager::Initialize()
     for (int i = 0; i < 7; i++)
         vpss_arr_[i] = std::make_shared<VideoProcess>();
 
-    //create dynamic module
     venc_arr_.resize(8);
     for (int i = 0; i < 8; i++)
         venc_arr_[i] = std::make_shared<VideoEncode>();
 
-    //create static module
+    display_vo_ = std::make_shared<VideoOutput>();
     main_vo_ = std::make_shared<VideoOutput>();
     pciv_comm_ = std::make_shared<PCIVComm>();
     pciv_trans_ = std::make_shared<PCIVTrans>();
@@ -58,9 +61,16 @@ int VideoManager::Initialize()
 
     for (int i = 0; i < 2; i++)
     {
+        vpss_tmp_arr_[i]->Initialize({10 + i});
+        vpss_tmp_arr_[i]->StartUserChannel(1, {0, 0, RS_MAX_WIDTH, RS_MAX_HEIGHT});
+    }
+
+    for (int i = 0; i < 2; i++)
+    {
         vo_arr_[i]->Initialize({10 + i, 0, VO_OUTPUT_1080P25});
         vo_arr_[i]->StartChannel(0, {0, 0, RS_MAX_WIDTH, RS_MAX_HEIGHT}, 0);
     }
+
     for (int i = 0; i < 4; i++)
         vdec_arr_[i]->Initialize({i, RS_MAX_WIDTH, RS_MAX_HEIGHT});
 
@@ -78,10 +88,12 @@ int VideoManager::Initialize()
 
     for (int i = 0; i < 2; i++)
         sig_detect_->AddVIFmtListener(vi_arr_[i]);
-    sig_detect_->Initialize(pciv_comm_, Config::Instance()->system_.pc_capture_mode);
+    sig_detect_->Initialize(pciv_comm_, Config::Instance()->video_.pc_capture_mode);
 
-    MPPSystem::Bind<HI_ID_VIU, HI_ID_VOU>(0, 8, 10, 0);
-    MPPSystem::Bind<HI_ID_VIU, HI_ID_VOU>(0, 4, 11, 0);
+    MPPSystem::Bind<HI_ID_VIU, HI_ID_VPSS>(0, 8, 10, 0);
+    MPPSystem::Bind<HI_ID_VIU, HI_ID_VPSS>(0, 4, 11, 0);
+    MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(10, 1, 10, 0);
+    MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(11, 1, 11, 0);
     MPPSystem::Bind<HI_ID_VOU, HI_ID_VPSS>(10, 0, 0, 0);
     MPPSystem::Bind<HI_ID_VOU, HI_ID_VPSS>(11, 0, 1, 0);
     MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 0, 2, 0);
@@ -98,7 +110,7 @@ int VideoManager::Initialize()
 
 void VideoManager::StartVideoEncode()
 {
-    if (!init_)
+    if (!init_ || encode_stared_)
         return;
 
     if (!Config::Instance()->IsResourceMode())
@@ -108,7 +120,7 @@ void VideoManager::StartVideoEncode()
             if (i == 7)
             {
                 venc_arr_[i]->Initialize({i, i, Config::Instance()->video_.normal_record_width, Config::Instance()->video_.normal_record_height, 25, 25, 0, Config::Instance()->video_.normal_record_bitrate, VENC_RC_MODE_H264CBR, true});
-                vpss_arr_[i]->StartUserChannel(3, {0, 0, (HI_U32)Config::Instance()->video_.normal_record_width, (HI_U32)Config::Instance()->video_.normal_record_height});
+                vpss_arr_[6]->StartUserChannel(3, {0, 0, (HI_U32)Config::Instance()->video_.normal_record_width, (HI_U32)Config::Instance()->video_.normal_record_height});
                 MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(6, 3, i, 0);
             }
             else
@@ -128,10 +140,44 @@ void VideoManager::StartVideoEncode()
             MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(i, 1, i, 0);
         }
     }
+
+    encode_stared_ = true;
 }
 
 void VideoManager::StopVideoEncode()
 {
+    if (!init_ || !encode_stared_)
+        return;
+
+    if (!Config::Instance()->IsResourceMode())
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            if (i == 7)
+            {
+                MPPSystem::UnBind<HI_ID_VPSS, HI_ID_GROUP>(6, 3, i, 0);
+                vpss_arr_[6]->StopUserChannal(3);
+                venc_arr_[i]->Close();
+            }
+            else
+            {
+                MPPSystem::UnBind<HI_ID_VPSS, HI_ID_GROUP>(i, 1, i, 0);
+                vpss_arr_[i]->StopUserChannal(1);
+                venc_arr_[i]->Close();
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < 7; i++)
+        {
+            MPPSystem::UnBind<HI_ID_VPSS, HI_ID_GROUP>(i, 1, i, 0);
+            vpss_arr_[i]->StopUserChannal(1);
+            venc_arr_[i]->Close();
+        }
+    }
+
+    encode_stared_ = false;
 }
 
 void VideoManager::Close()
@@ -146,8 +192,10 @@ void VideoManager::Close()
     MPPSystem::UnBind<HI_ID_VDEC, HI_ID_VPSS>(0, 0, 2, 0);
     MPPSystem::UnBind<HI_ID_VOU, HI_ID_VPSS>(11, 0, 1, 0);
     MPPSystem::UnBind<HI_ID_VOU, HI_ID_VPSS>(10, 0, 0, 0);
-    MPPSystem::UnBind<HI_ID_VIU, HI_ID_VOU>(0, 4, 11, 0);
-    MPPSystem::UnBind<HI_ID_VIU, HI_ID_VOU>(0, 8, 10, 0);
+    MPPSystem::UnBind<HI_ID_VPSS, HI_ID_VOU>(11, 1, 11, 0);
+    MPPSystem::UnBind<HI_ID_VPSS, HI_ID_VOU>(10, 1, 10, 0);
+    MPPSystem::UnBind<HI_ID_VIU, HI_ID_VPSS>(0, 4, 11, 0);
+    MPPSystem::UnBind<HI_ID_VIU, HI_ID_VPSS>(0, 8, 10, 0);
 
     sig_detect_->Close();
     sig_detect_->RemoveAllVIFmtListener();
@@ -166,6 +214,9 @@ void VideoManager::Close()
         vo_arr_[i]->Close();
 
     for (int i = 0; i < 2; i++)
+        vpss_tmp_arr_[i]->Close();
+
+    for (int i = 0; i < 2; i++)
         vi_arr_[i]->Stop();
 
     sig_detect_.reset();
@@ -176,6 +227,8 @@ void VideoManager::Close()
     pciv_comm_ = nullptr;
     main_vo_.reset();
     main_vo_ = nullptr;
+    display_vo_.reset();
+    display_vo_ = nullptr;
 
     for (int i = 0; i < 8; i++)
     {
@@ -200,7 +253,13 @@ void VideoManager::Close()
         vo_arr_[i].reset();
         vo_arr_[i] = nullptr;
     }
-    
+
+    for (int i = 0; i < 2; i++)
+    {
+        vpss_tmp_arr_[i].reset();
+        vpss_tmp_arr_[i] = nullptr;
+    }
+
     for (int i = 0; i < 2; i++)
     {
         vi_arr_[i].reset();
