@@ -84,9 +84,10 @@ int MP4Record::Initialize(const Params &params)
                         buffer_.Consume(frame.data.vframe.len);
                     }
                 }
-                else if (run_)
+                else
                 {
-                    cond_.wait(lock);
+                    if (run_)
+                        cond_.wait(lock);
                     continue;
                 }
             }

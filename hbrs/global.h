@@ -120,3 +120,5 @@ static std::map<int, int> Tw6874_2_DevChn2Scene = {
 static std::map<int, int> Scene2ViChn = {
     {TEA_FEATURE, 8},
     {STU_FEATURE, 4}};
+
+#define CONFIG Config::Instance()

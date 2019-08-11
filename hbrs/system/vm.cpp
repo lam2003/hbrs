@@ -14,7 +14,6 @@
 #include "common/err_code.h"
 #include "common/utils.h"
 
-#define CONFIG Config::Instance()
 
 namespace rs
 {

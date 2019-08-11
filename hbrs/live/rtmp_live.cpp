@@ -70,9 +70,10 @@ void RTMPLive::HandleVideoOnly()
                     frame.data.vframe.data = mmz_buffer.vir_addr;
                     buffer_.Consume(frame.data.vframe.len);
                 }
-                else if (run_)
+                else
                 {
-                    cond_.wait(lock);
+                    if (run_)
+                        cond_.wait(lock);
                     continue;
                 }
             }
@@ -266,14 +267,13 @@ void RTMPLive::OnFrame(const VENCFrame &video_frame)
 {
     if (!init_)
         return;
-    mux_.lock();
 
+    std::unique_lock<std::mutex> lock(mux_);
     if (buffer_.FreeSpace() < sizeof(Frame) + video_frame.len)
-    {
-        mux_.unlock();
+    // {
         // log_e("[%s]buffer fill", params_.url.c_str());
         return;
-    }
+    // }
 
     Frame frame;
     frame.type = Frame::VIDEO;
@@ -283,21 +283,19 @@ void RTMPLive::OnFrame(const VENCFrame &video_frame)
     buffer_.Append(video_frame.data, video_frame.len);
 
     cond_.notify_one();
-    mux_.unlock();
 }
 
 void RTMPLive::OnFrame(const AENCFrame &audio_frame)
 {
     if (!init_)
         return;
-    mux_.lock();
 
+    std::unique_lock<std::mutex> lock(mux_);
     if (buffer_.FreeSpace() < sizeof(Frame) + audio_frame.len)
-    {
-        mux_.unlock();
+    // {
         // log_e("[%s]buffer fill", params_.url.c_str());
         return;
-    }
+    // }
 
     Frame frame;
     frame.type = Frame::AUDIO;
@@ -307,7 +305,6 @@ void RTMPLive::OnFrame(const AENCFrame &audio_frame)
     buffer_.Append(audio_frame.data, audio_frame.len);
 
     cond_.notify_one();
-    mux_.unlock();
 }
 
 } // namespace rs
