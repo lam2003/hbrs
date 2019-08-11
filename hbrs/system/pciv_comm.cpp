@@ -26,7 +26,7 @@ int32_t PCIVComm::Initialize()
 
     int32_t ret;
 
-    log_d("pciv_comm start");
+    log_d("PCIV_COMM start");
 
     ret = EnumChip();
     if (ret != KSuccess)
@@ -76,7 +76,7 @@ void PCIVComm::Close()
     if (!init_)
         return;
 
-    log_d("pciv_comm stop");
+    log_d("PCIV_COMM stop");
 
     remote_fds_.resize(PCIV_MAX_CHIPNUM);
     for (int32_t i = 0; i < PCIV_MAX_CHIPNUM; i++)

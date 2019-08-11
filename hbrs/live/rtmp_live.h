@@ -14,29 +14,9 @@ struct Params
     bool has_audio;
     bool only_try_once;
 
-    operator Json::Value() const
-    {
-        Json::Value root;
-        root["url"] = url;
-        root["has_audio"] = has_audio;
-        root["only_try_once"] = only_try_once;
-        return root;
-    }
-
-    static bool IsOk(const Json::Value &root)
-    {
-        if (!root.isObject() ||
-            !root.isMember("url") ||
-            !root["url"].isString())
-            return false;
-        return true;
-    }
-
-    Params &operator=(const Json::Value &root)
-    {
-        url = root["url"].asString();
-        return *this;
-    }
+    operator Json::Value() const;
+    static bool IsOk(const Json::Value &root);
+    Params &operator=(const Json::Value &root);
 };
 } // namespace rtmp
 

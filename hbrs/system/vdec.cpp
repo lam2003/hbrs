@@ -18,7 +18,7 @@ int VideoDecode::Initialize(const vdec::Params &params)
         return KInitialized;
 
     int ret;
-
+    log_d("VDEC start,chn:%d,width:%d,height:%d", params.chn, params.width, params.height);
     params_ = params;
 
     VDEC_CHN_ATTR_S chn_attr;
@@ -76,7 +76,7 @@ void VideoDecode::Close()
         return;
 
     int ret;
-
+    log_d("VDEC stop,chn:%d", params_.chn);
     ret = HI_MPI_VDEC_StopRecvStream(params_.chn);
     if (ret != KSuccess)
         log_e("HI_MPI_VDEC_StopRecvStream failed with %#x", ret);

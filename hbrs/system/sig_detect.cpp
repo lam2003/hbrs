@@ -55,7 +55,7 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
     if (init_)
         return KInitialized;
 
-    log_d("sig_detect start");
+    log_d("SIG_DETECT start");
 
     pciv_comm_ = pciv_comm;
     fmts_.resize(RS_TOTAL_SCENE_NUM);
@@ -245,7 +245,7 @@ void SigDetect::Close()
     if (!init_)
         return;
 
-    log_d("sig_detect stop");
+    log_d("SIG_DETECT stop");
 
     run_ = false;
     thread_->join();

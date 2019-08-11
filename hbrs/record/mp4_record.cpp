@@ -23,6 +23,11 @@ int MP4Record::Initialize(const Params &params)
     if (init_)
         return KInitialized;
 
+    log_d("MP4REC start,filename:%s,width:%d,height:%d,frame_rate:%d,samplate_rate:%d", params.filename.c_str(),
+          params.width,
+          params.height,
+          params.frame_rate,
+          params.samplate_rate);
     params_ = params;
 
     run_ = true;
@@ -139,6 +144,7 @@ void MP4Record::Close()
     if (!init_)
         return;
 
+    log_d("MP4REC stop,filename:%s", params_.filename.c_str());
     run_ = false;
     cond_.notify_all();
     thread_->join();
@@ -194,6 +200,40 @@ void MP4Record::OnFrame(const AENCFrame &audio_frame)
 
     cond_.notify_one();
     mux_.unlock();
+}
+
+Params::operator Json::Value() const
+{
+    Json::Value root;
+    root["width"] = width;
+    root["height"] = height;
+    root["frame_rate"] = frame_rate;
+    root["samplate_rate"] = samplate_rate;
+    root["filename"] = filename;
+    root["segment_duration"] = segment_duration;
+    root["need_to_segment"] = need_to_segment;
+    return root;
+}
+
+bool Params::IsOk(const Json::Value &root)
+{
+    if (!root.isObject() ||
+        !root.isMember("filename") ||
+        !root["filename"].isString() ||
+        !root.isMember("segment_duration") ||
+        !root["segment_duration"].isInt() ||
+        !root.isMember("need_to_segment") ||
+        !root["need_to_segment"].isBool())
+        return false;
+    return true;
+}
+
+Params &Params::operator=(const Json::Value &root)
+{
+    filename = root["filename"].asString();
+    segment_duration = root["segment_duration"].asInt();
+    need_to_segment = root["need_to_segment"].asBool();
+    return *this;
 }
 
 } // namespace rs

@@ -20,7 +20,7 @@ int AudioEncode::Initialize()
 {
     if (init_)
         return KInitialized;
-
+    log_d("AENC start");
     run_ = true;
     thread_ = std::unique_ptr<std::thread>(new std::thread([this]() {
         int ret;
@@ -110,6 +110,7 @@ void AudioEncode::Close()
     if (!init_)
         return;
 
+    log_d("AENC stop");
     run_ = false;
     cond_.notify_all();
     thread_->join();
@@ -124,10 +125,9 @@ void AudioEncode::OnFrame(const AIFrame &frame)
     if (!init_)
         return;
 
-    mux_.lock();
+    std::unique_lock<std::mutex> lock(mux_);
     if (buffer_.FreeSpace() < frame.len + sizeof(frame))
     {
-        mux_.unlock();
         log_e("append data to buffer failed");
         return;
     }
@@ -136,7 +136,6 @@ void AudioEncode::OnFrame(const AIFrame &frame)
     buffer_.Append(frame.data, frame.len);
 
     cond_.notify_one();
-    mux_.unlock();
 }
 
 void AudioEncode::AddAudioSink(std::shared_ptr<AudioSink<AENCFrame>> sink)

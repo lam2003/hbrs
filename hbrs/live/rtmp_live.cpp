@@ -38,7 +38,7 @@ void RTMPLive::HandleVideoOnly()
             {
                 if (params_.only_try_once)
                 {
-                    log_w("[%s]thread quit because set only_try_once", params_.url.c_str());
+                    log_w("RTMP warn,url:%s,thread quit because set only_try_once", params_.url.c_str());
                     return;
                 }
                 int wait_sec = 10; //5秒后发起重连
@@ -81,9 +81,13 @@ void RTMPLive::HandleVideoOnly()
             ret = streamer.WriteVideoFrame(frame.data.vframe);
             if (ret != KSuccess)
             {
-                log_w("disconnect....,try to connect after 5 sec");
+                log_w("RTMP warn,url:%s,disconnect....,try to connect after 5 sec", params_.url.c_str());
                 streamer.Close();
                 init = false; //断开连接,尝试重连
+
+                int wait_sec = 10; //5秒后发起重连
+                while (run_ && wait_sec--)
+                    usleep(500000); //500ms
             }
         }
     }
@@ -113,7 +117,7 @@ void RTMPLive::HandleAV()
             {
                 if (params_.only_try_once)
                 {
-                    log_w("[%s]thread quit because set only_try_once", params_.url.c_str());
+                    log_w("RTMP warn,url:%s,thread quit because set only_try_once", params_.url.c_str());
                     return;
                 }
                 int wait_sec = 10; //5秒后发起重连
@@ -169,7 +173,7 @@ void RTMPLive::HandleAV()
 
                     if (nb_videos >= 50 || nb_audios >= 50)
                     {
-                        log_w("[%s]-->nb_videos:%d,nb_audios:%d,clear buffer", params_.url.c_str(), nb_videos, nb_audios);
+                        log_w("RTMP warn,url:%s,nb_videos:%d,nb_audios:%d,clear buffer", params_.url.c_str(), nb_videos, nb_audios);
                         nb_videos = 0;
                         nb_audios = 0;
                         frms.clear();
@@ -192,13 +196,14 @@ void RTMPLive::HandleAV()
                     ret = streamer.WriteAudioFrame(it->second.first.data.aframe);
                     if (ret != KSuccess)
                     {
-                        log_w("send failed,disconnect....,try to connect after 5 sec");
+                        log_w("RTMP warn,url:%s,send failed,disconnect....,try to connect after 5 sec", params_.url.c_str());
                         streamer.Close();
                         init = false;
 
                         int wait_sec = 10; //5秒后发起重连
                         while (run_ && wait_sec--)
                             usleep(500000); //500ms
+                        break;
                     }
                     nb_audios--;
                 }
@@ -208,13 +213,14 @@ void RTMPLive::HandleAV()
                     ret = streamer.WriteVideoFrame(it->second.first.data.vframe);
                     if (ret != KSuccess)
                     {
-                        log_w("send failed,disconnect....,try to connect after 5 sec");
+                        log_w("RTMP warn,url:%s,send failed,disconnect....,try to connect after 5 sec", params_.url.c_str());
                         streamer.Close();
                         init = false;
 
                         int wait_sec = 10; //5秒后发起重连
                         while (run_ && wait_sec--)
                             usleep(500000); //500ms
+                        break;
                     }
                     nb_videos--;
                 }
@@ -230,6 +236,8 @@ int RTMPLive::Initialize(const Params &params)
 {
     if (init_)
         return KInitialized;
+
+    log_d("RTMP start,url:%s,has_audio:%d", params.url.c_str(), params.has_audio);
 
     params_ = params;
 
@@ -254,6 +262,8 @@ void RTMPLive::Close()
     if (!init_)
         return;
 
+    log_d("RTMP stop,url:%s", params_.url.c_str());
+
     run_ = false;
     cond_.notify_all();
     thread_->join();
@@ -270,10 +280,7 @@ void RTMPLive::OnFrame(const VENCFrame &video_frame)
 
     std::unique_lock<std::mutex> lock(mux_);
     if (buffer_.FreeSpace() < sizeof(Frame) + video_frame.len)
-    // {
-        // log_e("[%s]buffer fill", params_.url.c_str());
         return;
-    // }
 
     Frame frame;
     frame.type = Frame::VIDEO;
@@ -292,10 +299,7 @@ void RTMPLive::OnFrame(const AENCFrame &audio_frame)
 
     std::unique_lock<std::mutex> lock(mux_);
     if (buffer_.FreeSpace() < sizeof(Frame) + audio_frame.len)
-    // {
-        // log_e("[%s]buffer fill", params_.url.c_str());
         return;
-    // }
 
     Frame frame;
     frame.type = Frame::AUDIO;
@@ -305,6 +309,30 @@ void RTMPLive::OnFrame(const AENCFrame &audio_frame)
     buffer_.Append(audio_frame.data, audio_frame.len);
 
     cond_.notify_one();
+}
+
+Params::operator Json::Value() const
+{
+    Json::Value root;
+    root["url"] = url;
+    root["has_audio"] = has_audio;
+    root["only_try_once"] = only_try_once;
+    return root;
+}
+
+bool Params::IsOk(const Json::Value &root)
+{
+    if (!root.isObject() ||
+        !root.isMember("url") ||
+        !root["url"].isString())
+        return false;
+    return true;
+}
+
+Params &Params::operator=(const Json::Value &root)
+{
+    url = root["url"].asString();
+    return *this;
 }
 
 } // namespace rs

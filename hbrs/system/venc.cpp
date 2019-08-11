@@ -25,7 +25,7 @@ int32_t VideoEncode::Initialize(const Params &params)
 
     int ret;
 
-    log_d("venc[%d,%d]width:%d,height:%d,src_frame_rate:%d,dst_frame_rate:%d,profile:%d,bitrate:%d,mode:%d,set_ts:%d",
+    log_d("VENC start,grp:%d,chn:%d,width:%d,height:%d,src_frame_rate:%d,dst_frame_rate:%d,profile:%d,bitrate:%d,mode:%d,set_ts:%d",
           params.grp,
           params.chn,
           params.width,
@@ -238,7 +238,7 @@ void VideoEncode::Close()
         return;
     int ret;
 
-    log_d("venc[%d,%d]stop", params_.grp, params_.chn);
+    log_d("VENC stop,grp:%d,chn:%d", params_.grp, params_.chn);
 
     run_ = false;
     thread_->join();

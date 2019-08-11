@@ -18,7 +18,7 @@ void MPPSystem::Close()
         return;
 
     int ret;
-
+    log_d("MPP stop");
     ret = HI_MPI_SYS_Exit();
     if (ret != KSuccess)
         log_e("HI_MPI_SYS_Exit failed with %#x", ret);
@@ -42,7 +42,7 @@ int32_t MPPSystem::Initialize()
         return KInitialized;
 
     int32_t ret;
-
+    log_d("MPP start");
     ret = HI_MPI_SYS_Exit();
     if (ret != KSuccess)
     {

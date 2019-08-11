@@ -27,7 +27,7 @@ int32_t VideoOutput::Initialize(const Params &params)
 
     int32_t ret;
 
-    log_d("vo[%d]start intf_type:%d,intf_sync:%d", params.dev, params.intf_type, params.intf_sync);
+    log_d("VO start,dev:%d,intf_type:%d,intf_sync:%d", params.dev, params.intf_type, params.intf_sync);
 
     params_ = params;
 
@@ -180,7 +180,6 @@ int VideoOutput::StartChannel(int chn, const RECT_S &rect, int level)
 
     int32_t ret;
 
-    log_d("vo[%d] start channel,chn:%d rect{%d,%d,%d,%d},level:%d", params_.dev, chn,rect.s32X, rect.s32Y, rect.u32Width, rect.u32Height, level);
     VO_CHN_ATTR_S attr;
     memset(&attr, 0, sizeof(attr));
     attr.stRect.s32X = rect.s32X;
@@ -264,7 +263,7 @@ void VideoOutput::Close()
         return;
 
     int ret;
-    log_d("vo[%d]stop", params_.dev);
+    log_d("VO stop,dev:%d", params_.dev);
 
     StopAllChn();
 

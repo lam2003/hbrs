@@ -18,7 +18,7 @@ int AudioOutput::Initialize(const ao::Params &params)
         return KInitialized;
 
     int ret;
-
+    log_d("AO start,dev:%d,chn:%d", params.dev, params.chn);
     params_ = params;
 
     AIO_ATTR_S attr;
@@ -63,6 +63,7 @@ void AudioOutput::Close()
     if (!init_)
         return;
     int ret;
+    log_d("AO stop,dev:%d,chn:%d", params_.dev, params_.chn);
     ret = HI_MPI_AO_DisableChn(params_.dev, params_.chn);
     if (ret != KSuccess)
         log_e("HI_MPI_AO_DisableChn failed with %#x", ret);

@@ -52,7 +52,7 @@ void PCIVTrans::Close()
 
     int ret;
 
-    log_d("pciv_trans stop");
+    log_d("PCIV_TRANS stop");
 
     std::vector<int> remote_ids = {RS_PCIV_SLAVE1_ID, RS_PCIV_SLAVE3_ID};
     for (int remote_id : remote_ids)
@@ -112,7 +112,7 @@ int32_t PCIVTrans::Initialize(std::shared_ptr<PCIVComm> pciv_comm)
 
     int ret;
 
-    log_d("pciv_trans start");
+    log_d("PCIV_TRANS start");
 
     pciv_comm_ = pciv_comm;
     std::vector<int> remote_ids = {RS_PCIV_SLAVE1_ID, RS_PCIV_SLAVE3_ID};

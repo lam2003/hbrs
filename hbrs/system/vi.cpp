@@ -135,7 +135,7 @@ int32_t VideoInput::Initialize(const Params &params)
     if (init_)
         return KInitialized;
 
-    log_d("vi[%d,%d]start width:%d,height:%d,interlaced:%d",
+    log_d("VI start,dev:%d,chn:%d,width:%d,height:%d,interlaced:%d",
           params.dev,
           params.chn,
           params.width,
@@ -214,7 +214,7 @@ void VideoInput::Close()
     if (!init_)
         return;
 
-    log_d("vi[%d,%d]stop", params_.dev, params_.chn);
+    log_d("VI stop,dev:%d,chn:%d", params_.dev, params_.chn);
     run_ = false;
     thread_->join();
     thread_.reset();

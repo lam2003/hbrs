@@ -17,7 +17,6 @@ MP4Muxer::MP4Muxer() : mmz_buffer_(2 * 1024 * 1024),
                        sps_(""),
                        pps_(""),
                        sei_(""),
-                       //    vts_base_(0),
                        init_ctx_(false),
                        init_(false)
 
@@ -34,18 +33,17 @@ int MP4Muxer::Initialize(int width, int height, int frame_rate, int samplate_rat
     if (init_)
         return KInitialized;
 
-    log_d("[%s]start,width:%d,height:%d,frame_rate:%d,samplate_rate:%d", filename.c_str(), width, height, frame_rate, samplate_rate);
     hdl_ = MP4Create(filename.c_str(), MP4_CREATE_64BIT_TIME | MP4_CREATE_64BIT_DATA | MP4_CLOSE_DO_NOT_COMPUTE_BITRATE);
     if (hdl_ == MP4_INVALID_FILE_HANDLE)
     {
-        log_e("[%s]MP4Create failed", filename.c_str());
+        log_e("MP4REC err,filename:%s,MP4Create failed", filename.c_str());
         return KSDKError;
     }
 
     if (!MP4SetTimeScale(hdl_, 1000000))
     {
         MP4Close(hdl_);
-        log_e("[%s]MP4SetTimeScale failed", filename.c_str());
+        log_e("MP4REC err,filename:%s,MP4SetTimeScale failed", filename.c_str());
         return KSDKError;
     }
 
@@ -58,7 +56,6 @@ int MP4Muxer::Initialize(int width, int height, int frame_rate, int samplate_rat
     sps_ = "";
     pps_ = "";
     sei_ = "";
-    // vts_base_ = 0;
     init_ctx_ = false;
 
     init_ = true;
@@ -74,7 +71,7 @@ int MP4Muxer::InitContext()
     atrack_ = MP4AddAudioTrack(hdl_, samplate_rate_, 1024, MP4_MPEG4_AUDIO_TYPE);
     if (atrack_ == MP4_INVALID_TRACK_ID)
     {
-        log_e("[%s]MP4AddAudioTrack failed", filename_.c_str());
+        log_e("MP4REC err,filename:%s,MP4AddAudioTrack failed", filename_.c_str());
         return KSDKError;
     }
 
@@ -84,15 +81,10 @@ int MP4Muxer::InitContext()
     Utils::GetAACSpec(samplate_rate_, 2, spec);
     if (!MP4SetTrackESConfiguration(hdl_, atrack_, spec, 2))
     {
-        log_e("[%s]MP4SetTrackESConfiguration failed", filename_.c_str());
+        log_e("MP4REC err,filename:%s,MP4SetTrackESConfiguration failed", filename_.c_str());
         return KSDKError;
     }
 
-    // vtrack_ = MP4AddH264VideoTrack(hdl_, 1000000, 1000000 / frame_rate_, width_, height_,
-    //                                sps_[5],
-    //                                sps_[6],
-    //                                sps_[7],
-    //                                3);
     vtrack_ = MP4AddH264VideoTrack(hdl_, 900000, 900000 / frame_rate_, width_, height_,
                                    sps_[5],
                                    sps_[6],
@@ -100,7 +92,7 @@ int MP4Muxer::InitContext()
                                    3);
     if (vtrack_ == MP4_INVALID_TRACK_ID)
     {
-        log_e("[%s]MP4AddH264VideoTrack failed", filename_.c_str());
+        log_e("MP4REC err,filename:%s,MP4AddH264VideoTrack failed", filename_.c_str());
         return KSDKError;
     }
 
@@ -119,7 +111,6 @@ void MP4Muxer::Close()
     if (!init_)
         return;
 
-    log_d("[%s]stop", filename_.c_str());
     MP4Close(hdl_);
     init_ = false;
 }
@@ -148,11 +139,6 @@ int MP4Muxer::WriteVideoFrame(const VENCFrame &frame)
     if (frame.type == H264E_NALU_SPS || frame.type == H264E_NALU_PPS || frame.type == H264E_NALU_SEI)
         return KSuccess;
 
-    // if (vts_base_ == 0)
-    //     vts_base_ = frame.ts;
-    // uint64_t duration = frame.ts - vts_base_;
-    // vts_base_ = frame.ts;
-
     uint32_t *tmp = reinterpret_cast<uint32_t *>(mmz_buffer_.vir_addr);
     uint8_t *buf = mmz_buffer_.vir_addr + 4;
     uint32_t pos = 0;
@@ -170,7 +156,7 @@ int MP4Muxer::WriteVideoFrame(const VENCFrame &frame)
 
         if (!MP4WriteSample(hdl_, vtrack_, mmz_buffer_.vir_addr, pos + 4, MP4_INVALID_DURATION, 0, true))
         {
-            log_e("[%s]MP4WriteSample failed", filename_.c_str());
+            log_e("MP4REC err,filename:%s,MP4WriteSample failed", filename_.c_str());
             return KSDKError;
         }
     }
@@ -181,7 +167,7 @@ int MP4Muxer::WriteVideoFrame(const VENCFrame &frame)
         *tmp = htonl(pos);
         if (!MP4WriteSample(hdl_, vtrack_, mmz_buffer_.vir_addr, pos + 4, MP4_INVALID_DURATION, 0, false))
         {
-            log_e("[%s]MP4WriteSample failed", filename_.c_str());
+            log_e("MP4REC err,filename:%s,MP4WriteSample failed", filename_.c_str());
             return KSDKError;
         }
     }
@@ -199,7 +185,7 @@ int MP4Muxer::WriteAudioFrame(const AENCFrame &frame)
 
     if (!MP4WriteSample(hdl_, atrack_, frame.data, frame.len, MP4_INVALID_DURATION))
     {
-        log_e("[%s]MP4WriteSample failed", filename_.c_str());
+        log_e("MP4REC err,filename:%s,MP4WriteSample failed", filename_.c_str());
         return KSDKError;
     }
 
