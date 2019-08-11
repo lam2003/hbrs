@@ -75,7 +75,7 @@ int VideoProcess::StartUserChannel(int chn, const RECT_S &rect)
     if (!init_)
         return KUnInitialized;
     int32_t ret;
-
+    log_d("vpss[%d]chn:%d,width:%d,height:%d}", params_.grp, chn,  rect.u32Width, rect.u32Height);
     VPSS_CHN_MODE_S chn_mode;
     memset(&chn_mode, 0, sizeof(chn_mode));
 

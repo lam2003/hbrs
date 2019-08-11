@@ -2,4 +2,4 @@ cd ./build/
 cmake ../
 make 
 cp ./hbrs/3531 /nfs
-#cp ../config.json /nfs
+cp ../config.json /nfs

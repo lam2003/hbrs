@@ -21,11 +21,18 @@ public:
         int normal_record_width;
         int normal_record_height;
         int normal_record_bitrate;
-        ADV7842_MODE pc_capture_mode;
 
         operator Json::Value() const;
         static bool IsOk(const Json::Value &root);
         Video &operator=(const Json::Value &root);
+    };
+
+    struct Adv7842
+    {
+        ADV7842_MODE pc_capture_mode;
+        operator Json::Value() const;
+        static bool IsOk(const Json::Value &root);
+        Adv7842 &operator=(const Json::Value &root);
     };
 
     struct Display
@@ -62,13 +69,22 @@ public:
         Scene &operator=(const Json::Value &root);
     };
 
-    struct Record
+    struct ResourceRecord
     {
-        std::vector<std::pair<RS_SCENE, mp4::Params>> recs;
+        std::vector<std::pair<RS_SCENE, mp4::Params>> records;
 
         operator Json::Value() const;
         static bool IsOk(const Json::Value &root);
-        Record &operator=(const Json::Value &root);
+        ResourceRecord &operator=(const Json::Value &root);
+    };
+
+    struct NormalRecord
+    {
+        mp4::Params record;
+
+        operator Json::Value() const;
+        static bool IsOk(const Json::Value &root);
+        NormalRecord &operator=(const Json::Value &root);
     };
 
     struct LocalLive
@@ -83,7 +99,7 @@ public:
     struct RemoteLive
     {
         rtmp::Params live;
-        
+
         operator Json::Value() const;
         static bool IsOk(const Json::Value &root);
         RemoteLive &operator=(const Json::Value &root);
@@ -108,11 +124,13 @@ protected:
 
 public:
     Video video_;
+    Adv7842 adv7842_;
     Scene scene_;
     Display display_;
     RemoteLive remote_live_;
     LocalLive local_lives_;
-
+    ResourceRecord resource_records_;
+    NormalRecord normal_record_;
 private:
     std::string path_;
     bool init_;

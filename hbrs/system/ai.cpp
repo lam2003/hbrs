@@ -322,13 +322,13 @@ int AudioInput::Initialize(const Params &params)
 
     params_ = params;
 
-    ret = StartTlv320(AIO_MODE_I2S_SLAVE, AUDIO_SAMPLE_RATE_44100);
-    if (ret != KSuccess)
-        return ret;
+    // ret = StartTlv320(AIO_MODE_I2S_SLAVE, AUDIO_SAMPLE_RATE_48000);
+    // if (ret != KSuccess)
+    //     return ret;
 
     AIO_ATTR_S attr;
     memset(&attr, 0, sizeof(attr));
-    attr.enSamplerate = AUDIO_SAMPLE_RATE_44100;
+    attr.enSamplerate = AUDIO_SAMPLE_RATE_48000;
     attr.enBitwidth = AUDIO_BIT_WIDTH_16;
     attr.enWorkmode = AIO_MODE_I2S_SLAVE;
     attr.u32FrmNum = 30;
@@ -464,14 +464,14 @@ void AudioInput::Close()
     if (ret != KSuccess)
         log_e("HI_MPI_AI_Disable failed with %#x", ret);
 #endif
-    StopTlv320();
+    // StopTlv320();
 
     sinks_.clear();
 
     init_ = false;
 }
 
-void AudioInput::AddAudioSink(AudioSink<AIFrame> *sink)
+void AudioInput::AddAudioSink(std::shared_ptr<AudioSink<AIFrame>> sink)
 {
     std::unique_lock<std::mutex> lock(mux_);
     sinks_.push_back(sink);

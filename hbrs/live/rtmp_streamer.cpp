@@ -88,7 +88,7 @@ int RTMPStreamer::WriteAudioFrame(const AENCFrame &frame)
         return KUnInitialized;
     int ret;
 
-    ret = srs_audio_write_raw_frame(rtmp_, 10, 3, 1, 1, reinterpret_cast<char *>(frame.data), frame.len, frame.ts);
+    ret = srs_audio_write_raw_frame(rtmp_, 10, 4, 1, 1, reinterpret_cast<char *>(frame.data), frame.len, frame.ts);
     if (ret != KSuccess)
     {
         log_e("[%s]srs_audio_write_raw_frame failed with %#x", url_.c_str(), ret);

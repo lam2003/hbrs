@@ -25,7 +25,7 @@ int VideoDecode::Initialize(const vdec::Params &params)
     memset(&chn_attr, 0, sizeof(chn_attr));
 
     chn_attr.enType = PT_H264;
-    chn_attr.u32BufSize = params_.width * params_.height * 1.5;
+    chn_attr.u32BufSize = params_.width * params_.height * 2;
     chn_attr.u32Priority = 1;
     chn_attr.u32PicWidth = params_.width;
     chn_attr.u32PicHeight = params_.height;

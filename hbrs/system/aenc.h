@@ -18,15 +18,15 @@ public:
 
     void Close();
 
-    void AddAudioSink(AudioSink<AENCFrame> *sink);
+    void AddAudioSink(std::shared_ptr<AudioSink<AENCFrame>> sink);
 
-    void RemoveAudioSink(AudioSink<AENCFrame> *sink);
+    void RemoveAudioSink(std::shared_ptr<AudioSink<AENCFrame>> sink);
 
     void OnFrame(const AIFrame &frame) override;
 
 private:
     std::mutex sinks_mux_;
-    std::vector<AudioSink<AENCFrame> *> sinks_;
+    std::vector<std::shared_ptr<AudioSink<AENCFrame>>> sinks_;
     std::mutex mux_;
     std::condition_variable cond_;
     Buffer<allocator_512k> buffer_;

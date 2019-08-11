@@ -36,14 +36,14 @@ public:
 
     void Close();
 
-    void AddVideoSink(VideoSink<VENCFrame> *sink);
+    void AddVideoSink(std::shared_ptr<VideoSink<VENCFrame>> sink);
 
-    void RemoveVideoSink(VideoSink<VENCFrame> *sink);
+    void RemoveVideoSink(std::shared_ptr<VideoSink<VENCFrame>> sink);
 
 private:
     venc::Params params_;
     std::mutex sinks_mux_;
-    std::vector<VideoSink<VENCFrame> *> sinks_;
+    std::vector<std::shared_ptr<VideoSink<VENCFrame>>> sinks_;
     std::unique_ptr<std::thread> thread_;
     std::atomic<bool> run_;
     bool init_;

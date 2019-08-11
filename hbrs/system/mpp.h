@@ -21,6 +21,7 @@ public:
     static int32_t Bind(int32_t sdev, int32_t schn, int32_t ddev, int32_t dchn)
     {
         int32_t ret;
+        log_d("sdev:%d,schn:%d,ddev:%d,dchn:%d", sdev, schn, ddev, dchn);
         MPP_CHN_S src_chn, dst_chn;
         src_chn.s32DevId = sdev;
         src_chn.s32ChnId = schn;

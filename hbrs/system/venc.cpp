@@ -45,7 +45,7 @@ int32_t VideoEncode::Initialize(const Params &params)
     h264_attr.u32MaxPicHeight = params_.height;
     h264_attr.u32PicWidth = params_.width;
     h264_attr.u32PicHeight = params_.height;
-    h264_attr.u32BufSize = params_.width * params_.height * 1.5;
+    h264_attr.u32BufSize = params_.width * params_.height * 2;
     h264_attr.u32Profile = params_.profile;
     h264_attr.bByFrame = HI_FALSE;
     h264_attr.bField = HI_FALSE;
@@ -207,7 +207,7 @@ int32_t VideoEncode::Initialize(const Params &params)
                             frame_index++;
                     }
 
-                    for (VideoSink<VENCFrame> *sink : sinks_)
+                    for (std::shared_ptr<VideoSink<VENCFrame>> sink : sinks_)
                         sink->OnFrame(frame);
                 }
             }
@@ -259,19 +259,19 @@ void VideoEncode::Close()
     init_ = false;
 }
 
-void VideoEncode::AddVideoSink(VideoSink<VENCFrame> *sink)
+void VideoEncode::AddVideoSink(std::shared_ptr<VideoSink<VENCFrame>> sink)
 {
     std::unique_lock<std::mutex> lock(sinks_mux_);
     sinks_.push_back(sink);
 }
 
-void VideoEncode::RemoveVideoSink(VideoSink<VENCFrame> *sink)
+void VideoEncode::RemoveVideoSink(std::shared_ptr<VideoSink<VENCFrame>> sink)
 {
     std::unique_lock<std::mutex> lock(sinks_mux_);
 
     for (auto it = sinks_.begin(); it != sinks_.end(); it++)
     {
-        if (*it == sink)
+        if (it->get() == sink.get())
         {
             sinks_.erase(it);
             break;

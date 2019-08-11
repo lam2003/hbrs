@@ -25,14 +25,14 @@ public:
 
     void Close();
 
-    void AddAudioSink(AudioSink<AIFrame> *sink);
+    void AddAudioSink(std::shared_ptr<AudioSink<AIFrame>> sink);
 
     void RemoveAllAudioSink();
 
 private:
     ai::Params params_;
     std::mutex mux_;
-    std::vector<AudioSink<AIFrame> *> sinks_;
+    std::vector<std::shared_ptr<AudioSink<AIFrame>>> sinks_;
     std::unique_ptr<std::thread> thread_;
     std::atomic<bool> run_;
     bool init_;

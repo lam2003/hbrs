@@ -23,7 +23,7 @@ int AudioOutput::Initialize(const ao::Params &params)
 
     AIO_ATTR_S attr;
     memset(&attr, 0, sizeof(attr));
-    attr.enSamplerate = AUDIO_SAMPLE_RATE_44100;
+    attr.enSamplerate = AUDIO_SAMPLE_RATE_48000;
     attr.enBitwidth = AUDIO_BIT_WIDTH_16;
     attr.enWorkmode = AIO_MODE_I2S_SLAVE;
     attr.u32FrmNum = 30;

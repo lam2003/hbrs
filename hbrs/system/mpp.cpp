@@ -254,20 +254,20 @@ int32_t MPPSystem::ConfigVB()
 
     //ddr0 video buffer
     conf.astCommPool[1].u32BlkSize = blk_size;
-    conf.astCommPool[1].u32BlkCnt = 10;
+    conf.astCommPool[1].u32BlkCnt = 15;
     memset(conf.astCommPool[1].acMmzName, 0, sizeof(conf.astCommPool[1].acMmzName));
     //ddr0 hist buffer
     conf.astCommPool[2].u32BlkSize = (196 * 4);
-    conf.astCommPool[2].u32BlkCnt = 10;
+    conf.astCommPool[2].u32BlkCnt = 15;
     memset(conf.astCommPool[2].acMmzName, 0, sizeof(conf.astCommPool[2].acMmzName));
 
     //ddr1 video buffer
     conf.astCommPool[3].u32BlkSize = blk_size;
-    conf.astCommPool[3].u32BlkCnt = 10;
+    conf.astCommPool[3].u32BlkCnt = 15;
     strcpy(conf.astCommPool[3].acMmzName, "ddr1");
     //ddr1 hist buffer
     conf.astCommPool[4].u32BlkSize = (196 * 4);
-    conf.astCommPool[4].u32BlkCnt = 10;
+    conf.astCommPool[4].u32BlkCnt = 15;
     strcpy(conf.astCommPool[4].acMmzName, "ddr1");
 
     ret = HI_MPI_VB_SetConf(&conf);

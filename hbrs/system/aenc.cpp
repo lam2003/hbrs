@@ -34,9 +34,9 @@ int AudioEncode::Initialize()
         }
 
         config.coderFormat = AACLC;
-        config.bitRate = 32000;
+        config.bitRate = 320000;
         config.bitsPerSample = 16;
-        config.sampleRate = 44100;
+        config.sampleRate = 48000;
         config.nChannelsIn = 2;
         config.nChannelsOut = 2;
         config.quality = AU_QualityHigh;
@@ -139,19 +139,19 @@ void AudioEncode::OnFrame(const AIFrame &frame)
     mux_.unlock();
 }
 
-void AudioEncode::AddAudioSink(AudioSink<AENCFrame> *sink)
+void AudioEncode::AddAudioSink(std::shared_ptr<AudioSink<AENCFrame>> sink)
 {
     std::unique_lock<std::mutex> lock(sinks_mux_);
     sinks_.push_back(sink);
 }
 
-void AudioEncode::RemoveAudioSink(AudioSink<AENCFrame> *sink)
+void AudioEncode::RemoveAudioSink(std::shared_ptr<AudioSink<AENCFrame>> sink)
 {
     std::unique_lock<std::mutex> lock(sinks_mux_);
 
     for (auto it = sinks_.begin(); it != sinks_.end(); it++)
     {
-        if (*it == sink)
+        if (it->get() == sink.get())
         {
             sinks_.erase(it);
             break;
