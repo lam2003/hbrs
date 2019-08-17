@@ -154,7 +154,7 @@ void AudioInput::Close()
     thread_->join();
     thread_.reset();
     thread_ = nullptr;
-#if 0
+#if 1
     int ret;
     ret = HI_MPI_AI_DisableChn(params_.dev, params_.chn);
     if (ret != KSuccess)
@@ -164,7 +164,6 @@ void AudioInput::Close()
     if (ret != KSuccess)
         log_e("HI_MPI_AI_Disable failed with %#x", ret);
 #endif
-    // StopTlv320();
 
     sinks_.clear();
 

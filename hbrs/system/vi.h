@@ -77,7 +77,6 @@ public:
 private:
     std::mutex mux_;
     VideoInput vi_;
-    vi::Params cur_params_;
     int dev_;
     int chn_;
     std::shared_ptr<VideoOutput> vo_;

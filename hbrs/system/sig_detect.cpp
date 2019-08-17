@@ -110,7 +110,7 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
         {
 
             int cur_chn;
-            for (int i = RS_SLAVE_SDI_BASE; i < RS_SLAVE_SDI_NUM; i++)
+            for (int i = RS_SLAVE_SDI_BASE; i < RS_SLAVE_SDI_NUM && run_; i++)
             {
                 cur_chn = i;
                 ret = ioctl(tw6874_1_fd, CMD_CHECK_ADN_LOCK_SDI, &cur_chn);
@@ -130,7 +130,7 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                     no_signal_times[Tw6874_1_DevChn2Scene[i]] = 0;
                 }
             }
-            for (int i = RS_MASTER_SDI_BASE; i < RS_MASTER_SDI_NUM; i++)
+            for (int i = RS_MASTER_SDI_BASE; i < RS_MASTER_SDI_NUM && run_; i++)
             {
                 cur_chn = i;
                 ret = ioctl(tw6874_2_fd, CMD_CHECK_ADN_LOCK_SDI, &cur_chn);
@@ -150,88 +150,90 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                     no_signal_times[Tw6874_2_DevChn2Scene[i]] = 0;
                 }
             }
-
-            msg.type = pciv::Msg::Type::QUERY_ADV7842;
+            if (run_)
             {
-                std::unique_lock<std::mutex> lock(mux_);
-                ret = pciv_comm_->Send(RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
-                if (ret != KSuccess)
-                    return;
-
-                ret = Recv(pciv_comm_, RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, tmp_buf, sizeof(tmp_buf), msg_buf, msg, 3);
-                if (ret != KSuccess)
-                    return;
-            }
-            if (msg.type != pciv::Msg::Type::ACK)
-            {
-                log_e("unknow msg type:%d", msg.type);
-                return;
-            }
-
-            memcpy(&tmp_fmts[PC_CAPTURE], msg.data, sizeof(tmp_fmts[PC_CAPTURE]));
-            if (!tmp_fmts[PC_CAPTURE].has_signal)
-            {
-                no_signal_times[PC_CAPTURE]++;
-            }
-            else
-            {
-                no_signal_times[PC_CAPTURE] = 0;
-            }
-
-            for (int i = TEA_FEATURE; i <= PC_CAPTURE; i++)
-            {
-                if (!tmp_fmts[i].has_signal && no_signal_times[i] < 2)
-                    continue;
-
-                if (fmts_[i] != tmp_fmts[i])
-                {
-                    changes[i] = true;
-                    fmts_[i] = tmp_fmts[i];
-                }
-                else
-                {
-                    changes[i] = false;
-                }
-            }
-
-            if (changes[TEA_FULL_VIEW] || changes[STU_FULL_VIEW] || changes[BLACK_BOARD_FEATURE])
-            {
-                pciv::Tw6874Query query;
-                for (int i = TEA_FULL_VIEW; i <= BLACK_BOARD_FEATURE; i++)
-                    query.fmts[i - TEA_FULL_VIEW] = fmts_[i];
-
-                msg.type = pciv::Msg::Type::QUERY_TW6874;
-                memcpy(msg.data, &query, sizeof(query));
+                msg.type = pciv::Msg::Type::QUERY_ADV7842;
                 {
                     std::unique_lock<std::mutex> lock(mux_);
-                    ret = pciv_comm_->Send(RS_PCIV_SLAVE3_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+                    ret = pciv_comm_->Send(RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+                    if (ret != KSuccess)
+                        return;
+
+                    ret = Recv(pciv_comm_, RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, tmp_buf, sizeof(tmp_buf), msg_buf, msg, 3);
                     if (ret != KSuccess)
                         return;
                 }
-            }
-            {
-                std::unique_lock<std::mutex> lock(mux_);
-                if (changes[TEA_FEATURE])
+                if (msg.type != pciv::Msg::Type::ACK)
                 {
-                    for (size_t i = 0; i < listeners_.size(); i++)
-                        listeners_[i]->OnChange(fmts_[TEA_FEATURE], Scene2ViChn[TEA_FEATURE]);
+                    log_e("unknow msg type:%d", msg.type);
+                    return;
                 }
 
-                if (changes[STU_FEATURE])
+                memcpy(&tmp_fmts[PC_CAPTURE], msg.data, sizeof(tmp_fmts[PC_CAPTURE]));
+                if (!tmp_fmts[PC_CAPTURE].has_signal)
                 {
-                    for (size_t i = 0; i < listeners_.size(); i++)
-                        listeners_[i]->OnChange(fmts_[STU_FEATURE], Scene2ViChn[STU_FEATURE]);
+                    no_signal_times[PC_CAPTURE]++;
                 }
-            }
-            {
-                std::unique_lock<std::mutex> lock(mux_);
-                if (status_listeners_ != nullptr)
-                    status_listeners_->OnUpdate(fmts_);
-            }
+                else
+                {
+                    no_signal_times[PC_CAPTURE] = 0;
+                }
 
-            int wait_time = 10;
-            while (run_ && wait_time--)
-                usleep(500000); //500ms
+                for (int i = TEA_FEATURE; i <= PC_CAPTURE; i++)
+                {
+                    if (!tmp_fmts[i].has_signal && no_signal_times[i] < 1)
+                        continue;
+
+                    if (fmts_[i] != tmp_fmts[i])
+                    {
+                        changes[i] = true;
+                        fmts_[i] = tmp_fmts[i];
+                    }
+                    else
+                    {
+                        changes[i] = false;
+                    }
+                }
+
+                if (changes[TEA_FULL_VIEW] || changes[STU_FULL_VIEW] || changes[BLACK_BOARD_FEATURE])
+                {
+                    pciv::Tw6874Query query;
+                    for (int i = TEA_FULL_VIEW; i <= BLACK_BOARD_FEATURE; i++)
+                        query.fmts[i - TEA_FULL_VIEW] = fmts_[i];
+
+                    msg.type = pciv::Msg::Type::QUERY_TW6874;
+                    memcpy(msg.data, &query, sizeof(query));
+                    {
+                        std::unique_lock<std::mutex> lock(mux_);
+                        ret = pciv_comm_->Send(RS_PCIV_SLAVE3_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+                        if (ret != KSuccess)
+                            return;
+                    }
+                }
+                {
+                    std::unique_lock<std::mutex> lock(mux_);
+                    if (changes[TEA_FEATURE])
+                    {
+                        for (size_t i = 0; i < listeners_.size(); i++)
+                            listeners_[i]->OnChange(fmts_[TEA_FEATURE], Scene2ViChn[TEA_FEATURE]);
+                    }
+
+                    if (changes[STU_FEATURE])
+                    {
+                        for (size_t i = 0; i < listeners_.size(); i++)
+                            listeners_[i]->OnChange(fmts_[STU_FEATURE], Scene2ViChn[STU_FEATURE]);
+                    }
+                }
+                {
+                    std::unique_lock<std::mutex> lock(mux_);
+                    if (status_listeners_ != nullptr)
+                        status_listeners_->OnUpdate(fmts_);
+                }
+
+                int wait_time = 10;
+                while (run_ && wait_time--)
+                    usleep(500000); //500ms
+            }
         }
     }));
 

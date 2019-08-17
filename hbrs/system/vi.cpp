@@ -227,19 +227,22 @@ void VIHelper::OnChange(const VideoInputFormat &fmt, int chn)
 {
     if (chn != chn_)
         return;
+
+    log_d("VI signal change,dev:%d,chn:%d,has_signal:%d,width:%d,height:%d,interlaced:%d",
+          dev_,
+          chn,
+          fmt.has_signal,
+          fmt.width,
+          fmt.height,
+          fmt.interlaced);
+
+    vi_.Close();
     if (fmt.has_signal)
     {
-        vi::Params params = {dev_, chn_, fmt.width, fmt.height, fmt.interlaced};
-        if (cur_params_ != params)
-        {
-            vi_.Close();
-            if (KSuccess == vi_.Initialize(params))
-                cur_params_ = params;
-        }
+        vi_.Initialize( {dev_, chn_, fmt.width, fmt.height, fmt.interlaced});
         return;
     }
 
-    vi_.Close();
     std::unique_lock<std::mutex> lock(mux_);
     if (vo_ != nullptr)
         vo_->ClearDispBuffer(0);
@@ -267,8 +270,7 @@ void VIHelper::SetVideoOutput(std::shared_ptr<VideoOutput> vo)
 void VIHelper::Start(int width, int height, bool interlaced)
 {
     Params params = {dev_, chn_, width, height, interlaced};
-    if (KSuccess == vi_.Initialize(params))
-        cur_params_ = params;
+    vi_.Initialize(params);
 }
 
 void VIHelper::Stop()

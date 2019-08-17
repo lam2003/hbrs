@@ -14,7 +14,6 @@
 #include "common/err_code.h"
 #include "common/utils.h"
 
-
 namespace rs
 {
 
@@ -83,8 +82,10 @@ int VideoManager::Initialize()
     sig_detect_ = std::make_shared<SigDetect>();
 
     for (int i = 0; i < 2; i++)
+    {
         vi_arr_[i]->Start(RS_MAX_WIDTH, RS_MAX_HEIGHT, false); //预设摄像头采集时序1080P
-
+        vi_arr_[i]->SetVideoOutput(vo_arr_[i]);
+    }
     for (int i = 0; i < 2; i++)
     {
         vpss_tmp_arr_[i]->Initialize({10 + i});
