@@ -3,8 +3,7 @@
 
 namespace rs
 {
-HttpServer::HttpServer() : base_(nullptr),
-                           http_(nullptr),
+HttpServer::HttpServer() : http_(nullptr),
                            init_(false)
 {
 }
@@ -19,7 +18,7 @@ void HttpServer::MakeResponse(evhttp_request *req, int code, const std::string &
     evhttp_add_header(req->output_headers, "Server", "hibao_record_system");
     evhttp_add_header(req->output_headers, "Content-Type", "text/json; charset=UTF-8");
     evhttp_add_header(req->output_headers, "Connection", "close");
-    
+
     struct evbuffer *evbuf = evbuffer_new();
     if (!evbuf)
     {
@@ -51,14 +50,13 @@ void GenericRequestHandler(evhttp_request *req, void *arg)
     HttpServer::MakeResponse(req, HTTP_NOTFOUND, "could not find content for uri", "{\"errMsg\":\"unknow uri\"}");
 }
 
-int HttpServer::Initialize(const std::string &ip, int port)
+int HttpServer::Initialize(const std::string &ip, int port, event_base *base)
 {
     if (init_)
         return KInitialized;
     int ret;
 
-    base_ = event_base_new();
-    http_ = evhttp_new(base_);
+    http_ = evhttp_new(base);
 
     ret = evhttp_bind_socket(http_, ip.c_str(), port);
     if (ret != KSuccess)
@@ -78,7 +76,6 @@ void HttpServer::Close()
         return;
 
     evhttp_free(http_);
-    event_base_free(base_);
 
     init_ = false;
 }
@@ -93,14 +90,4 @@ void HttpServer::RegisterURI(const std::string &uri, RequestHandler *handler, vo
     return;
 }
 
-void HttpServer::Dispatch()
-{
-    if (!init_)
-        return;
-    struct timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = 500000; //500ms
-    event_base_loopexit(base_, &tv);
-    event_base_dispatch(base_);
-}
 } // namespace rs

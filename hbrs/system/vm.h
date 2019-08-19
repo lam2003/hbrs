@@ -56,7 +56,7 @@ public:
 
     void StartVideoEncode(const Config::Video &video_conf);
 
-    void StopVideoEncode();
+    void CloseVideoEncode();
 
 private:
     std::vector<std::shared_ptr<VIHelper>> vi_arr_;

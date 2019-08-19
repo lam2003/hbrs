@@ -243,15 +243,18 @@ int VideoOutput::StopAllChn()
     if (!init_)
         return KUnInitialized;
 
-    int ret;
     for (int i = 0; i < VO_MAX_CHN_NUM; i++)
     {
-        ret = HI_MPI_VO_DisableChn(params_.dev, i);
+#if 1
+        HI_MPI_VO_DisableChn(params_.dev, i);
+#else
+        int ret = HI_MPI_VO_DisableChn(params_.dev, i);
         if (ret != KSuccess)
         {
             log_e("HI_MPI_VO_DisableChn failed with %#x", ret);
             return KSDKError;
         }
+#endif
     }
 
     return KSuccess;

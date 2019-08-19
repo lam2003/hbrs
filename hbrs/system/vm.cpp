@@ -138,13 +138,6 @@ int VideoManager::Initialize()
     MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 3, 5, 0);
 
     MPPSystem::Bind<HI_ID_VOU, HI_ID_VPSS>(12, 0, 6, 0);
-
-    StartMainScreen(CONFIG->scene_);
-
-    StartDisplayScreen(CONFIG->display_);
-
-    StartVideoEncode(CONFIG->video_);
-
     //################################################
     // 初始化音频
     //################################################
@@ -165,8 +158,15 @@ int VideoManager::Initialize()
     MPPSystem::Bind<HI_ID_AI, HI_ID_AO>(4, 0, 4, 0);
 
     //##############################################
-    //初始化录制/直播
+    //初始化功能模块
     //##############################################
+
+    StartMainScreen(CONFIG->scene_);
+
+    StartDisplayScreen(CONFIG->display_);
+
+    StartVideoEncode(CONFIG->video_);
+
     live_arr_.resize(8);
     for (int i = 0; i < 8; i++)
         live_arr_[i] = std::make_shared<RTMPLive>();
@@ -185,7 +185,7 @@ void VideoManager::Close()
     if (!init_)
         return;
     //################################################
-    //去初始化录制/直播
+    //去初始化功能模块
     //################################################
     for (int i = 0; i < 8; i++)
     {
@@ -198,6 +198,13 @@ void VideoManager::Close()
         live_arr_[i].reset();
         live_arr_[i] = nullptr;
     }
+
+    CloseVideoEncode();
+
+    CloseDisplayScreen();
+
+    CloseMainScreen();
+
     //################################################
     // 去初始化音频
     //################################################
@@ -627,7 +634,7 @@ void VideoManager::StartVideoEncode(const Config::Video &video_conf)
     encode_stared_ = true;
 }
 
-void VideoManager::StopVideoEncode()
+void VideoManager::CloseVideoEncode()
 {
     if (!encode_stared_)
         return;

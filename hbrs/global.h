@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <termios.h>
 //stl
 #include <string>
 #include <fstream>

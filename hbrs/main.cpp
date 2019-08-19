@@ -2,6 +2,7 @@
 #include "system/vm.h"
 #include "common/logger.h"
 #include "common/http_server.h"
+#include "common/switch.h"
 #include "common/json.h"
 
 #include "model/resource_record_req.h"
@@ -20,6 +21,8 @@ using namespace rs;
 	}
 
 static VideoManager g_VideoManager;
+static HttpServer g_HttpServer;
+static Switch g_Switch;
 
 static const char *g_Opts = "c:";
 
@@ -152,19 +155,26 @@ int32_t main(int32_t argc, char **argv)
 
 	g_VideoManager.Initialize();
 
-	HttpServer http_server;
-	http_server.Initialize("0.0.0.0", 8081);
-	http_server.RegisterURI("/start_local_live", StartLocalLiveHandler, nullptr);
-	http_server.RegisterURI("/stop_local_live", StopLocalLiveHandler, nullptr);
-	http_server.RegisterURI("/start_resource_record", StartResourceRecordHandler, nullptr);
-	http_server.RegisterURI("/stop_resource_record", StopResourceRecordHandler, nullptr);
-	// 	http_server.RegisterURI("/start_remote_live", StartRemoteLiveHandler, nullptr);
-	// 	http_server.RegisterURI("/stop_remote_live", StopRemoteLiveHandler, nullptr);
-	// 	http_server.RegisterURI("/change_pc_capture", ChangePCCaptureHandler, nullptr);
-	// 	http_server.RegisterURI("/change_main_screen", ChangeMainScreenHandler, nullptr);
+	event_base *base = event_base_new();
+	g_Switch.Initialize(base);
+	g_HttpServer.Initialize("0.0.0.0", 8081, base);
+	g_HttpServer.RegisterURI("/start_local_live", StartLocalLiveHandler, nullptr);
+	g_HttpServer.RegisterURI("/stop_local_live", StopLocalLiveHandler, nullptr);
+	g_HttpServer.RegisterURI("/start_resource_record", StartResourceRecordHandler, nullptr);
+	g_HttpServer.RegisterURI("/stop_resource_record", StopResourceRecordHandler, nullptr);
 
 	while (g_Run)
-		http_server.Dispatch();
+	{
+		struct timeval tv;
+		tv.tv_sec = 0;
+		tv.tv_usec = 500000; //500ms
+		event_base_loopexit(base, &tv);
+		event_base_dispatch(base);
+	}
+
+	g_Switch.Close();
+	g_HttpServer.Close();
+	event_base_free(base);
 
 	g_VideoManager.Close();
 	return 0;
