@@ -24,12 +24,12 @@ Switch::~Switch()
 
 void Switch::OnRead(evutil_socket_t sockfd)
 {
+    memset(buf, 0, sizeof(buf));
     int ret = read(sockfd, buf, sizeof(buf));
     if (ret > 0)
     {
-        for (int i = 0; i < ret; i++)
-            printf("%#x\t", buf[i]);
-        printf("\n");
+        // std::string str(buf, len);
+        
     }
 }
 

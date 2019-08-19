@@ -105,6 +105,20 @@ public:
         RemoteLive &operator=(const Json::Value &root);
     };
 
+    struct SwitchCommand
+    {
+        std::string tea_fea;
+        std::string stu_fea;
+        std::string tea_full;
+        std::string stu_full;
+        std::string bb_fea;
+        std::string pc_capture;
+
+        operator Json::Value() const;
+        static bool IsOk(const Json::Value &root);
+        SwitchCommand &operator=(const Json::Value &root);
+    };
+
     static Config *Instance();
 
     virtual ~Config();
@@ -131,6 +145,8 @@ public:
     LocalLive local_lives_;
     ResourceRecord resource_records_;
     NormalRecord normal_record_;
+    SwitchCommand switch_cmd_;
+
 private:
     std::string path_;
     bool init_;

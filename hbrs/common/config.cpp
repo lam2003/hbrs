@@ -48,7 +48,9 @@ int Config::Initialize(const std::string &path)
         !root.isMember("video") ||
         !root["video"].isObject() ||
         !root.isMember("adv7842") ||
-        !root["adv7842"].isObject())
+        !root["adv7842"].isObject() ||
+        !root.isMember("switch_cmd") ||
+        !root["switch_cmd"].isObject())
     {
         log_e("check root format failed");
         return KParamsError;
@@ -74,11 +76,17 @@ int Config::Initialize(const std::string &path)
         log_e("check adv7842 format failed");
         return KParamsError;
     }
+    if (!Config::SwitchCommand::IsOk(root["switch_cmd"]))
+    {
+        log_e("check switch_cmd format failed");
+        return KParamsError;
+    }
 
     scene_ = root["scene"];
     display_ = root["display"];
     video_ = root["video"];
     adv7842_ = root["adv7842"];
+    switch_cmd_ = root["switch_cmd"];
 
     if (root.isMember("local_lives"))
     {
@@ -153,6 +161,7 @@ int Config::WriteToFile()
     root["scene"] = scene_;
     root["display"] = display_;
     root["adv7842"] = adv7842_;
+    root["switch_cmd"] = switch_cmd_;
 
     if (remote_live_.live.url != "")
         root["remote_live"] = remote_live_;
@@ -632,6 +641,48 @@ Config::RemoteLive &Config::RemoteLive::operator=(const Json::Value &root)
     live = root;
     live.has_audio = true;
     live.only_try_once = true;
+    return *this;
+}
+
+Config::SwitchCommand::operator Json::Value() const
+{
+    Json::Value root;
+    root["tea_fea"] = tea_fea;
+    root["stu_fea"] = stu_fea;
+    root["tea_full"] = tea_full;
+    root["stu_full"] = stu_full;
+    root["bb_fea"] = bb_fea;
+    root["pc_capture"] = pc_capture;
+    return root;
+}
+
+bool Config::SwitchCommand::IsOk(const Json::Value &root)
+{
+    if (!root.isObject() ||
+        !root.isMember("tea_fea") ||
+        !root["tea_fea"].isString() ||
+        !root.isMember("stu_fea") ||
+        !root["stu_fea"].isString() ||
+        !root.isMember("tea_full") ||
+        !root["tea_full"].isString() ||
+        !root.isMember("stu_full") ||
+        !root["stu_full"].isString() ||
+        !root.isMember("bb_fea") ||
+        !root["bb_fea"].isString() ||
+        !root.isMember("pc_capture") ||
+        !root["pc_capture"].isString())
+        return false;
+    return true;
+}
+
+Config::SwitchCommand &Config::SwitchCommand::operator=(const Json::Value &root)
+{
+    tea_fea = root["tea_fea"].asString();
+    stu_fea = root["stu_fea"].asString();
+    tea_full = root["tea_full"].asString();
+    stu_full = root["stu_full"].asString();
+    bb_fea = root["bb_fea"].asString();
+    pc_capture = root["pc_capture"].asString();
     return *this;
 }
 

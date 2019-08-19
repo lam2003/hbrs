@@ -108,5 +108,13 @@
    },
    "adv7842": {
       "pc_capture_mode": 0
+   },
+   "switch_cmd": {
+      "tea_fea": "",
+      "stu_fea": "",
+      "tea_full": "",
+      "stu_full": "",
+      "bb_fea": "",
+      "pc_capture": ""
    }
 }
