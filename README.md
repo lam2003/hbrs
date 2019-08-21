@@ -3,13 +3,13 @@
 ```
 enum RS_SCENE
 {
-    TEA_FEATURE = 0,        //教师特写      0
-    STU_FEATURE,            //学生特写      1
-    TEA_FULL_VIEW,          //教师全景      2
-    STU_FULL_VIEW,          //学生全景      3
-    BLACK_BOARD_FEATURE,    //板书特写      4
-    PC_CAPTURE,             //电脑画面      5
-    MAIN,                   //主画面        6
+    TEA_FEA = 0,        //教师特写      0
+    STU_FEA,            //学生特写      1
+    TEA_FULL,           //教师全景      2
+    STU_FULL,           //学生全景      3
+    BB_FEATURE,         //板书特写      4
+    PC_CAPTURE,         //电脑画面      5
+    MAIN,               //主画面        6
 };
 
 ```

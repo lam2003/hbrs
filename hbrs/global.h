@@ -99,27 +99,28 @@
 
 enum RS_SCENE
 {
-    TEA_FEATURE = 0,
-    STU_FEATURE,
-    TEA_FULL_VIEW,
-    STU_FULL_VIEW,
-    BLACK_BOARD_FEATURE,
+    TEA_FEA = 0,
+    STU_FEA,
+    TEA_FULL,
+    STU_FULL,
+    BB_FEATURE,
     PC_CAPTURE,
     MAIN,
-    MAIN2
+    MAIN2,
+    UNKNOW
 };
 
 static std::map<int, int> Tw6874_1_DevChn2Scene = {
-    {3, TEA_FULL_VIEW},
-    {2, STU_FULL_VIEW},
-    {1, BLACK_BOARD_FEATURE}};
+    {3, TEA_FULL},
+    {2, STU_FULL},
+    {1, BB_FEATURE}};
 
 static std::map<int, int> Tw6874_2_DevChn2Scene = {
-    {1, TEA_FEATURE},
-    {0, STU_FEATURE}};
+    {1, TEA_FEA},
+    {0, STU_FEA}};
 
 static std::map<int, int> Scene2ViChn = {
-    {TEA_FEATURE, 8},
-    {STU_FEATURE, 4}};
+    {TEA_FEA, 8},
+    {STU_FEA, 4}};
 
 #define CONFIG Config::Instance()

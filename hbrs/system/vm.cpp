@@ -25,7 +25,7 @@ VideoManager::VideoManager() : display_vo_(nullptr),
                                pciv_comm_(nullptr),
                                pciv_trans_(nullptr),
                                sig_detect_(nullptr),
-                               main_screen_(TEA_FEATURE),
+                               main_screen_(TEA_FEA),
                                encode_stared_(false),
                                display_screen_started_(false),
                                main_screen_started_(false),
@@ -498,7 +498,7 @@ void VideoManager::StartMainScreen(const Config::Scene &scene_conf)
         int level = main_pos[index].second;
         main_vo_->StartChannel(index, rect, level);
 
-        if (scene == TEA_FEATURE || scene == STU_FEATURE || scene == MAIN)
+        if (scene == TEA_FEA || scene == STU_FEA || scene == MAIN)
         {
             if (scene == MAIN)
             {
@@ -531,7 +531,7 @@ void VideoManager::CloseMainScreen()
         int index = it->first;
         RS_SCENE scene = it->second;
 
-        if (scene == TEA_FEATURE || scene == STU_FEATURE || scene == MAIN)
+        if (scene == TEA_FEA || scene == STU_FEA || scene == MAIN)
         {
             if (scene == MAIN)
             {

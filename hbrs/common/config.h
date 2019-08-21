@@ -107,12 +107,12 @@ public:
 
     struct SwitchCommand
     {
-        std::string tea_fea;
-        std::string stu_fea;
-        std::string tea_full;
-        std::string stu_full;
-        std::string bb_fea;
-        std::string pc_capture;
+        std::vector<int> tea_fea;
+        std::vector<int> stu_fea;
+        std::vector<int> tea_full;
+        std::vector<int> stu_full;
+        std::vector<int> bb_fea;
+        std::vector<int> pc_capture;
 
         operator Json::Value() const;
         static bool IsOk(const Json::Value &root);

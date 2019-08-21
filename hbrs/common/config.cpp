@@ -1,5 +1,6 @@
 #include "common/config.h"
 #include "common/err_code.h"
+#include "common/utils.h"
 
 namespace rs
 {
@@ -646,13 +647,20 @@ Config::RemoteLive &Config::RemoteLive::operator=(const Json::Value &root)
 
 Config::SwitchCommand::operator Json::Value() const
 {
+    std::string str;
     Json::Value root;
-    root["tea_fea"] = tea_fea;
-    root["stu_fea"] = stu_fea;
-    root["tea_full"] = tea_full;
-    root["stu_full"] = stu_full;
-    root["bb_fea"] = bb_fea;
-    root["pc_capture"] = pc_capture;
+    if (Utils::HexInt2String(tea_fea, str))
+        root["tea_fea"] = str;
+    if (Utils::HexInt2String(stu_fea, str))
+        root["stu_fea"] = str;
+    if (Utils::HexInt2String(tea_full, str))
+        root["tea_full"] = str;
+    if (Utils::HexInt2String(stu_full, str))
+        root["stu_full"] = str;
+    if (Utils::HexInt2String(bb_fea, str))
+        root["bb_fea"] = str;
+    if (Utils::HexInt2String(pc_capture, str))
+        root["pc_capture"] = str;
     return root;
 }
 
@@ -677,12 +685,25 @@ bool Config::SwitchCommand::IsOk(const Json::Value &root)
 
 Config::SwitchCommand &Config::SwitchCommand::operator=(const Json::Value &root)
 {
-    tea_fea = root["tea_fea"].asString();
-    stu_fea = root["stu_fea"].asString();
-    tea_full = root["tea_full"].asString();
-    stu_full = root["stu_full"].asString();
-    bb_fea = root["bb_fea"].asString();
-    pc_capture = root["pc_capture"].asString();
+    std::vector<int> hex_int_arr;
+    if (Utils::HexString2Int(root["tea_fea"].asString(), hex_int_arr))
+        tea_fea = hex_int_arr;
+    hex_int_arr.clear();
+    if (Utils::HexString2Int(root["stu_fea"].asString(), hex_int_arr))
+        stu_fea = hex_int_arr;
+    hex_int_arr.clear();
+    if (Utils::HexString2Int(root["tea_full"].asString(), hex_int_arr))
+        tea_full = hex_int_arr;
+    hex_int_arr.clear();
+    if (Utils::HexString2Int(root["stu_full"].asString(), hex_int_arr))
+        stu_full = hex_int_arr;
+    hex_int_arr.clear();
+    if (Utils::HexString2Int(root["bb_fea"].asString(), hex_int_arr))
+        bb_fea = hex_int_arr;
+    hex_int_arr.clear();
+    if (Utils::HexString2Int(root["pc_capture"].asString(), hex_int_arr))
+        pc_capture = hex_int_arr;
+
     return *this;
 }
 

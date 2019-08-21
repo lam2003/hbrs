@@ -1,5 +1,7 @@
 #include "common/switch.h"
 #include "common/err_code.h"
+#include "common/utils.h"
+#include "common/config.h"
 
 namespace rs
 {
@@ -14,7 +16,10 @@ static void Invoke(evutil_socket_t sockfd, short event, void *arg)
     }
 }
 
-Switch::Switch() : init_(false)
+Switch::Switch() : fd_(0),
+                   ev_(nullptr),
+                   listener_(nullptr),
+                   init_(false)
 {
 }
 
@@ -22,14 +27,62 @@ Switch::~Switch()
 {
 }
 
+bool CompareCommand(const std::vector<int> &hex_int_arr, const uint8_t *data, int len)
+{
+    if (len != static_cast<int>(hex_int_arr.size()))
+        return false;
+
+    for (size_t i = 0; i < hex_int_arr.size(); i++)
+    {
+        if (data[i] != static_cast<char>(hex_int_arr[i]))
+            return false;
+    }
+
+    return true;
+}
+
 void Switch::OnRead(evutil_socket_t sockfd)
 {
     memset(buf, 0, sizeof(buf));
     int ret = read(sockfd, buf, sizeof(buf));
-    if (ret > 0)
+
+    if (ret <= 0)
     {
-        // std::string str(buf, len);
-        
+        log_e("read ret <= 0");
+        return;
+    }
+    std::ostringstream oss;
+    for (int i = 0; i < ret; i++)
+        oss << std::hex << buf[i] << " ";
+    log_e("switch command:%s", oss.str().c_str());
+
+    if (CompareCommand(Config::Instance()->switch_cmd_.tea_fea, buf, ret))
+    {
+        log_d("switch to teacher feature");
+    }
+    else if (CompareCommand(Config::Instance()->switch_cmd_.stu_fea, buf, ret))
+    {
+        log_d("switch to student feature");
+    }
+    else if (CompareCommand(Config::Instance()->switch_cmd_.tea_full, buf, ret))
+    {
+        log_d("switch to teacher fullview");
+    }
+    else if (CompareCommand(Config::Instance()->switch_cmd_.stu_full, buf, ret))
+    {
+        log_d("switch to student fullview");
+    }
+    else if (CompareCommand(Config::Instance()->switch_cmd_.bb_fea, buf, ret))
+    {
+        log_d("switch to black board feature");
+    }
+    else if (CompareCommand(Config::Instance()->switch_cmd_.pc_capture, buf, ret))
+    {
+        log_d("switch to pc capture");
+    }
+    else
+    {
+        log_e("unknow command");
     }
 }
 
@@ -95,7 +148,13 @@ void Switch::Close()
 
     event_free(ev_);
     close(fd_);
+    listener_ = nullptr;
     init_ = false;
+}
+
+void Switch::SetEventListener(std::shared_ptr<SwitchEventListener> listener)
+{
+    listener_ = listener;
 }
 
 } // namespace rs

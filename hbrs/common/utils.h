@@ -380,5 +380,60 @@ public:
         (*p) <<= 8;
         (*p) |= temp;
     }
+
+    static std::vector<std::string> SplitOneOf(const std::string &str,
+                                               const std::string &delims,
+                                               const size_t maxSplits)
+    {
+        std::string remaining(str);
+        std::vector<std::string> result;
+        size_t splits = 0, pos;
+
+        while (((maxSplits == 0) || (splits < maxSplits)) &&
+               ((pos = remaining.find_first_of(delims)) != std::string::npos))
+        {
+            result.push_back(remaining.substr(0, pos));
+            remaining = remaining.substr(pos + 1);
+            splits++;
+        }
+
+        if (remaining.length() > 0)
+            result.push_back(remaining);
+
+        return result;
+    }
+
+    static bool HexString2Int(const std::string &str, std::vector<int> &hex_int_arr)
+    {
+        std::vector<std::string> hex_str_arr = SplitOneOf(str, "\t ", 0);
+        for (const std::string &hex_str : hex_str_arr)
+        {
+            try
+            {
+                int hex_int = std::stoul(hex_str, NULL, 16);
+                hex_int_arr.push_back(hex_int);
+            }
+            catch (...)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static bool HexInt2String(const std::vector<int> &int_arr, std::string &str)
+    {
+        std::ostringstream oss;
+
+        for (int i : int_arr)
+            oss << std::hex << i << " ";
+        str = oss.str();
+        if (str.empty())
+            return false;
+
+        str = str.substr(0, str.length() - 1);
+
+        return true;
+    }
 };
 } // namespace rs

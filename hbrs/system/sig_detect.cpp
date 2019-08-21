@@ -179,7 +179,7 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                     no_signal_times[PC_CAPTURE] = 0;
                 }
 
-                for (int i = TEA_FEATURE; i <= PC_CAPTURE; i++)
+                for (int i = TEA_FEA; i <= PC_CAPTURE; i++)
                 {
                     if (!tmp_fmts[i].has_signal && no_signal_times[i] < 1)
                         continue;
@@ -195,11 +195,11 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                     }
                 }
 
-                if (changes[TEA_FULL_VIEW] || changes[STU_FULL_VIEW] || changes[BLACK_BOARD_FEATURE])
+                if (changes[TEA_FULL] || changes[STU_FULL] || changes[BB_FEATURE])
                 {
                     pciv::Tw6874Query query;
-                    for (int i = TEA_FULL_VIEW; i <= BLACK_BOARD_FEATURE; i++)
-                        query.fmts[i - TEA_FULL_VIEW] = fmts_[i];
+                    for (int i = TEA_FULL; i <= BB_FEATURE; i++)
+                        query.fmts[i - TEA_FULL] = fmts_[i];
 
                     msg.type = pciv::Msg::Type::QUERY_TW6874;
                     memcpy(msg.data, &query, sizeof(query));
@@ -212,16 +212,16 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                 }
                 {
                     std::unique_lock<std::mutex> lock(mux_);
-                    if (changes[TEA_FEATURE])
+                    if (changes[TEA_FEA])
                     {
                         for (size_t i = 0; i < listeners_.size(); i++)
-                            listeners_[i]->OnChange(fmts_[TEA_FEATURE], Scene2ViChn[TEA_FEATURE]);
+                            listeners_[i]->OnChange(fmts_[TEA_FEA], Scene2ViChn[TEA_FEA]);
                     }
 
-                    if (changes[STU_FEATURE])
+                    if (changes[STU_FEA])
                     {
                         for (size_t i = 0; i < listeners_.size(); i++)
-                            listeners_[i]->OnChange(fmts_[STU_FEATURE], Scene2ViChn[STU_FEATURE]);
+                            listeners_[i]->OnChange(fmts_[STU_FEA], Scene2ViChn[STU_FEA]);
                     }
                 }
                 {
