@@ -7,7 +7,7 @@ enum RS_SCENE
     STU_FEA,            //学生特写      1
     TEA_FULL,           //教师全景      2
     STU_FULL,           //学生全景      3
-    BB_FEATURE,         //板书特写      4
+    BB_FEA,             //板书特写      4
     PC_CAPTURE,         //电脑画面      5
     MAIN,               //主画面        6
 };

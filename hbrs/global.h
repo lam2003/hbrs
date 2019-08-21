@@ -103,7 +103,7 @@ enum RS_SCENE
     STU_FEA,
     TEA_FULL,
     STU_FULL,
-    BB_FEATURE,
+    BB_FEA,
     PC_CAPTURE,
     MAIN,
     MAIN2,
@@ -113,7 +113,7 @@ enum RS_SCENE
 static std::map<int, int> Tw6874_1_DevChn2Scene = {
     {3, TEA_FULL},
     {2, STU_FULL},
-    {1, BB_FEATURE}};
+    {1, BB_FEA}};
 
 static std::map<int, int> Tw6874_2_DevChn2Scene = {
     {1, TEA_FEA},

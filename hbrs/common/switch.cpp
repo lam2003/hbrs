@@ -56,34 +56,45 @@ void Switch::OnRead(evutil_socket_t sockfd)
         oss << std::hex << buf[i] << " ";
     log_e("switch command:%s", oss.str().c_str());
 
+    RS_SCENE scene;
     if (CompareCommand(Config::Instance()->switch_cmd_.tea_fea, buf, ret))
     {
         log_d("switch to teacher feature");
+        scene = TEA_FEA;
     }
     else if (CompareCommand(Config::Instance()->switch_cmd_.stu_fea, buf, ret))
     {
         log_d("switch to student feature");
+        scene = STU_FEA;
     }
     else if (CompareCommand(Config::Instance()->switch_cmd_.tea_full, buf, ret))
     {
         log_d("switch to teacher fullview");
+        scene = TEA_FULL;
     }
     else if (CompareCommand(Config::Instance()->switch_cmd_.stu_full, buf, ret))
     {
         log_d("switch to student fullview");
+        scene = STU_FULL;
     }
     else if (CompareCommand(Config::Instance()->switch_cmd_.bb_fea, buf, ret))
     {
         log_d("switch to black board feature");
+        scene = BB_FEA;
     }
     else if (CompareCommand(Config::Instance()->switch_cmd_.pc_capture, buf, ret))
     {
         log_d("switch to pc capture");
+        scene = PC_CAPTURE;
     }
     else
     {
         log_e("unknow command");
+        return;
     }
+
+    if (listener_ != nullptr)
+        listener_->OnSwitchEvent(scene);
 }
 
 int Switch::Initialize(event_base *base)

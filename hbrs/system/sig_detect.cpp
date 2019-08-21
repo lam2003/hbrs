@@ -195,10 +195,10 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                     }
                 }
 
-                if (changes[TEA_FULL] || changes[STU_FULL] || changes[BB_FEATURE])
+                if (changes[TEA_FULL] || changes[STU_FULL] || changes[BB_FEA])
                 {
                     pciv::Tw6874Query query;
-                    for (int i = TEA_FULL; i <= BB_FEATURE; i++)
+                    for (int i = TEA_FULL; i <= BB_FEA; i++)
                         query.fmts[i - TEA_FULL] = fmts_[i];
 
                     msg.type = pciv::Msg::Type::QUERY_TW6874;
