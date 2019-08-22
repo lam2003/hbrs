@@ -24,13 +24,13 @@ public:
 
     void OnRead(evutil_socket_t socket);
 
-    void SetEventListener(std::shared_ptr<SwitchEventListener> listener);
+    void SetEventListener(SwitchEventListener *listener);
 
 private:
     uint8_t buf[1024];
     int fd_;
     event *ev_;
-    std::shared_ptr<SwitchEventListener> listener_;
+    SwitchEventListener* listener_;
     bool init_;
 };
 } // namespace rs

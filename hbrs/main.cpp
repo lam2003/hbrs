@@ -5,11 +5,12 @@
 #include "common/switch.h"
 #include "common/json.h"
 
-#include "model/resource_record_req.h"
+#include "model/record_req.h"
 #include "model/local_live_req.h"
 #include "model/remote_live_req.h"
 #include "model/change_pc_capture_req.h"
 #include "model/change_main_scene_req.h"
+#include "model/switch_req.h"
 
 using namespace rs;
 
@@ -91,23 +92,99 @@ static void StopLocalLiveHandler(evhttp_request *req, void *arg)
 	ResponseOK(req);
 }
 
-static void StartResourceRecordHandler(evhttp_request *req, void *arg)
+static void StartRemoteLiveHandler(evhttp_request *req, void *arg)
 {
 	Json::Value root;
-	if (!CheckReq<ResourceRecordReq>(req, root))
+	if (!CheckReq<RemoteLiveReq>(req, root))
 		return;
 
-	ResourceRecordReq record_req;
-	record_req = root;
+	RemoteLiveReq live_req;
+	live_req = root;
 
-	g_VideoManager.CloseResourceRecord();
-	g_VideoManager.StartResourceRecord(record_req.records);
+	g_VideoManager.CloseRemoteLive();
+	g_VideoManager.StartRemoteLive(live_req.remote_live);
 	ResponseOK(req);
 }
 
-static void StopResourceRecordHandler(evhttp_request *req, void *arg)
+static void StopRemoteLiveHandler(evhttp_request *req, void *arg)
 {
-	g_VideoManager.CloseResourceRecord();
+	g_VideoManager.CloseRemoteLive();
+	ResponseOK(req);
+}
+
+static void StartRecordHandler(evhttp_request *req, void *arg)
+{
+	Json::Value root;
+	if (!CheckReq<RecordReq>(req, root))
+		return;
+
+	RecordReq record_req;
+	record_req = root;
+
+	g_VideoManager.CloseRecord();
+	g_VideoManager.StartRecord(record_req.records);
+	ResponseOK(req);
+}
+
+static void SwitchHandler(evhttp_request *req, void *arg)
+{
+	Json::Value root;
+	if (!CheckReq<SwitchReq>(req, root))
+		return;
+
+	SwitchReq switch_req;
+	switch_req = root;
+
+	g_VideoManager.OnSwitchEvent(switch_req.scene);
+	ResponseOK(req);
+}
+
+static void StopRecordHandler(evhttp_request *req, void *arg)
+{
+	g_VideoManager.CloseRecord();
+	ResponseOK(req);
+}
+
+static void ChangeMainScreenHandler(evhttp_request *req, void *arg)
+{
+	Json::Value root;
+	if (!CheckReq<ChangeMainScreenReq>(req, root))
+		return;
+
+	ChangeMainScreenReq change_main_screen_req;
+	change_main_screen_req = root;
+
+	if (Config::IsResourceMode(change_main_screen_req.scene.mode) != CONFIG->IsResourceMode())
+	{
+		g_VideoManager.CloseRecord();
+		g_VideoManager.CloseRemoteLive();
+		g_VideoManager.CloseLocalLive();
+		g_VideoManager.CloseVideoEncode();
+		g_VideoManager.CloseMainScreen();
+
+		g_VideoManager.StartMainScreen(change_main_screen_req.scene);
+		g_VideoManager.StartVideoEncode(CONFIG->video_);
+		g_VideoManager.StartLocalLive(CONFIG->local_lives_);
+		g_VideoManager.StartRemoteLive(CONFIG->remote_live_);
+	}
+	else
+	{
+		g_VideoManager.CloseMainScreen();
+		g_VideoManager.StartMainScreen(change_main_screen_req.scene);
+	}
+	ResponseOK(req);
+}
+
+static void ChangePCCaptureModeHandler(evhttp_request *req, void *arg)
+{
+	Json::Value root;
+	if (!CheckReq<ChangePCCaptureReq>(req, root))
+		return;
+
+	ChangePCCaptureReq change_pc_capture_req;
+	change_pc_capture_req = root;
+
+	g_VideoManager.ChangePCCaputreMode(change_pc_capture_req.adv7842);
 	ResponseOK(req);
 }
 
@@ -145,7 +222,6 @@ int32_t main(int32_t argc, char **argv)
 	if (!got_config_file)
 	{
 		log_w("Usage:%s -c [conf_file_path]", argv[0]);
-		//休眠让日志有足够的时间输出
 		usleep(100000); //100ms
 		return 0;
 	}
@@ -157,11 +233,17 @@ int32_t main(int32_t argc, char **argv)
 
 	event_base *base = event_base_new();
 	g_Switch.Initialize(base);
+	g_Switch.SetEventListener(&g_VideoManager);
 	g_HttpServer.Initialize("0.0.0.0", 8081, base);
 	g_HttpServer.RegisterURI("/start_local_live", StartLocalLiveHandler, nullptr);
 	g_HttpServer.RegisterURI("/stop_local_live", StopLocalLiveHandler, nullptr);
-	g_HttpServer.RegisterURI("/start_resource_record", StartResourceRecordHandler, nullptr);
-	g_HttpServer.RegisterURI("/stop_resource_record", StopResourceRecordHandler, nullptr);
+	g_HttpServer.RegisterURI("/start_remote_live", StartRemoteLiveHandler, nullptr);
+	g_HttpServer.RegisterURI("/stop_remote_live", StopRemoteLiveHandler, nullptr);
+	g_HttpServer.RegisterURI("/start_record", StartRecordHandler, nullptr);
+	g_HttpServer.RegisterURI("/stop_record", StopRecordHandler, nullptr);
+	g_HttpServer.RegisterURI("/switch", SwitchHandler, nullptr);
+	g_HttpServer.RegisterURI("/change_main_screen", ChangeMainScreenHandler, nullptr);
+	g_HttpServer.RegisterURI("/change_pc_capture_mode", ChangePCCaptureModeHandler, nullptr);
 
 	while (g_Run)
 	{

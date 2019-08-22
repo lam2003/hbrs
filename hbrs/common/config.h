@@ -69,23 +69,15 @@ public:
         Scene &operator=(const Json::Value &root);
     };
 
-    struct ResourceRecord
+    struct Record
     {
         std::vector<std::pair<RS_SCENE, mp4::Params>> records;
 
         operator Json::Value() const;
         static bool IsOk(const Json::Value &root);
-        ResourceRecord &operator=(const Json::Value &root);
+        Record &operator=(const Json::Value &root);
     };
 
-    struct NormalRecord
-    {
-        mp4::Params record;
-
-        operator Json::Value() const;
-        static bool IsOk(const Json::Value &root);
-        NormalRecord &operator=(const Json::Value &root);
-    };
 
     struct LocalLive
     {
@@ -143,8 +135,7 @@ public:
     Display display_;
     RemoteLive remote_live_;
     LocalLive local_lives_;
-    ResourceRecord resource_records_;
-    NormalRecord normal_record_;
+    Record records_;
     SwitchCommand switch_cmd_;
 
 private:

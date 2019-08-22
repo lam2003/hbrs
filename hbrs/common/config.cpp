@@ -466,7 +466,7 @@ Config::Scene &Config::Scene::operator=(const Json::Value &root)
     return *this;
 }
 
-Config::ResourceRecord::operator Json::Value() const
+Config::Record::operator Json::Value() const
 {
     Json::Value root;
     for (const std::pair<RS_SCENE, mp4::Params> &record : records)
@@ -478,7 +478,7 @@ Config::ResourceRecord::operator Json::Value() const
     return root;
 }
 
-bool Config::ResourceRecord::IsOk(const Json::Value &root)
+bool Config::Record::IsOk(const Json::Value &root)
 {
     if (!root.isArray())
         return false;
@@ -511,7 +511,7 @@ bool Config::ResourceRecord::IsOk(const Json::Value &root)
     return true;
 }
 
-Config::ResourceRecord &Config::ResourceRecord::operator=(const Json::Value &root)
+Config::Record &Config::Record::operator=(const Json::Value &root)
 {
     for (size_t i = 0; i < root.size(); i++)
     {
@@ -540,24 +540,6 @@ Config::ResourceRecord &Config::ResourceRecord::operator=(const Json::Value &roo
     return *this;
 }
 
-Config::NormalRecord::operator Json::Value() const
-{
-    return record;
-}
-
-bool Config::NormalRecord::IsOk(const Json::Value &root)
-{
-    if (!root.isObject() ||
-        !mp4::Params::IsOk(root))
-        return false;
-    return true;
-}
-
-Config::NormalRecord &Config::NormalRecord::operator=(const Json::Value &root)
-{
-    record = root;
-    return *this;
-}
 
 Config::LocalLive::operator Json::Value() const
 {

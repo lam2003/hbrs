@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/config.h"
+#include "common/switch.h"
 
 namespace rs
 {
@@ -19,7 +20,7 @@ class AudioInput;
 class AudioEncode;
 class AudioOutput;
 
-class VideoManager
+class VideoManager : public SwitchEventListener
 {
 public:
     explicit VideoManager();
@@ -38,13 +39,9 @@ public:
 
     void CloseRemoteLive();
 
-    void StartResourceRecord(const Config::ResourceRecord &records);
+    void StartRecord(const Config::Record &records);
 
-    void CloseResourceRecord();
-
-    void StartNormalRecord(const Config::NormalRecord &record);
-
-    void CloseNormalRecord();
+    void CloseRecord();
 
     void StartMainScreen(const Config::Scene &scene_conf);
 
@@ -57,6 +54,12 @@ public:
     void StartVideoEncode(const Config::Video &video_conf);
 
     void CloseVideoEncode();
+
+    void ChangeMainScreen(RS_SCENE scene);
+
+    void OnSwitchEvent(RS_SCENE scene) override;
+
+    void ChangePCCaputreMode(Config::Adv7842 adv7842);
 
 private:
     std::vector<std::shared_ptr<VIHelper>> vi_arr_;
@@ -84,8 +87,8 @@ private:
     bool main_screen_started_;
     bool local_live_started_;
     bool remote_live_started_;
-    bool resource_record_started_;
-    bool normal_record_started_;
+    bool record_started_;
+    bool pip_changed_;
     bool init_;
 };
 } // namespace rs

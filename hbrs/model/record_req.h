@@ -6,9 +6,9 @@
 namespace rs
 {
 
-struct ResourceRecordReq
+struct RecordReq
 {
-    Config::ResourceRecord records;
+    Config::Record records;
 
     operator Json::Value() const
     {
@@ -17,12 +17,12 @@ struct ResourceRecordReq
 
     static bool IsOk(const Json::Value &root)
     {
-        if (!Config::ResourceRecord::IsOk(root))
+        if (!Config::Record::IsOk(root))
             return false;
         return true;
     }
 
-    ResourceRecordReq &operator=(const Json::Value &root)
+    RecordReq &operator=(const Json::Value &root)
     {
         records = root;
         return *this;

@@ -31,8 +31,8 @@ VideoManager::VideoManager() : display_vo_(nullptr),
                                main_screen_started_(false),
                                local_live_started_(false),
                                remote_live_started_(false),
-                               resource_record_started_(false),
-                               normal_record_started_(false),
+                               record_started_(false),
+                               pip_changed_(false),
                                init_(false)
 {
 }
@@ -336,6 +336,9 @@ void VideoManager::StartLocalLive(const Config::LocalLive &local_lives)
     if (local_live_started_)
         return;
 
+    if (local_lives.lives.size() == 0)
+        return;
+
     for (const std::pair<RS_SCENE, rtmp::Params> &item : local_lives.lives)
     {
         RS_SCENE scene = item.first;
@@ -415,15 +418,20 @@ void VideoManager::CloseRemoteLive()
     remote_live_started_ = false;
 }
 
-void VideoManager::StartResourceRecord(const Config::ResourceRecord &resource_records)
+void VideoManager::StartRecord(const Config::Record &records)
 {
-    if (resource_record_started_)
+    if (record_started_)
         return;
 
+    if (records.records.size() == 0)
+        return;
     if (!CONFIG->IsResourceMode())
-        return;
+    {
+        if (records.records.size() != 1 || records.records[0].first != MAIN)
+            return;
+    }
 
-    for (const std::pair<RS_SCENE, mp4::Params> &item : resource_records.records)
+    for (const std::pair<RS_SCENE, mp4::Params> &item : records.records)
     {
         RS_SCENE scene = item.first;
         mp4::Params record_params = item.second;
@@ -433,16 +441,16 @@ void VideoManager::StartResourceRecord(const Config::ResourceRecord &resource_re
         aenc_->AddAudioSink(record_arr_[scene]);
     }
 
-    CONFIG->resource_records_ = resource_records;
-    resource_record_started_ = true;
+    CONFIG->records_ = records;
+    record_started_ = true;
 }
 
-void VideoManager::CloseResourceRecord()
+void VideoManager::CloseRecord()
 {
-    if (!resource_record_started_)
+    if (!record_started_)
         return;
 
-    for (const std::pair<RS_SCENE, mp4::Params> &item : CONFIG->resource_records_.records)
+    for (const std::pair<RS_SCENE, mp4::Params> &item : CONFIG->records_.records)
     {
         RS_SCENE scene = item.first;
         aenc_->RemoveAudioSink(record_arr_[scene]);
@@ -450,37 +458,8 @@ void VideoManager::CloseResourceRecord()
         record_arr_[scene]->Close();
     }
 
-    CONFIG->resource_records_.records.clear();
-    resource_record_started_ = false;
-}
-
-void VideoManager::StartNormalRecord(const Config::NormalRecord &normal_record)
-{
-    if (normal_record_started_)
-        return;
-
-    if (CONFIG->IsResourceMode())
-        return;
-
-    record_arr_[MAIN2]->Initialize(normal_record.record);
-    aenc_->AddAudioSink(record_arr_[MAIN2]);
-    venc_arr_[MAIN2]->AddVideoSink(record_arr_[MAIN2]);
-
-    CONFIG->normal_record_ = normal_record;
-    normal_record_started_ = true;
-}
-
-void VideoManager::CloseNormalRecord()
-{
-    if (!normal_record_started_)
-        return;
-
-    venc_arr_[MAIN2]->RemoveVideoSink(record_arr_[MAIN2]);
-    aenc_->RemoveAudioSink(record_arr_[MAIN2]);
-    record_arr_[MAIN2]->Close();
-
-    CONFIG->normal_record_.record.filename = "";
-    normal_record_started_ = false;
+    CONFIG->records_.records.clear();
+    record_started_ = false;
 }
 
 void VideoManager::StartMainScreen(const Config::Scene &scene_conf)
@@ -668,5 +647,62 @@ void VideoManager::CloseVideoEncode()
     }
 
     encode_stared_ = false;
+}
+
+void VideoManager::ChangeMainScreen(RS_SCENE new_main_screen)
+{
+    if (!main_screen_started_)
+        return;
+
+    for (auto it = CONFIG->scene_.mapping.begin(); it != CONFIG->scene_.mapping.end(); it++)
+    {
+        int index = it->first;
+        RS_SCENE scene = it->second;
+        if (scene == MAIN)
+        {
+            MPPSystem::UnBind<HI_ID_VPSS, HI_ID_VOU>(main_screen_, 4, 12, index);
+            MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(new_main_screen, 4, 12, index);
+            main_screen_ = new_main_screen;
+        }
+    }
+}
+
+void VideoManager::OnSwitchEvent(RS_SCENE scene)
+{
+    if (!init_ || scene == main_screen_)
+        return;
+
+    if (CONFIG->scene_.mode == Config::Scene::Mode::PIP_MODE)
+    {
+        if (CONFIG->scene_.mapping[1] == scene || pip_changed_)
+        {
+            Config::Scene scene_conf;
+            scene_conf.mode = CONFIG->scene_.mode;
+            scene_conf.mapping[0] = CONFIG->scene_.mapping[1];
+            scene_conf.mapping[1] = CONFIG->scene_.mapping[0];
+
+            CloseMainScreen();
+            StartMainScreen(scene_conf);
+
+            pip_changed_ = !pip_changed_;
+            main_screen_ = scene;
+        }
+    }
+    else
+    {
+        pip_changed_ = false;
+        ChangeMainScreen(scene);
+    }
+}
+
+void VideoManager::ChangePCCaputreMode(Config::Adv7842 adv7842)
+{
+    if (!init_)
+        return;
+    if (adv7842.pc_capture_mode == adv7842.pc_capture_mode)
+        return;
+    sig_detect_->SetPCCaptureMode(adv7842.pc_capture_mode);
+    CONFIG->adv7842_ = adv7842;
+    CONFIG->WriteToFile();
 }
 } // namespace rs
