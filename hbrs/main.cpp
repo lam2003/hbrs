@@ -9,8 +9,10 @@
 #include "model/local_live_req.h"
 #include "model/remote_live_req.h"
 #include "model/change_pc_capture_req.h"
-#include "model/change_main_scene_req.h"
+#include "model/change_main_sceen_req.h"
+#include "model/change_display_sceen_req.h"
 #include "model/switch_req.h"
+#include "model/change_video_req.h"
 
 using namespace rs;
 
@@ -188,6 +190,39 @@ static void ChangePCCaptureModeHandler(evhttp_request *req, void *arg)
 	ResponseOK(req);
 }
 
+static void ChangeDisplayScreenHandler(evhttp_request *req, void *arg)
+{
+	Json::Value root;
+	if (!CheckReq<ChangeDisplayScreenReq>(req, root))
+		return;
+
+	ChangeDisplayScreenReq change_display_screen_req;
+	change_display_screen_req = root;
+
+	g_VideoManager.CloseDisplayScreen();
+	g_VideoManager.StartDisplayScreen(change_display_screen_req.display);
+
+	ResponseOK(req);
+}
+
+static void ChangeVideoHandler(evhttp_request *req, void *arg)
+{
+	Json::Value root;
+	if (!CheckReq<ChangeVideoReq>(req, root))
+		return;
+	ChangeVideoReq change_video_req;
+	change_video_req = root;
+
+	g_VideoManager.CloseRecord();
+	g_VideoManager.CloseLocalLive();
+	g_VideoManager.CloseLocalLive();
+	g_VideoManager.CloseVideoEncode();
+	g_VideoManager.StartVideoEncode(change_video_req.video);
+	g_VideoManager.StartLocalLive(CONFIG->local_lives_);
+	g_VideoManager.StartRemoteLive(CONFIG->remote_live_);
+	ResponseOK(req);
+}
+
 int32_t main(int32_t argc, char **argv)
 {
 	int ret;
@@ -244,6 +279,8 @@ int32_t main(int32_t argc, char **argv)
 	g_HttpServer.RegisterURI("/switch", SwitchHandler, nullptr);
 	g_HttpServer.RegisterURI("/change_main_screen", ChangeMainScreenHandler, nullptr);
 	g_HttpServer.RegisterURI("/change_pc_capture_mode", ChangePCCaptureModeHandler, nullptr);
+	g_HttpServer.RegisterURI("/change_display_screen", ChangeDisplayScreenHandler, nullptr);
+	g_HttpServer.RegisterURI("/change_video", ChangeVideoHandler, nullptr);
 
 	while (g_Run)
 	{

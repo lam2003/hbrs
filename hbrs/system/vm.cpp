@@ -161,12 +161,6 @@ int VideoManager::Initialize()
     //初始化功能模块
     //##############################################
 
-    StartMainScreen(CONFIG->scene_);
-
-    StartDisplayScreen(CONFIG->display_);
-
-    StartVideoEncode(CONFIG->video_);
-
     live_arr_.resize(8);
     for (int i = 0; i < 8; i++)
         live_arr_[i] = std::make_shared<RTMPLive>();
@@ -177,16 +171,39 @@ int VideoManager::Initialize()
 
     init_ = true;
 
+    StartMainScreen(CONFIG->scene_);
+
+    StartDisplayScreen(CONFIG->display_);
+
+    StartVideoEncode(CONFIG->video_);
+
+    StartLocalLive(CONFIG->local_lives_);
+
+    StartRemoteLive(CONFIG->remote_live_);
+
     return KSuccess;
 }
 
 void VideoManager::Close()
 {
+
     if (!init_)
         return;
+
+    CloseRemoteLive();
+
+    CloseLocalLive();
+
+    CloseVideoEncode();
+
+    CloseDisplayScreen();
+
+    CloseMainScreen();
+
     //################################################
     //去初始化功能模块
     //################################################
+
     for (int i = 0; i < 8; i++)
     {
         record_arr_[i].reset();
@@ -198,12 +215,6 @@ void VideoManager::Close()
         live_arr_[i].reset();
         live_arr_[i] = nullptr;
     }
-
-    CloseVideoEncode();
-
-    CloseDisplayScreen();
-
-    CloseMainScreen();
 
     //################################################
     // 去初始化音频
@@ -333,7 +344,7 @@ void VideoManager::Close()
 
 void VideoManager::StartLocalLive(const Config::LocalLive &local_lives)
 {
-    if (local_live_started_)
+    if (!init_ && local_live_started_)
         return;
 
     if (local_lives.lives.size() == 0)
@@ -362,7 +373,7 @@ void VideoManager::StartLocalLive(const Config::LocalLive &local_lives)
 
 void VideoManager::CloseLocalLive()
 {
-    if (!local_live_started_)
+    if (!init_ && !local_live_started_)
         return;
 
     for (const std::pair<RS_SCENE, rtmp::Params> &item : CONFIG->local_lives_.lives)
@@ -388,7 +399,7 @@ void VideoManager::CloseLocalLive()
 
 void VideoManager::StartRemoteLive(const Config::RemoteLive &remote_live)
 {
-    if (remote_live_started_)
+    if (!init_ && remote_live_started_)
         return;
 
     if (remote_live.live.url == "")
@@ -405,7 +416,7 @@ void VideoManager::StartRemoteLive(const Config::RemoteLive &remote_live)
 
 void VideoManager::CloseRemoteLive()
 {
-    if (!remote_live_started_)
+    if (!init_ && !remote_live_started_)
         return;
 
     venc_arr_[MAIN2]->RemoveVideoSink(live_arr_[MAIN2]);
@@ -436,9 +447,18 @@ void VideoManager::StartRecord(const Config::Record &records)
         RS_SCENE scene = item.first;
         mp4::Params record_params = item.second;
 
-        record_arr_[scene]->Initialize(record_params);
-        venc_arr_[scene]->AddVideoSink(record_arr_[scene]);
-        aenc_->AddAudioSink(record_arr_[scene]);
+        if (scene == MAIN && !CONFIG->IsResourceMode())
+        {
+            record_arr_[MAIN2]->Initialize(record_params);
+            venc_arr_[MAIN2]->AddVideoSink(record_arr_[MAIN2]);
+            aenc_->AddAudioSink(record_arr_[MAIN2]);
+        }
+        else
+        {
+            record_arr_[scene]->Initialize(record_params);
+            venc_arr_[scene]->AddVideoSink(record_arr_[scene]);
+            aenc_->AddAudioSink(record_arr_[scene]);
+        }
     }
 
     CONFIG->records_ = records;
@@ -453,9 +473,19 @@ void VideoManager::CloseRecord()
     for (const std::pair<RS_SCENE, mp4::Params> &item : CONFIG->records_.records)
     {
         RS_SCENE scene = item.first;
-        aenc_->RemoveAudioSink(record_arr_[scene]);
-        venc_arr_[scene]->RemoveVideoSink(record_arr_[scene]);
-        record_arr_[scene]->Close();
+
+        if (scene == MAIN && !CONFIG->IsResourceMode())
+        {
+            aenc_->RemoveAudioSink(record_arr_[MAIN2]);
+            venc_arr_[MAIN2]->RemoveVideoSink(record_arr_[MAIN2]);
+            record_arr_[MAIN2]->Close();
+        }
+        else
+        {
+            aenc_->RemoveAudioSink(record_arr_[scene]);
+            venc_arr_[scene]->RemoveVideoSink(record_arr_[scene]);
+            record_arr_[scene]->Close();
+        }
     }
 
     CONFIG->records_.records.clear();
@@ -464,7 +494,7 @@ void VideoManager::CloseRecord()
 
 void VideoManager::StartMainScreen(const Config::Scene &scene_conf)
 {
-    if (main_screen_started_)
+    if (!init_ && main_screen_started_)
         return;
 
     std::map<int, std::pair<RECT_S, int>> main_pos = VideoOutput::GetScenePos(scene_conf.mode);
@@ -502,7 +532,7 @@ void VideoManager::StartMainScreen(const Config::Scene &scene_conf)
 
 void VideoManager::CloseMainScreen()
 {
-    if (!main_screen_started_)
+    if (!init_ && !main_screen_started_)
         return;
 
     for (auto it = CONFIG->scene_.mapping.begin(); it != CONFIG->scene_.mapping.end(); it++)
@@ -535,7 +565,7 @@ void VideoManager::CloseMainScreen()
 
 void VideoManager::StartDisplayScreen(const Config::Display &display_conf)
 {
-    if (display_screen_started_)
+    if (!init_ && display_screen_started_)
         return;
 
     display_vo_->Initialize({0, VO_INTF_VGA | VO_INTF_HDMI, display_conf.disp_vo_intf_sync});
@@ -558,7 +588,7 @@ void VideoManager::StartDisplayScreen(const Config::Display &display_conf)
 
 void VideoManager::CloseDisplayScreen()
 {
-    if (!display_screen_started_)
+    if (!init_ && !display_screen_started_)
         return;
 
     for (auto it = CONFIG->display_.mapping.begin(); it != CONFIG->display_.mapping.end(); it++)
@@ -576,7 +606,7 @@ void VideoManager::CloseDisplayScreen()
 
 void VideoManager::StartVideoEncode(const Config::Video &video_conf)
 {
-    if (encode_stared_)
+    if (!init_ && encode_stared_)
         return;
 
     if (!CONFIG->IsResourceMode())
@@ -615,7 +645,7 @@ void VideoManager::StartVideoEncode(const Config::Video &video_conf)
 
 void VideoManager::CloseVideoEncode()
 {
-    if (!encode_stared_)
+    if (!init_ && !encode_stared_)
         return;
 
     if (!CONFIG->IsResourceMode())
