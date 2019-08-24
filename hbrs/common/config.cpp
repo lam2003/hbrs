@@ -540,7 +540,6 @@ Config::Record &Config::Record::operator=(const Json::Value &root)
     return *this;
 }
 
-
 Config::LocalLive::operator Json::Value() const
 {
     Json::Value root;
@@ -631,16 +630,28 @@ Config::SwitchCommand::operator Json::Value() const
 {
     std::string str;
     Json::Value root;
+
+    root["tea_fea"] = "";
     if (Utils::HexInt2String(tea_fea, str))
         root["tea_fea"] = str;
+
+    root["stu_fea"] = "";
     if (Utils::HexInt2String(stu_fea, str))
         root["stu_fea"] = str;
+
+    root["tea_full"] = "";
     if (Utils::HexInt2String(tea_full, str))
         root["tea_full"] = str;
+
+    root["stu_full"] = "";
     if (Utils::HexInt2String(stu_full, str))
         root["stu_full"] = str;
+
+    root["bb_fea"] = "";
     if (Utils::HexInt2String(bb_fea, str))
         root["bb_fea"] = str;
+    
+    root["pc_capture"] = "";
     if (Utils::HexInt2String(pc_capture, str))
         root["pc_capture"] = str;
     return root;

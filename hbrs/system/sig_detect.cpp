@@ -50,6 +50,24 @@ SigDetect::SigDetect() : status_listeners_(nullptr),
 {
 }
 
+void PrintSignal(const std::vector<VideoInputFormat> &fmts)
+{
+    log_d("############signal changed############");
+
+    for (size_t i = 0; i < fmts.size(); i++)
+    {
+        if (fmts[i].has_signal)
+        {
+            log_d("[%d]width:%d,height:%d,interlaced:%d,frame_rate:%d", i, fmts[i].width, fmts[i].height, fmts[i].interlaced, fmts[i].frame_rate);
+        }
+        else
+        {
+            log_d("[%d]no signal", i);
+        }
+    }
+    log_d("######################################");
+}
+
 int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode)
 {
     if (init_)
@@ -194,7 +212,8 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                         changes[i] = false;
                     }
                 }
-
+                bool changed = false;
+                ;
                 if (changes[TEA_FULL] || changes[STU_FULL] || changes[BB_FEA])
                 {
                     pciv::Tw6874Query query;
@@ -209,6 +228,7 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                         if (ret != KSuccess)
                             return;
                     }
+                    changed = true;
                 }
                 {
                     std::unique_lock<std::mutex> lock(mux_);
@@ -216,14 +236,19 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                     {
                         for (size_t i = 0; i < listeners_.size(); i++)
                             listeners_[i]->OnChange(fmts_[TEA_FEA], Scene2ViChn[TEA_FEA]);
+                        changed = true;
                     }
 
                     if (changes[STU_FEA])
                     {
                         for (size_t i = 0; i < listeners_.size(); i++)
                             listeners_[i]->OnChange(fmts_[STU_FEA], Scene2ViChn[STU_FEA]);
+                        changed = true;
                     }
                 }
+                if (changed)
+                    PrintSignal(fmts_);
+                    
                 {
                     std::unique_lock<std::mutex> lock(mux_);
                     if (status_listeners_ != nullptr)

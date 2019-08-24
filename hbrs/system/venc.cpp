@@ -154,7 +154,7 @@ int32_t VideoEncode::Initialize(const Params &params)
             FD_SET(fd, &fds);
 
             tv.tv_sec = 0;
-            tv.tv_usec = 500000; //500ms
+            tv.tv_usec = 100000; //100ms
 
             ret = select(fd + 1, &fds, NULL, NULL, &tv);
             if (ret <= 0)

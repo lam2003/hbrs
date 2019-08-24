@@ -426,7 +426,7 @@ public:
         std::ostringstream oss;
 
         for (int i : int_arr)
-            oss << std::hex << i << " ";
+            oss << std::setw(2) << std::setfill('0') << std::hex << i << " ";
         str = oss.str();
         if (str.empty())
             return false;

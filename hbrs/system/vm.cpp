@@ -344,7 +344,7 @@ void VideoManager::Close()
 
 void VideoManager::StartLocalLive(const Config::LocalLive &local_lives)
 {
-    if (!init_ && local_live_started_)
+    if (!init_ || local_live_started_)
         return;
 
     if (local_lives.lives.size() == 0)
@@ -373,7 +373,7 @@ void VideoManager::StartLocalLive(const Config::LocalLive &local_lives)
 
 void VideoManager::CloseLocalLive()
 {
-    if (!init_ && !local_live_started_)
+    if (!init_ || !local_live_started_)
         return;
 
     for (const std::pair<RS_SCENE, rtmp::Params> &item : CONFIG->local_lives_.lives)
@@ -399,7 +399,7 @@ void VideoManager::CloseLocalLive()
 
 void VideoManager::StartRemoteLive(const Config::RemoteLive &remote_live)
 {
-    if (!init_ && remote_live_started_)
+    if (!init_ || remote_live_started_)
         return;
 
     if (remote_live.live.url == "")
@@ -407,7 +407,7 @@ void VideoManager::StartRemoteLive(const Config::RemoteLive &remote_live)
 
     live_arr_[MAIN2]->Initialize(remote_live.live);
     aenc_->AddAudioSink(live_arr_[MAIN2]);
-    venc_arr_[MAIN2]->AddVideoSink(live_arr_[MAIN2]);
+    venc_arr_[MAIN]->AddVideoSink(live_arr_[MAIN2]);
 
     CONFIG->remote_live_ = remote_live;
     CONFIG->WriteToFile();
@@ -416,10 +416,10 @@ void VideoManager::StartRemoteLive(const Config::RemoteLive &remote_live)
 
 void VideoManager::CloseRemoteLive()
 {
-    if (!init_ && !remote_live_started_)
+    if (!init_ || !remote_live_started_)
         return;
 
-    venc_arr_[MAIN2]->RemoveVideoSink(live_arr_[MAIN2]);
+    venc_arr_[MAIN]->RemoveVideoSink(live_arr_[MAIN2]);
     aenc_->RemoveAudioSink(live_arr_[MAIN2]);
     live_arr_[MAIN2]->Close();
 
@@ -494,7 +494,7 @@ void VideoManager::CloseRecord()
 
 void VideoManager::StartMainScreen(const Config::Scene &scene_conf)
 {
-    if (!init_ && main_screen_started_)
+    if (!init_ || main_screen_started_)
         return;
 
     std::map<int, std::pair<RECT_S, int>> main_pos = VideoOutput::GetScenePos(scene_conf.mode);
@@ -505,6 +505,10 @@ void VideoManager::StartMainScreen(const Config::Scene &scene_conf)
 
         RECT_S rect = main_pos[index].first;
         int level = main_pos[index].second;
+#if 0
+        log_d("index:%d,rect.x:%d,rect.y:%d,rect.width:%d,rect.height:%d,level:%d",
+        index,rect.s32X,rect.s32Y,rect.u32Width,rect.u32Height,level);
+#endif 
         main_vo_->StartChannel(index, rect, level);
 
         if (scene == TEA_FEA || scene == STU_FEA || scene == MAIN)
@@ -532,7 +536,7 @@ void VideoManager::StartMainScreen(const Config::Scene &scene_conf)
 
 void VideoManager::CloseMainScreen()
 {
-    if (!init_ && !main_screen_started_)
+    if (!init_ || !main_screen_started_)
         return;
 
     for (auto it = CONFIG->scene_.mapping.begin(); it != CONFIG->scene_.mapping.end(); it++)
@@ -565,7 +569,7 @@ void VideoManager::CloseMainScreen()
 
 void VideoManager::StartDisplayScreen(const Config::Display &display_conf)
 {
-    if (!init_ && display_screen_started_)
+    if (!init_ || display_screen_started_)
         return;
 
     display_vo_->Initialize({0, VO_INTF_VGA | VO_INTF_HDMI, display_conf.disp_vo_intf_sync});
@@ -588,7 +592,7 @@ void VideoManager::StartDisplayScreen(const Config::Display &display_conf)
 
 void VideoManager::CloseDisplayScreen()
 {
-    if (!init_ && !display_screen_started_)
+    if (!init_ || !display_screen_started_)
         return;
 
     for (auto it = CONFIG->display_.mapping.begin(); it != CONFIG->display_.mapping.end(); it++)
@@ -606,7 +610,7 @@ void VideoManager::CloseDisplayScreen()
 
 void VideoManager::StartVideoEncode(const Config::Video &video_conf)
 {
-    if (!init_ && encode_stared_)
+    if (!init_ || encode_stared_)
         return;
 
     if (!CONFIG->IsResourceMode())
@@ -645,7 +649,7 @@ void VideoManager::StartVideoEncode(const Config::Video &video_conf)
 
 void VideoManager::CloseVideoEncode()
 {
-    if (!init_ && !encode_stared_)
+    if (!init_ || !encode_stared_)
         return;
 
     if (!CONFIG->IsResourceMode())
@@ -699,7 +703,7 @@ void VideoManager::ChangeMainScreen(RS_SCENE new_main_screen)
 
 void VideoManager::OnSwitchEvent(RS_SCENE scene)
 {
-    if (!init_ || scene == main_screen_)
+    if (!init_ || scene == main_screen_ || scene == MAIN)
         return;
 
     if (CONFIG->scene_.mode == Config::Scene::Mode::PIP_MODE)
