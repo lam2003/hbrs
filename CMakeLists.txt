@@ -10,12 +10,20 @@ SET(CMAKE_CXX_COMPILER arm-hisiv400-linux-g++)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_SKIP_RPATH true)
+set(DEBUG true)
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
 
-set(CMAKE_CXX_FLAGS "-g -Wall -Wno-deprecated-declarations ${CMAKE_CXX_FLAGS}")
-set(CMAKE_C_FLAGS "-g -Wall -Wno-deprecated-declarations ${CMAKE_C_FLAGS}")
 
+if(DEBUG)
+    message(STATUS "BUILD DEBUG")
+    set(CMAKE_CXX_FLAGS "-g -Wall -Wno-deprecated-declarations ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_C_FLAGS "-g -Wall -Wno-deprecated-declarations ${CMAKE_C_FLAGS}")
+else()
+    message(STATUS "BUILD RELEASE")
+    set(CMAKE_CXX_FLAGS "-Wall -Wno-deprecated-declarations ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_C_FLAGS "-Wall -Wno-deprecated-declarations ${CMAKE_C_FLAGS}")
+endif()
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/hbrs

@@ -733,7 +733,7 @@ void VideoManager::ChangePCCaputreMode(Config::Adv7842 adv7842)
 {
     if (!init_)
         return;
-    if (adv7842.pc_capture_mode == adv7842.pc_capture_mode)
+    if (CONFIG->adv7842_.pc_capture_mode == adv7842.pc_capture_mode)
         return;
     sig_detect_->SetPCCaptureMode(adv7842.pc_capture_mode);
     CONFIG->adv7842_ = adv7842;
