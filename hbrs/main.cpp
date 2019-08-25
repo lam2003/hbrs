@@ -1,5 +1,6 @@
 #include "system/mpp.h"
 #include "system/vm.h"
+#include "common/rtc.h"
 #include "common/logger.h"
 #include "common/http_server.h"
 #include "common/switch.h"
@@ -225,10 +226,17 @@ static void ChangeVideoHandler(evhttp_request *req, void *arg)
 	ResponseOK(req);
 }
 
+static void SaveTimeHandler(evhttp_request *req, void *arg)
+{
+	RTC::SaveTime();
+	ResponseOK(req);
+}
+
 int32_t main(int32_t argc, char **argv)
 {
 	int ret;
 
+	RTC::LoadTime();
 	ConfigLogger();
 
 	signal(SIGINT, SignalHandler);
@@ -294,6 +302,7 @@ int32_t main(int32_t argc, char **argv)
 	g_HttpServer.RegisterURI("/change_pc_capture_mode", ChangePCCaptureModeHandler, nullptr);
 	g_HttpServer.RegisterURI("/change_display_screen", ChangeDisplayScreenHandler, nullptr);
 	g_HttpServer.RegisterURI("/change_video", ChangeVideoHandler, nullptr);
+	g_HttpServer.RegisterURI("/save_time", SaveTimeHandler, nullptr);
 
 	while (g_Run)
 	{
