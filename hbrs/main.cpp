@@ -17,13 +17,6 @@
 
 using namespace rs;
 
-#define CHECK_ERROR(a)                                                                  \
-	if (KSuccess != a)                                                                  \
-	{                                                                                   \
-		log_e("error:%s", make_error_code(static_cast<err_code>(a)).message().c_str()); \
-		return a;                                                                       \
-	}
-
 static VideoManager g_VideoManager;
 static HttpServer g_HttpServer;
 static Switch g_Switch;
@@ -234,8 +227,6 @@ static void SaveTimeHandler(evhttp_request *req, void *arg)
 
 int32_t main(int32_t argc, char **argv)
 {
-	int ret;
-
 	RTC::LoadTime();
 	ConfigLogger();
 
@@ -252,8 +243,8 @@ int32_t main(int32_t argc, char **argv)
 		{
 		case 'c':
 		{
-			ret = CONFIG->Initialize(optarg);
-			CHECK_ERROR(ret);
+			if (CONFIG->Initialize(optarg) != KSuccess)
+				return KParamsError;
 			got_config_file = true;
 			break;
 		}
@@ -282,8 +273,7 @@ int32_t main(int32_t argc, char **argv)
 		return 0;
 	}
 
-	ret = MPPSystem::Instance()->Initialize();
-	CHECK_ERROR(ret);
+	MPPSystem::Instance()->Initialize();
 
 	g_VideoManager.Initialize();
 
