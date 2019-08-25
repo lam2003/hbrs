@@ -31,6 +31,7 @@ int AudioInput::Initialize(const Params &params)
     attr.enSamplerate = AUDIO_SAMPLE_RATE_48000;
     attr.enBitwidth = AUDIO_BIT_WIDTH_16;
     attr.enWorkmode = AIO_MODE_I2S_SLAVE;
+    attr.u32EXFlag = 1;
     attr.u32FrmNum = 30;
     attr.u32PtNumPerFrm = 1024;
     attr.u32ChnCnt = 2;
@@ -119,6 +120,7 @@ int AudioInput::Initialize(const Params &params)
                     cur_pos[1] = *reinterpret_cast<uint8_t *>((uint32_t)frame.pVirAddr[0] + i + 1);
                     cur_pos[2] = *reinterpret_cast<uint8_t *>((uint32_t)frame.pVirAddr[1] + i);
                     cur_pos[3] = *reinterpret_cast<uint8_t *>((uint32_t)frame.pVirAddr[1] + i + 1);
+                    cur_pos += 4;
                 }
 
                 AIFrame ai_frame;
