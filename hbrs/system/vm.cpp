@@ -508,7 +508,7 @@ void VideoManager::StartMainScreen(const Config::Scene &scene_conf)
 #if 0
         log_d("index:%d,rect.x:%d,rect.y:%d,rect.width:%d,rect.height:%d,level:%d",
         index,rect.s32X,rect.s32Y,rect.u32Width,rect.u32Height,level);
-#endif 
+#endif
         main_vo_->StartChannel(index, rect, level);
 
         if (scene == TEA_FEA || scene == STU_FEA || scene == MAIN)
@@ -703,9 +703,10 @@ void VideoManager::ChangeMainScreen(RS_SCENE new_main_screen)
 
 void VideoManager::OnSwitchEvent(RS_SCENE scene)
 {
-    if (!init_ || scene == main_screen_ || scene == MAIN)
+    if (!init_)
         return;
-
+    if (scene == main_screen_ || scene == MAIN)
+        return;
     if (CONFIG->scene_.mode == Config::Scene::Mode::PIP_MODE)
     {
         if (CONFIG->scene_.mapping[1] == scene || pip_changed_)

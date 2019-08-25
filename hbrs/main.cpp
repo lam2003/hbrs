@@ -27,10 +27,12 @@ static VideoManager g_VideoManager;
 static HttpServer g_HttpServer;
 static Switch g_Switch;
 
-static const char *g_Opts = "c:";
+static const char *g_Opts = "c:i:p:";
 
 struct option g_LongOpts[] = {
 	{"config", 1, NULL, 'c'},
+	{"http listen ip", 2, NULL, 'i'},
+	{"http listen port", 3, NULL, 'p'},
 	{0, 0, 0, 0}};
 static bool g_Run = true;
 
@@ -232,6 +234,8 @@ int32_t main(int32_t argc, char **argv)
 	signal(SIGINT, SignalHandler);
 	signal(SIGPIPE, SignalHandler);
 
+	const char *ip = "0.0.0.0";
+	int port = 8081;
 	bool got_config_file = false;
 	int opt;
 	while ((opt = getopt_long(argc, argv, g_Opts, g_LongOpts, NULL)) != -1)
@@ -240,23 +244,32 @@ int32_t main(int32_t argc, char **argv)
 		{
 		case 'c':
 		{
-			log_w("using config file %s", optarg);
 			ret = CONFIG->Initialize(optarg);
 			CHECK_ERROR(ret);
 			got_config_file = true;
 			break;
 		}
+		case 'i':
+		{
+			ip = optarg;
+			break;
+		}
+		case 'p':
+		{
+			port = atoi(optarg);
+			break;
+		}
 		default:
 		{
-			log_w("unknow argument:%c", opt);
-			break;
+			log_e("unknow argument:%c", opt);
+			return 0;
 		}
 		}
 	}
 
 	if (!got_config_file)
 	{
-		log_w("Usage:%s -c [conf_file_path]", argv[0]);
+		log_w("Usage:%s -c [conf_file_path] -i <http_listen_ip> -p <http_listen_port>", argv[0]);
 		usleep(100000); //100ms
 		return 0;
 	}
@@ -269,7 +282,7 @@ int32_t main(int32_t argc, char **argv)
 	event_base *base = event_base_new();
 	g_Switch.Initialize(base);
 	g_Switch.SetEventListener(&g_VideoManager);
-	g_HttpServer.Initialize("0.0.0.0", 8081, base);
+	g_HttpServer.Initialize(ip, port, base);
 	g_HttpServer.RegisterURI("/start_local_live", StartLocalLiveHandler, nullptr);
 	g_HttpServer.RegisterURI("/stop_local_live", StopLocalLiveHandler, nullptr);
 	g_HttpServer.RegisterURI("/start_remote_live", StartRemoteLiveHandler, nullptr);
