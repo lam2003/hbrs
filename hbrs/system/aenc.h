@@ -22,6 +22,8 @@ public:
 
     void RemoveAudioSink(std::shared_ptr<AudioSink<AENCFrame>> sink);
 
+    void RemoveAllAudioSink();
+
     void OnFrame(const AIFrame &frame) override;
 
 private:

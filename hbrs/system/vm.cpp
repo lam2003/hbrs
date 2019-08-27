@@ -44,9 +44,6 @@ int VideoManager::Initialize()
     if (init_)
         return KInitialized;
 
-    //################################################
-    // 初始化视频
-    //################################################
     vi_arr_.resize(2);
     for (int i = 0; i < 2; i++)
         vi_arr_[i] = std::make_shared<VIHelper>(4 - (i * 2), 8 - (i * 4));
@@ -71,6 +68,14 @@ int VideoManager::Initialize()
     for (int i = 0; i < 8; i++)
         venc_arr_[i] = std::make_shared<VideoEncode>();
 
+    live_arr_.resize(8);
+    for (int i = 0; i < 8; i++)
+        live_arr_[i] = std::make_shared<RTMPLive>();
+
+    record_arr_.resize(8);
+    for (int i = 0; i < 8; i++)
+        record_arr_[i] = std::make_shared<MP4Record>();
+
     display_vo_ = std::make_shared<VideoOutput>();
 
     main_vo_ = std::make_shared<VideoOutput>();
@@ -80,6 +85,12 @@ int VideoManager::Initialize()
     pciv_trans_ = std::make_shared<PCIVTrans>();
 
     sig_detect_ = std::make_shared<SigDetect>();
+
+    ai_ = std::make_shared<AudioInput>();
+
+    ao_ = std::make_shared<AudioOutput>();
+
+    aenc_ = std::make_shared<AudioEncode>();
 
     for (int i = 0; i < 2; i++)
     {
@@ -117,6 +128,14 @@ int VideoManager::Initialize()
         sig_detect_->AddVIFmtListener(vi_arr_[i]);
     sig_detect_->Initialize(pciv_comm_, CONFIG->adv7842_.pc_capture_mode);
 
+    ai_->Initialize({4, 0});
+
+    ao_->Initialize({4, 0});
+
+    aenc_->Initialize();
+
+    ai_->AddAudioSink(aenc_);
+
     MPPSystem::Bind<HI_ID_VIU, HI_ID_VPSS>(0, 8, 10, 0);
 
     MPPSystem::Bind<HI_ID_VIU, HI_ID_VPSS>(0, 4, 11, 0);
@@ -138,36 +157,8 @@ int VideoManager::Initialize()
     MPPSystem::Bind<HI_ID_VDEC, HI_ID_VPSS>(0, 3, 5, 0);
 
     MPPSystem::Bind<HI_ID_VOU, HI_ID_VPSS>(12, 0, 6, 0);
-    //################################################
-    // 初始化音频
-    //################################################
-    ai_ = std::make_shared<AudioInput>();
-
-    ao_ = std::make_shared<AudioOutput>();
-
-    aenc_ = std::make_shared<AudioEncode>();
-
-    ai_->Initialize({4, 0});
-
-    ao_->Initialize({4, 0});
-
-    aenc_->Initialize();
-
-    ai_->AddAudioSink(aenc_);
 
     MPPSystem::Bind<HI_ID_AI, HI_ID_AO>(4, 0, 4, 0);
-
-    //##############################################
-    //初始化功能模块
-    //##############################################
-
-    live_arr_.resize(8);
-    for (int i = 0; i < 8; i++)
-        live_arr_[i] = std::make_shared<RTMPLive>();
-
-    record_arr_.resize(8);
-    for (int i = 0; i < 8; i++)
-        record_arr_[i] = std::make_shared<MP4Record>();
 
     init_ = true;
 
@@ -177,22 +168,13 @@ int VideoManager::Initialize()
 
     StartVideoEncode(CONFIG->video_);
 
-    StartLocalLive(CONFIG->local_lives_);
-
-    StartRemoteLive(CONFIG->remote_live_);
-
     return KSuccess;
 }
 
 void VideoManager::Close()
 {
-
     if (!init_)
         return;
-
-    CloseRemoteLive();
-
-    CloseLocalLive();
 
     CloseVideoEncode();
 
@@ -200,47 +182,8 @@ void VideoManager::Close()
 
     CloseMainScreen();
 
-    //################################################
-    //去初始化功能模块
-    //################################################
-
-    for (int i = 0; i < 8; i++)
-    {
-        record_arr_[i].reset();
-        record_arr_[i] = nullptr;
-    }
-
-    for (int i = 0; i < 8; i++)
-    {
-        live_arr_[i].reset();
-        live_arr_[i] = nullptr;
-    }
-
-    //################################################
-    // 去初始化音频
-    //################################################
     MPPSystem::UnBind<HI_ID_AI, HI_ID_AO>(4, 0, 4, 0);
 
-    ai_->RemoveAllAudioSink();
-
-    aenc_->Close();
-
-    ao_->Close();
-
-    ai_->Close();
-
-    aenc_.reset();
-    aenc_ = nullptr;
-
-    ao_.reset();
-    ao_ = nullptr;
-
-    ai_.reset();
-    ai_ = nullptr;
-
-    //################################################
-    // 去初始化视频
-    //################################################
     MPPSystem::UnBind<HI_ID_VOU, HI_ID_VPSS>(12, 0, 6, 0);
 
     MPPSystem::UnBind<HI_ID_VDEC, HI_ID_VPSS>(0, 3, 5, 0);
@@ -263,6 +206,16 @@ void VideoManager::Close()
 
     MPPSystem::UnBind<HI_ID_VIU, HI_ID_VPSS>(0, 8, 10, 0);
 
+    ai_->RemoveAllAudioSink();
+
+    aenc_->RemoveAllAudioSink();
+
+    aenc_->Close();
+
+    ao_->Close();
+
+    ai_->Close();
+
     sig_detect_->Close();
     sig_detect_->RemoveAllVIFmtListener();
 
@@ -280,13 +233,25 @@ void VideoManager::Close()
         vdec_arr_[i]->Close();
 
     for (int i = 0; i < 2; i++)
+    {
+        vi_arr_[i]->SetVideoOutput(nullptr);
         vo_arr_[i]->Close();
-
+    }
+    
     for (int i = 0; i < 2; i++)
         vpss_tmp_arr_[i]->Close();
 
     for (int i = 0; i < 2; i++)
         vi_arr_[i]->Stop();
+
+    aenc_.reset();
+    aenc_ = nullptr;
+
+    ao_.reset();
+    ao_ = nullptr;
+
+    ai_.reset();
+    ai_ = nullptr;
 
     sig_detect_.reset();
     sig_detect_ = nullptr;
@@ -302,6 +267,18 @@ void VideoManager::Close()
 
     display_vo_.reset();
     display_vo_ = nullptr;
+
+    for (int i = 0; i < 8; i++)
+    {
+        record_arr_[i].reset();
+        record_arr_[i] = nullptr;
+    }
+
+    for (int i = 0; i < 8; i++)
+    {
+        live_arr_[i].reset();
+        live_arr_[i] = nullptr;
+    }
 
     for (int i = 0; i < 8; i++)
     {
@@ -347,27 +324,17 @@ void VideoManager::StartLocalLive(const Config::LocalLive &local_lives)
     if (!init_ || local_live_started_)
         return;
 
-    if (local_lives.lives.size() == 0)
-        return;
-
     for (const std::pair<RS_SCENE, rtmp::Params> &item : local_lives.lives)
     {
         RS_SCENE scene = item.first;
         rtmp::Params rtmp_params = item.second;
-        if (scene != MAIN)
-        {
-            live_arr_[scene]->Initialize(rtmp_params);
-        }
-        else
-        {
-            live_arr_[scene]->Initialize(rtmp_params);
-            aenc_->AddAudioSink(live_arr_[scene]);
-        }
+        live_arr_[scene]->Initialize(rtmp_params);
         venc_arr_[scene]->AddVideoSink(live_arr_[scene]);
+        if (rtmp_params.has_audio)
+            aenc_->AddAudioSink(live_arr_[scene]);
     }
 
     CONFIG->local_lives_ = local_lives;
-    CONFIG->WriteToFile();
     local_live_started_ = true;
 }
 
@@ -379,21 +346,14 @@ void VideoManager::CloseLocalLive()
     for (const std::pair<RS_SCENE, rtmp::Params> &item : CONFIG->local_lives_.lives)
     {
         RS_SCENE scene = item.first;
-        venc_arr_[scene]->RemoveVideoSink(live_arr_[scene]);
-
-        if (scene != MAIN)
-        {
-            live_arr_[scene]->Close();
-        }
-        else
-        {
+        rtmp::Params rtmp_params = item.second;
+        if (rtmp_params.has_audio)
             aenc_->RemoveAudioSink(live_arr_[scene]);
-            live_arr_[scene]->Close();
-        }
+        venc_arr_[scene]->RemoveVideoSink(live_arr_[scene]);
+        live_arr_[scene]->Close();
     }
 
     CONFIG->local_lives_.lives.clear();
-    CONFIG->WriteToFile();
     local_live_started_ = false;
 }
 
@@ -402,15 +362,12 @@ void VideoManager::StartRemoteLive(const Config::RemoteLive &remote_live)
     if (!init_ || remote_live_started_)
         return;
 
-    if (remote_live.live.url == "")
-        return;
-
     live_arr_[MAIN2]->Initialize(remote_live.live);
-    aenc_->AddAudioSink(live_arr_[MAIN2]);
     venc_arr_[MAIN]->AddVideoSink(live_arr_[MAIN2]);
+    if (remote_live.live.has_audio)
+        aenc_->AddAudioSink(live_arr_[MAIN2]);
 
     CONFIG->remote_live_ = remote_live;
-    CONFIG->WriteToFile();
     remote_live_started_ = true;
 }
 
@@ -419,46 +376,28 @@ void VideoManager::CloseRemoteLive()
     if (!init_ || !remote_live_started_)
         return;
 
+    if (CONFIG->remote_live_.live.has_audio)
+        aenc_->RemoveAudioSink(live_arr_[MAIN2]);
     venc_arr_[MAIN]->RemoveVideoSink(live_arr_[MAIN2]);
-    aenc_->RemoveAudioSink(live_arr_[MAIN2]);
     live_arr_[MAIN2]->Close();
 
     CONFIG->remote_live_.live.url = "";
-    CONFIG->WriteToFile();
-
     remote_live_started_ = false;
 }
 
 void VideoManager::StartRecord(const Config::Record &records)
 {
-    if (record_started_)
+    if (!init_ || record_started_)
         return;
-
-    if (records.records.size() == 0)
-        return;
-    if (!CONFIG->IsResourceMode())
-    {
-        if (records.records.size() != 1 || records.records[0].first != MAIN)
-            return;
-    }
 
     for (const std::pair<RS_SCENE, mp4::Params> &item : records.records)
     {
         RS_SCENE scene = item.first;
         mp4::Params record_params = item.second;
 
-        if (scene == MAIN && !CONFIG->IsResourceMode())
-        {
-            record_arr_[MAIN2]->Initialize(record_params);
-            venc_arr_[MAIN2]->AddVideoSink(record_arr_[MAIN2]);
-            aenc_->AddAudioSink(record_arr_[MAIN2]);
-        }
-        else
-        {
-            record_arr_[scene]->Initialize(record_params);
-            venc_arr_[scene]->AddVideoSink(record_arr_[scene]);
-            aenc_->AddAudioSink(record_arr_[scene]);
-        }
+        record_arr_[scene]->Initialize(record_params);
+        venc_arr_[scene]->AddVideoSink(record_arr_[scene]);
+        aenc_->AddAudioSink(record_arr_[scene]);
     }
 
     CONFIG->records_ = records;
@@ -467,25 +406,16 @@ void VideoManager::StartRecord(const Config::Record &records)
 
 void VideoManager::CloseRecord()
 {
-    if (!record_started_)
+    if (!init_ || !record_started_)
         return;
 
     for (const std::pair<RS_SCENE, mp4::Params> &item : CONFIG->records_.records)
     {
         RS_SCENE scene = item.first;
 
-        if (scene == MAIN && !CONFIG->IsResourceMode())
-        {
-            aenc_->RemoveAudioSink(record_arr_[MAIN2]);
-            venc_arr_[MAIN2]->RemoveVideoSink(record_arr_[MAIN2]);
-            record_arr_[MAIN2]->Close();
-        }
-        else
-        {
-            aenc_->RemoveAudioSink(record_arr_[scene]);
-            venc_arr_[scene]->RemoveVideoSink(record_arr_[scene]);
-            record_arr_[scene]->Close();
-        }
+        aenc_->RemoveAudioSink(record_arr_[scene]);
+        venc_arr_[scene]->RemoveVideoSink(record_arr_[scene]);
+        record_arr_[scene]->Close();
     }
 
     CONFIG->records_.records.clear();
@@ -505,23 +435,17 @@ void VideoManager::StartMainScreen(const Config::Scene &scene_conf)
 
         RECT_S rect = main_pos[index].first;
         int level = main_pos[index].second;
-#if 0
-        log_d("index:%d,rect.x:%d,rect.y:%d,rect.width:%d,rect.height:%d,level:%d",
-        index,rect.s32X,rect.s32Y,rect.u32Width,rect.u32Height,level);
-#endif
         main_vo_->StartChannel(index, rect, level);
 
-        if (scene == TEA_FEA || scene == STU_FEA || scene == MAIN)
+        if (scene == MAIN)
         {
-            if (scene == MAIN)
-            {
-                MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(main_screen_, 4, 12, index);
-            }
-            else
-            {
-                MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(scene, 4, 12, index);
-            }
+            MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(main_screen_, 4, 12, index);
         }
+        else if (scene == TEA_FEA || scene == STU_FEA)
+        {
+            MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(scene, 4, 12, index);
+        }
+
         else
         {
             vpss_arr_[scene]->StartUserChannel(3, rect);
@@ -544,16 +468,13 @@ void VideoManager::CloseMainScreen()
         int index = it->first;
         RS_SCENE scene = it->second;
 
-        if (scene == TEA_FEA || scene == STU_FEA || scene == MAIN)
+        if (scene == MAIN)
         {
-            if (scene == MAIN)
-            {
-                MPPSystem::UnBind<HI_ID_VPSS, HI_ID_VOU>(main_screen_, 4, 12, index);
-            }
-            else
-            {
-                MPPSystem::UnBind<HI_ID_VPSS, HI_ID_VOU>(scene, 4, 12, index);
-            }
+            MPPSystem::UnBind<HI_ID_VPSS, HI_ID_VOU>(main_screen_, 4, 12, index);
+        }
+        else if (scene == TEA_FEA || scene == STU_FEA)
+        {
+            MPPSystem::UnBind<HI_ID_VPSS, HI_ID_VOU>(scene, 4, 12, index);
         }
         else
         {
@@ -660,14 +581,14 @@ void VideoManager::CloseVideoEncode()
             {
                 MPPSystem::UnBind<HI_ID_VPSS, HI_ID_GROUP>(6, 3, i, 0);
                 vpss_arr_[6]->StopUserChannal(3);
-                venc_arr_[i]->Close();
             }
             else
             {
                 MPPSystem::UnBind<HI_ID_VPSS, HI_ID_GROUP>(i, 1, i, 0);
                 vpss_arr_[i]->StopUserChannal(1);
-                venc_arr_[i]->Close();
             }
+            venc_arr_[i]->Close();
+            venc_arr_[i]->RemoveAllVideoSink();
         }
     }
     else
@@ -677,6 +598,7 @@ void VideoManager::CloseVideoEncode()
             MPPSystem::UnBind<HI_ID_VPSS, HI_ID_GROUP>(i, 1, i, 0);
             vpss_arr_[i]->StopUserChannal(1);
             venc_arr_[i]->Close();
+            venc_arr_[i]->RemoveAllVideoSink();
         }
     }
 
@@ -705,8 +627,6 @@ void VideoManager::OnSwitchEvent(RS_SCENE scene)
 {
     if (!init_)
         return;
-    if (scene == main_screen_ || scene == MAIN)
-        return;
     if (CONFIG->scene_.mode == Config::Scene::Mode::PIP_MODE)
     {
         if (CONFIG->scene_.mapping[1] == scene || pip_changed_)
@@ -733,8 +653,6 @@ void VideoManager::OnSwitchEvent(RS_SCENE scene)
 void VideoManager::ChangePCCaputreMode(Config::Adv7842 adv7842)
 {
     if (!init_)
-        return;
-    if (CONFIG->adv7842_.pc_capture_mode == adv7842.pc_capture_mode)
         return;
     sig_detect_->SetPCCaptureMode(adv7842.pc_capture_mode);
     CONFIG->adv7842_ = adv7842;

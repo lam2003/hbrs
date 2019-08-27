@@ -89,18 +89,6 @@ int Config::Initialize(const std::string &path)
     adv7842_ = root["adv7842"];
     switch_cmd_ = root["switch_cmd"];
 
-    if (root.isMember("local_lives"))
-    {
-        if (Config::LocalLive::IsOk(root["local_lives"]))
-            local_lives_ = root["local_lives"];
-    }
-
-    if (root.isMember("remote_live"))
-    {
-        if (Config::RemoteLive::IsOk(root["remote_live"]))
-            remote_live_ = root["remote_live"];
-    }
-
     init_ = true;
     return KSuccess;
 }
@@ -163,12 +151,6 @@ int Config::WriteToFile()
     root["display"] = display_;
     root["adv7842"] = adv7842_;
     root["switch_cmd"] = switch_cmd_;
-
-    if (remote_live_.live.url != "")
-        root["remote_live"] = remote_live_;
-
-    if (!local_lives_.lives.empty())
-        root["local_lives"] = local_lives_;
 
     ofs << root.toStyledString() << std::endl;
     ofs.close();

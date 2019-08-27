@@ -40,6 +40,8 @@ public:
 
     void RemoveVideoSink(std::shared_ptr<VideoSink<VENCFrame>> sink);
 
+    void RemoveAllVideoSink();
+
 private:
     venc::Params params_;
     std::mutex sinks_mux_;
