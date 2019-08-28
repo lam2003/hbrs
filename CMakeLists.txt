@@ -10,7 +10,7 @@ SET(CMAKE_CXX_COMPILER arm-hisiv400-linux-g++)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_SKIP_RPATH true)
-set(DEBUG true)
+set(DEBUG false)
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
 

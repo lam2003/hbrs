@@ -282,8 +282,7 @@ void VideoEncode::RemoveVideoSink(std::shared_ptr<VideoSink<VENCFrame>> sink)
 void VideoEncode::RemoveAllVideoSink()
 {
     std::unique_lock<std::mutex> lock(sinks_mux_);
-    for (auto it = sinks_.begin(); it != sinks_.end(); it++)
-        sinks_.erase(it);
+    sinks_.clear();
 }
 
 } // namespace rs

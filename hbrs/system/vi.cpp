@@ -168,11 +168,12 @@ int32_t VideoInput::Initialize(const Params &params)
                 return;
             }
 
+            int frame_rate_delta = abs(stat.u32FrmRate - 25);
             if (first)
             {
                 first = false;
             }
-            else if (int_cnt == stat.u32IntCnt)
+            else if (int_cnt == stat.u32IntCnt || (stat.u32FrmRate != 0 && frame_rate_delta > 5))
             {
                 ret = HI_MPI_VI_DisableChn(params_.chn);
                 if (ret != KSuccess)
@@ -239,7 +240,7 @@ void VIHelper::OnChange(const VideoInputFormat &fmt, int chn)
     vi_.Close();
     if (fmt.has_signal)
     {
-        vi_.Initialize( {dev_, chn_, fmt.width, fmt.height, fmt.interlaced});
+        vi_.Initialize({dev_, chn_, fmt.width, fmt.height, fmt.interlaced});
         return;
     }
 

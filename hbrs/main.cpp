@@ -32,7 +32,7 @@ static bool g_Run = true;
 
 static void SignalHandler(int signo)
 {
-	if (signo == SIGINT)
+	if (signo == SIGINT || signo == SIGTERM)
 	{
 		log_w("recive signal SIGINT,going to shutdown");
 		g_Run = false;
@@ -162,8 +162,6 @@ static void ChangeMainScreenHandler(evhttp_request *req, void *arg)
 
 		g_VideoManager.StartMainScreen(change_main_screen_req.scene);
 		g_VideoManager.StartVideoEncode(CONFIG->video_);
-		g_VideoManager.StartLocalLive(CONFIG->local_lives_);
-		g_VideoManager.StartRemoteLive(CONFIG->remote_live_);
 	}
 	else
 	{
@@ -214,8 +212,6 @@ static void ChangeVideoHandler(evhttp_request *req, void *arg)
 	g_VideoManager.CloseLocalLive();
 	g_VideoManager.CloseVideoEncode();
 	g_VideoManager.StartVideoEncode(change_video_req.video);
-	g_VideoManager.StartLocalLive(CONFIG->local_lives_);
-	g_VideoManager.StartRemoteLive(CONFIG->remote_live_);
 	ResponseOK(req);
 }
 
@@ -232,6 +228,7 @@ int32_t main(int32_t argc, char **argv)
 
 	signal(SIGINT, SignalHandler);
 	signal(SIGPIPE, SignalHandler);
+	signal(SIGTERM, SignalHandler);
 
 	const char *ip = "0.0.0.0";
 	int port = 8081;

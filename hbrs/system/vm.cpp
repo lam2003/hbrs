@@ -176,6 +176,10 @@ void VideoManager::Close()
     if (!init_)
         return;
 
+    CloseLocalLive();
+    
+    CloseRemoteLive();
+    
     CloseVideoEncode();
 
     CloseDisplayScreen();
@@ -237,7 +241,7 @@ void VideoManager::Close()
         vi_arr_[i]->SetVideoOutput(nullptr);
         vo_arr_[i]->Close();
     }
-    
+
     for (int i = 0; i < 2; i++)
         vpss_tmp_arr_[i]->Close();
 
