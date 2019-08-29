@@ -91,12 +91,10 @@ int VideoManager::Initialize()
     ao_ = std::make_shared<AudioOutput>();
 
     aenc_ = std::make_shared<AudioEncode>();
-
+#if 0
     for (int i = 0; i < 2; i++)
-    {
-        vi_arr_[i]->Start(RS_MAX_WIDTH, RS_MAX_HEIGHT, false); //预设摄像头采集时序1080P
-        vi_arr_[i]->SetVideoOutput(vo_arr_[i]);
-    }
+        vi_arr_[i]->Start(RS_MAX_WIDTH, RS_MAX_HEIGHT, 30, false); //预设摄像头采集时序1080P30FPS
+#endif
     for (int i = 0; i < 2; i++)
     {
         vpss_tmp_arr_[i]->Initialize({10 + i});
@@ -107,6 +105,7 @@ int VideoManager::Initialize()
     {
         vo_arr_[i]->Initialize({10 + i, 0, VO_OUTPUT_1080P25});
         vo_arr_[i]->StartChannel(0, {0, 0, RS_MAX_WIDTH, RS_MAX_HEIGHT}, 0);
+        vi_arr_[i]->SetVideoOutput(vo_arr_[i]);
     }
 
     for (int i = 0; i < 4; i++)
@@ -177,9 +176,9 @@ void VideoManager::Close()
         return;
 
     CloseLocalLive();
-    
+
     CloseRemoteLive();
-    
+
     CloseVideoEncode();
 
     CloseDisplayScreen();

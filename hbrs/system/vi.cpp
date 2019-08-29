@@ -168,7 +168,7 @@ int32_t VideoInput::Initialize(const Params &params)
                 return;
             }
 
-            int frame_rate_delta = abs(stat.u32FrmRate - 25);
+            int frame_rate_delta = abs(stat.u32FrmRate - params_.frame_rate);
             if (first)
             {
                 first = false;
@@ -229,18 +229,19 @@ void VIHelper::OnChange(const VideoInputFormat &fmt, int chn)
     if (chn != chn_)
         return;
 
-    log_d("VI signal change,dev:%d,chn:%d,has_signal:%d,width:%d,height:%d,interlaced:%d",
+    log_d("VI signal change,dev:%d,chn:%d,has_signal:%d,width:%d,height:%d,interlaced:%d,frame_rate:%d",
           dev_,
           chn,
           fmt.has_signal,
           fmt.width,
           fmt.height,
-          fmt.interlaced);
+          fmt.interlaced,
+          fmt.frame_rate);
 
     vi_.Close();
     if (fmt.has_signal)
     {
-        vi_.Initialize({dev_, chn_, fmt.width, fmt.height, fmt.interlaced});
+        vi_.Initialize({dev_, chn_, fmt.width, fmt.height, fmt.interlaced, fmt.frame_rate});
         return;
     }
 
@@ -268,9 +269,9 @@ void VIHelper::SetVideoOutput(std::shared_ptr<VideoOutput> vo)
     vo_ = vo;
 }
 
-void VIHelper::Start(int width, int height, bool interlaced)
+void VIHelper::Start(int width, int height, bool interlaced, int frame_rate)
 {
-    Params params = {dev_, chn_, width, height, interlaced};
+    Params params = {dev_, chn_, width, height, interlaced, frame_rate};
     vi_.Initialize(params);
 }
 
