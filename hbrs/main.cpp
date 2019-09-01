@@ -18,9 +18,10 @@
 
 using namespace rs;
 
-static std::shared_ptr<VideoManager> g_VideoManager = std::make_shared<VideoManager>();
+static std::shared_ptr<AVManager> g_AVManager = std::make_shared<AVManager>();
 static std::shared_ptr<HttpServer> g_HttpServer = std::make_shared<HttpServer>();
 static std::shared_ptr<Switch> g_Switch = std::make_shared<Switch>();
+static std::string g_Opt = "";
 
 static const char *g_Opts = "c:i:p:";
 
@@ -80,14 +81,14 @@ static void StartLocalLiveHandler(evhttp_request *req, void *arg)
 	LocalLiveReq live_req;
 	live_req = root;
 
-	g_VideoManager->CloseLocalLive();
-	g_VideoManager->StartLocalLive(live_req.local_lives);
+	g_AVManager->CloseLocalLive();
+	g_AVManager->StartLocalLive(live_req.local_lives);
 	ResponseOK(req);
 }
 
 static void StopLocalLiveHandler(evhttp_request *req, void *arg)
 {
-	g_VideoManager->CloseLocalLive();
+	g_AVManager->CloseLocalLive();
 	ResponseOK(req);
 }
 
@@ -100,14 +101,14 @@ static void StartRemoteLiveHandler(evhttp_request *req, void *arg)
 	RemoteLiveReq live_req;
 	live_req = root;
 
-	g_VideoManager->CloseRemoteLive();
-	g_VideoManager->StartRemoteLive(live_req.remote_live);
+	g_AVManager->CloseRemoteLive();
+	g_AVManager->StartRemoteLive(live_req.remote_live);
 	ResponseOK(req);
 }
 
 static void StopRemoteLiveHandler(evhttp_request *req, void *arg)
 {
-	g_VideoManager->CloseRemoteLive();
+	g_AVManager->CloseRemoteLive();
 	ResponseOK(req);
 }
 
@@ -120,8 +121,8 @@ static void StartRecordHandler(evhttp_request *req, void *arg)
 	RecordReq record_req;
 	record_req = root;
 
-	g_VideoManager->CloseRecord();
-	g_VideoManager->StartRecord(record_req.records);
+	g_AVManager->CloseRecord();
+	g_AVManager->StartRecord(record_req.records);
 	ResponseOK(req);
 }
 
@@ -134,13 +135,13 @@ static void SwitchHandler(evhttp_request *req, void *arg)
 	SwitchReq switch_req;
 	switch_req = root;
 
-	g_VideoManager->OnSwitchEvent(switch_req.scene);
+	g_AVManager->OnSwitchEvent(switch_req.scene);
 	ResponseOK(req);
 }
 
 static void StopRecordHandler(evhttp_request *req, void *arg)
 {
-	g_VideoManager->CloseRecord();
+	g_AVManager->CloseRecord();
 	ResponseOK(req);
 }
 
@@ -155,19 +156,19 @@ static void ChangeMainScreenHandler(evhttp_request *req, void *arg)
 
 	if (Config::IsResourceMode(change_main_screen_req.scene.mode) != CONFIG->IsResourceMode())
 	{
-		g_VideoManager->CloseRecord();
-		g_VideoManager->CloseRemoteLive();
-		g_VideoManager->CloseLocalLive();
-		g_VideoManager->CloseVideoEncode();
-		g_VideoManager->CloseMainScreen();
+		g_AVManager->CloseRecord();
+		g_AVManager->CloseRemoteLive();
+		g_AVManager->CloseLocalLive();
+		g_AVManager->CloseVideoEncode();
+		g_AVManager->CloseMainScreen();
 
-		g_VideoManager->StartMainScreen(change_main_screen_req.scene);
-		g_VideoManager->StartVideoEncode(CONFIG->video_);
+		g_AVManager->StartMainScreen(change_main_screen_req.scene);
+		g_AVManager->StartVideoEncode(CONFIG->video_);
 	}
 	else
 	{
-		g_VideoManager->CloseMainScreen();
-		g_VideoManager->StartMainScreen(change_main_screen_req.scene);
+		g_AVManager->CloseMainScreen();
+		g_AVManager->StartMainScreen(change_main_screen_req.scene);
 	}
 	ResponseOK(req);
 }
@@ -181,7 +182,7 @@ static void ChangePCCaptureModeHandler(evhttp_request *req, void *arg)
 	ChangePCCaptureReq change_pc_capture_req;
 	change_pc_capture_req = root;
 
-	g_VideoManager->ChangePCCaputreMode(change_pc_capture_req.adv7842);
+	g_AVManager->ChangePCCaputreMode(change_pc_capture_req.adv7842);
 	ResponseOK(req);
 }
 
@@ -194,8 +195,8 @@ static void ChangeDisplayScreenHandler(evhttp_request *req, void *arg)
 	ChangeDisplayScreenReq change_display_screen_req;
 	change_display_screen_req = root;
 
-	g_VideoManager->CloseDisplayScreen();
-	g_VideoManager->StartDisplayScreen(change_display_screen_req.display);
+	g_AVManager->CloseDisplayScreen();
+	g_AVManager->StartDisplayScreen(change_display_screen_req.display);
 
 	ResponseOK(req);
 }
@@ -208,17 +209,31 @@ static void ChangeVideoHandler(evhttp_request *req, void *arg)
 	ChangeVideoReq change_video_req;
 	change_video_req = root;
 
-	g_VideoManager->CloseRecord();
-	g_VideoManager->CloseLocalLive();
-	g_VideoManager->CloseLocalLive();
-	g_VideoManager->CloseVideoEncode();
-	g_VideoManager->StartVideoEncode(change_video_req.video);
+	g_AVManager->CloseRecord();
+	g_AVManager->CloseLocalLive();
+	g_AVManager->CloseLocalLive();
+	g_AVManager->CloseVideoEncode();
+	g_AVManager->StartVideoEncode(change_video_req.video);
 	ResponseOK(req);
 }
 
 static void SaveTimeHandler(evhttp_request *req, void *arg)
 {
 	RTC::SaveTime();
+	ResponseOK(req);
+}
+
+static void ShutDownHandler(evhttp_request *req, void *arg)
+{
+	g_Opt = "shutdown";
+	g_Run = false;
+	ResponseOK(req);
+}
+
+static void ReBootHandler(evhttp_request *req, void *arg)
+{
+	g_Opt = "reboot";
+	g_Run = false;
 	ResponseOK(req);
 }
 
@@ -274,11 +289,11 @@ int32_t main(int32_t argc, char **argv)
 	MPPSystem::Instance()->Initialize();
 	HttpClient::Instance()->Initialize();
 
-	g_VideoManager->Initialize();
+	g_AVManager->Initialize();
 
 	event_base *base = event_base_new();
 	g_Switch->Initialize(base);
-	g_Switch->SetEventListener(g_VideoManager);
+	g_Switch->SetEventListener(g_AVManager);
 	g_HttpServer->Initialize(ip, port, base);
 	g_HttpServer->RegisterURI("/start_local_live", StartLocalLiveHandler, nullptr);
 	g_HttpServer->RegisterURI("/stop_local_live", StopLocalLiveHandler, nullptr);
@@ -292,6 +307,8 @@ int32_t main(int32_t argc, char **argv)
 	g_HttpServer->RegisterURI("/change_display_screen", ChangeDisplayScreenHandler, nullptr);
 	g_HttpServer->RegisterURI("/change_video", ChangeVideoHandler, nullptr);
 	g_HttpServer->RegisterURI("/save_time", SaveTimeHandler, nullptr);
+	g_HttpServer->RegisterURI("/shutdown", ShutDownHandler, nullptr);
+	g_HttpServer->RegisterURI("/reboot", ReBootHandler, nullptr);
 
 	while (g_Run)
 	{
@@ -306,8 +323,17 @@ int32_t main(int32_t argc, char **argv)
 	g_HttpServer->Close();
 	event_base_free(base);
 
-	g_VideoManager->Close();
+	g_AVManager->Close(g_Opt);
 	HttpClient::Instance()->Close();
 	MPPSystem::Instance()->Close();
+
+	if (g_Opt == "shutdown")
+	{
+		system("poweroff");
+	}
+	else if (g_Opt == "reboot")
+	{
+		system("reboot");
+	}
 	return 0;
 }

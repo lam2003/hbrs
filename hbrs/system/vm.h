@@ -21,16 +21,16 @@ class AudioInput;
 class AudioEncode;
 class AudioOutput;
 
-class VideoManager : public SwitchEventListener, public std::enable_shared_from_this<VideoManager>, public SignalStatusListener
+class AVManager : public SwitchEventListener, public std::enable_shared_from_this<AVManager>, public SignalStatusListener
 {
 public:
-    explicit VideoManager();
+    explicit AVManager();
 
-    virtual ~VideoManager();
+    virtual ~AVManager();
 
     int Initialize();
 
-    void Close();
+    void Close(const std::string &opt = "");
 
     void StartLocalLive(const Config::LocalLive &local_lives);
 

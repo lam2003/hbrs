@@ -19,29 +19,29 @@
 namespace rs
 {
 
-VideoManager::VideoManager() : display_vo_(nullptr),
-                               main_vo_(nullptr),
-                               ai_(nullptr),
-                               aenc_(nullptr),
-                               ao_(nullptr),
-                               pciv_comm_(nullptr),
-                               pciv_trans_(nullptr),
-                               sig_detect_(nullptr),
-                               main_screen_(TEA_FEA),
-                               encode_stared_(false),
-                               display_screen_started_(false),
-                               main_screen_started_(false),
-                               local_live_started_(false),
-                               remote_live_started_(false),
-                               record_started_(false),
-                               pip_changed_(false),
-                               init_(false)
+AVManager::AVManager() : display_vo_(nullptr),
+                         main_vo_(nullptr),
+                         ai_(nullptr),
+                         aenc_(nullptr),
+                         ao_(nullptr),
+                         pciv_comm_(nullptr),
+                         pciv_trans_(nullptr),
+                         sig_detect_(nullptr),
+                         main_screen_(TEA_FEA),
+                         encode_stared_(false),
+                         display_screen_started_(false),
+                         main_screen_started_(false),
+                         local_live_started_(false),
+                         remote_live_started_(false),
+                         record_started_(false),
+                         pip_changed_(false),
+                         init_(false)
 {
 }
-VideoManager::~VideoManager()
+AVManager::~AVManager()
 {
 }
-int VideoManager::Initialize()
+int AVManager::Initialize()
 {
     if (init_)
         return KInitialized;
@@ -173,7 +173,7 @@ int VideoManager::Initialize()
     return KSuccess;
 }
 
-void VideoManager::Close()
+void AVManager::Close(const std::string &opt)
 {
     if (!init_)
         return;
@@ -228,6 +228,21 @@ void VideoManager::Close()
 
     pciv_trans_->Close();
     pciv_trans_->RemoveAllVideoSink();
+
+    if (opt == "shutdown")
+    {
+        pciv::Msg msg;
+        msg.type = pciv::Msg::Type::SHUTDOWN;
+        pciv_comm_->Send(RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+        pciv_comm_->Send(RS_PCIV_SLAVE3_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+    }
+    else if (opt == "reboot")
+    {
+        pciv::Msg msg;
+        msg.type = pciv::Msg::Type::REBOOT;
+        pciv_comm_->Send(RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+        pciv_comm_->Send(RS_PCIV_SLAVE3_ID, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+    }
 
     pciv_comm_->Close();
 
@@ -326,7 +341,7 @@ void VideoManager::Close()
     init_ = false;
 }
 
-void VideoManager::StartLocalLive(const Config::LocalLive &local_lives)
+void AVManager::StartLocalLive(const Config::LocalLive &local_lives)
 {
     if (!init_ || local_live_started_)
         return;
@@ -345,7 +360,7 @@ void VideoManager::StartLocalLive(const Config::LocalLive &local_lives)
     local_live_started_ = true;
 }
 
-void VideoManager::CloseLocalLive()
+void AVManager::CloseLocalLive()
 {
     if (!init_ || !local_live_started_)
         return;
@@ -364,7 +379,7 @@ void VideoManager::CloseLocalLive()
     local_live_started_ = false;
 }
 
-void VideoManager::StartRemoteLive(const Config::RemoteLive &remote_live)
+void AVManager::StartRemoteLive(const Config::RemoteLive &remote_live)
 {
     if (!init_ || remote_live_started_)
         return;
@@ -378,7 +393,7 @@ void VideoManager::StartRemoteLive(const Config::RemoteLive &remote_live)
     remote_live_started_ = true;
 }
 
-void VideoManager::CloseRemoteLive()
+void AVManager::CloseRemoteLive()
 {
     if (!init_ || !remote_live_started_)
         return;
@@ -392,7 +407,7 @@ void VideoManager::CloseRemoteLive()
     remote_live_started_ = false;
 }
 
-void VideoManager::StartRecord(const Config::Record &records)
+void AVManager::StartRecord(const Config::Record &records)
 {
     if (!init_ || record_started_)
         return;
@@ -411,7 +426,7 @@ void VideoManager::StartRecord(const Config::Record &records)
     record_started_ = true;
 }
 
-void VideoManager::CloseRecord()
+void AVManager::CloseRecord()
 {
     if (!init_ || !record_started_)
         return;
@@ -429,7 +444,7 @@ void VideoManager::CloseRecord()
     record_started_ = false;
 }
 
-void VideoManager::StartMainScreen(const Config::Scene &scene_conf)
+void AVManager::StartMainScreen(const Config::Scene &scene_conf)
 {
     if (!init_ || main_screen_started_)
         return;
@@ -465,7 +480,7 @@ void VideoManager::StartMainScreen(const Config::Scene &scene_conf)
     main_screen_started_ = true;
 }
 
-void VideoManager::CloseMainScreen()
+void AVManager::CloseMainScreen()
 {
     if (!init_ || !main_screen_started_)
         return;
@@ -495,7 +510,7 @@ void VideoManager::CloseMainScreen()
     main_screen_started_ = false;
 }
 
-void VideoManager::StartDisplayScreen(const Config::Display &display_conf)
+void AVManager::StartDisplayScreen(const Config::Display &display_conf)
 {
     if (!init_ || display_screen_started_)
         return;
@@ -518,7 +533,7 @@ void VideoManager::StartDisplayScreen(const Config::Display &display_conf)
     display_screen_started_ = true;
 }
 
-void VideoManager::CloseDisplayScreen()
+void AVManager::CloseDisplayScreen()
 {
     if (!init_ || !display_screen_started_)
         return;
@@ -536,7 +551,7 @@ void VideoManager::CloseDisplayScreen()
     display_screen_started_ = false;
 }
 
-void VideoManager::StartVideoEncode(const Config::Video &video_conf)
+void AVManager::StartVideoEncode(const Config::Video &video_conf)
 {
     if (!init_ || encode_stared_)
         return;
@@ -575,7 +590,7 @@ void VideoManager::StartVideoEncode(const Config::Video &video_conf)
     encode_stared_ = true;
 }
 
-void VideoManager::CloseVideoEncode()
+void AVManager::CloseVideoEncode()
 {
     if (!init_ || !encode_stared_)
         return;
@@ -612,7 +627,7 @@ void VideoManager::CloseVideoEncode()
     encode_stared_ = false;
 }
 
-void VideoManager::ChangeMainScreen(RS_SCENE new_main_screen)
+void AVManager::ChangeMainScreen(RS_SCENE new_main_screen)
 {
     if (!main_screen_started_)
         return;
@@ -630,7 +645,7 @@ void VideoManager::ChangeMainScreen(RS_SCENE new_main_screen)
     }
 }
 
-void VideoManager::OnSwitchEvent(RS_SCENE scene)
+void AVManager::OnSwitchEvent(RS_SCENE scene)
 {
     if (!init_)
         return;
@@ -657,7 +672,7 @@ void VideoManager::OnSwitchEvent(RS_SCENE scene)
     }
 }
 
-void VideoManager::ChangePCCaputreMode(Config::Adv7842 adv7842)
+void AVManager::ChangePCCaputreMode(Config::Adv7842 adv7842)
 {
     if (!init_)
         return;
@@ -666,7 +681,7 @@ void VideoManager::ChangePCCaputreMode(Config::Adv7842 adv7842)
     CONFIG->WriteToFile();
 }
 
-void VideoManager::OnUpdate(const std::vector<VideoInputFormat> &fmts)
+void AVManager::OnUpdate(const std::vector<VideoInputFormat> &fmts)
 {
     Json::Value root;
 
