@@ -20,7 +20,7 @@ using namespace rs;
 
 static std::shared_ptr<AVManager> g_AVManager = std::make_shared<AVManager>();
 static std::shared_ptr<HttpServer> g_HttpServer = std::make_shared<HttpServer>();
-static std::shared_ptr<Switch> g_Switch = std::make_shared<Switch>();
+static std::shared_ptr<SerialManager> g_SerialManager = std::make_shared<SerialManager>();
 static std::string g_Opt = "";
 
 static const char *g_Opts = "c:i:p:";
@@ -292,8 +292,8 @@ int32_t main(int32_t argc, char **argv)
 	g_AVManager->Initialize();
 
 	event_base *base = event_base_new();
-	g_Switch->Initialize(base);
-	g_Switch->SetEventListener(g_AVManager);
+	g_SerialManager->Initialize(base);
+	g_SerialManager->SetEventListener(g_AVManager);
 	g_HttpServer->Initialize(ip, port, base);
 	g_HttpServer->RegisterURI("/start_local_live", StartLocalLiveHandler, nullptr);
 	g_HttpServer->RegisterURI("/stop_local_live", StopLocalLiveHandler, nullptr);
@@ -319,7 +319,7 @@ int32_t main(int32_t argc, char **argv)
 		event_base_dispatch(base);
 	}
 
-	g_Switch->Close();
+	g_SerialManager->Close();
 	g_HttpServer->Close();
 	event_base_free(base);
 

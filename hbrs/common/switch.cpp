@@ -16,14 +16,14 @@ static void Invoke(evutil_socket_t sockfd, short event, void *arg)
     }
 }
 
-Switch::Switch() : fd_(0),
+SerialManager::SerialManager() : fd_(0),
                    ev_(nullptr),
                    listener_(nullptr),
                    init_(false)
 {
 }
 
-Switch::~Switch()
+SerialManager::~SerialManager()
 {
 }
 
@@ -41,16 +41,22 @@ bool CompareCommand(const std::vector<int> &hex_int_arr, const uint8_t *data, in
     return true;
 }
 
-void Switch::OnRead(evutil_socket_t sockfd)
+void SerialManager::OnRead(evutil_socket_t sockfd)
 {
     memset(buf, 0, sizeof(buf));
+    
+again:
     int ret = read(sockfd, buf, sizeof(buf));
-
-    if (ret <= 0)
+    if (ret < 0 && errno == EINTR)
     {
-        log_e("read ret <= 0");
+        goto again;
+    }
+    else if (ret < 0)
+    {
+        log_e("read failed,%s", strerror(errno));
         return;
     }
+
     std::ostringstream oss;
     for (int i = 0; i < ret; i++)
         oss << std::hex << buf[i] << " ";
@@ -97,7 +103,7 @@ void Switch::OnRead(evutil_socket_t sockfd)
         listener_->OnSwitchEvent(scene);
 }
 
-int Switch::Initialize(event_base *base)
+int SerialManager::Initialize(event_base *base)
 {
     if (init_)
         return KUnInitialized;
@@ -145,14 +151,14 @@ int Switch::Initialize(event_base *base)
         return HI_FAILURE;
     }
 
-    ev_ = event_new(base, fd_, EV_READ | EV_PERSIST, Invoke<Switch>, (void *)this);
+    ev_ = event_new(base, fd_, EV_READ | EV_PERSIST, Invoke<SerialManager>, (void *)this);
     event_add(ev_, NULL);
 
     init_ = true;
     return KSuccess;
 }
 
-void Switch::Close()
+void SerialManager::Close()
 {
     if (!init_)
         return;
@@ -163,7 +169,7 @@ void Switch::Close()
     init_ = false;
 }
 
-void Switch::SetEventListener(std::shared_ptr<SwitchEventListener> listener)
+void SerialManager::SetEventListener(std::shared_ptr<SwitchEventListener> listener)
 {
     listener_ = listener;
 }

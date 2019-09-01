@@ -11,12 +11,12 @@ public:
 
     virtual void OnSwitchEvent(RS_SCENE scene) = 0;
 };
-class Switch
+class SerialManager
 {
 public:
-    explicit Switch();
+    explicit SerialManager();
 
-    virtual ~Switch();
+    virtual ~SerialManager();
 
     int Initialize(event_base *base);
 
