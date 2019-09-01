@@ -67,10 +67,13 @@ again:
         return;
     }
 
-    std::ostringstream oss;
+    std::vector<int> int_arr;
     for (int i = 0; i < ret; i++)
-        oss << std::hex << buf[i] << " ";
-    log_e("switch command:%s", oss.str().c_str());
+        int_arr.push_back(buf[i]);
+
+    std::string temp;
+    Utils::HexInt2String(int_arr, temp);
+    log_d("[on_read]switch command:%s", temp.c_str());
 
     RS_SCENE scene;
     if (CompareCommand(Config::Instance()->switch_cmd_.tea_fea, buf, ret))

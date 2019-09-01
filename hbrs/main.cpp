@@ -16,6 +16,7 @@
 #include "model/switch_req.h"
 #include "model/change_video_req.h"
 #include "model/camera_control_req.h"
+#include "model/change_switch_command_req.h"
 
 using namespace rs;
 
@@ -249,6 +250,18 @@ static void CameraControlHandler(evhttp_request *req, void *arg)
 	ResponseOK(req);
 }
 
+static void ChangeSwitchCommandHandler(evhttp_request *req, void *arg)
+{
+	Json::Value root;
+	if (!CheckReq<ChangeSwitchCommandReq>(req, root))
+		return;
+	ChangeSwitchCommandReq change_switch_command_req;
+	change_switch_command_req = root;
+	CONFIG->switch_cmd_ = change_switch_command_req.commands;
+	CONFIG->WriteToFile();
+	ResponseOK(req);
+}
+
 int32_t main(int32_t argc, char **argv)
 {
 	RTC::LoadTime();
@@ -322,6 +335,7 @@ int32_t main(int32_t argc, char **argv)
 	g_HttpServer->RegisterURI("/shutdown", ShutDownHandler, nullptr);
 	g_HttpServer->RegisterURI("/reboot", ReBootHandler, nullptr);
 	g_HttpServer->RegisterURI("/camera_control", CameraControlHandler, nullptr);
+	g_HttpServer->RegisterURI("/change_switch_command", ChangeSwitchCommandHandler, nullptr);
 
 	while (g_Run)
 	{
