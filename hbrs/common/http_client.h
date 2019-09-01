@@ -17,6 +17,8 @@ public:
 
     void Post(const std::string ip, int port, const std::string &path, const std::string &data);
 
+    void Post(const std::string &data);
+
     static HttpClient *Instance();
 
 protected:

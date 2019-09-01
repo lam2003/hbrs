@@ -18,9 +18,9 @@
 
 using namespace rs;
 
-static VideoManager g_VideoManager;
-static HttpServer g_HttpServer;
-static Switch g_Switch;
+static std::shared_ptr<VideoManager> g_VideoManager = std::make_shared<VideoManager>();
+static std::shared_ptr<HttpServer> g_HttpServer = std::make_shared<HttpServer>();
+static std::shared_ptr<Switch> g_Switch = std::make_shared<Switch>();
 
 static const char *g_Opts = "c:i:p:";
 
@@ -80,14 +80,14 @@ static void StartLocalLiveHandler(evhttp_request *req, void *arg)
 	LocalLiveReq live_req;
 	live_req = root;
 
-	g_VideoManager.CloseLocalLive();
-	g_VideoManager.StartLocalLive(live_req.local_lives);
+	g_VideoManager->CloseLocalLive();
+	g_VideoManager->StartLocalLive(live_req.local_lives);
 	ResponseOK(req);
 }
 
 static void StopLocalLiveHandler(evhttp_request *req, void *arg)
 {
-	g_VideoManager.CloseLocalLive();
+	g_VideoManager->CloseLocalLive();
 	ResponseOK(req);
 }
 
@@ -100,14 +100,14 @@ static void StartRemoteLiveHandler(evhttp_request *req, void *arg)
 	RemoteLiveReq live_req;
 	live_req = root;
 
-	g_VideoManager.CloseRemoteLive();
-	g_VideoManager.StartRemoteLive(live_req.remote_live);
+	g_VideoManager->CloseRemoteLive();
+	g_VideoManager->StartRemoteLive(live_req.remote_live);
 	ResponseOK(req);
 }
 
 static void StopRemoteLiveHandler(evhttp_request *req, void *arg)
 {
-	g_VideoManager.CloseRemoteLive();
+	g_VideoManager->CloseRemoteLive();
 	ResponseOK(req);
 }
 
@@ -120,8 +120,8 @@ static void StartRecordHandler(evhttp_request *req, void *arg)
 	RecordReq record_req;
 	record_req = root;
 
-	g_VideoManager.CloseRecord();
-	g_VideoManager.StartRecord(record_req.records);
+	g_VideoManager->CloseRecord();
+	g_VideoManager->StartRecord(record_req.records);
 	ResponseOK(req);
 }
 
@@ -134,13 +134,13 @@ static void SwitchHandler(evhttp_request *req, void *arg)
 	SwitchReq switch_req;
 	switch_req = root;
 
-	g_VideoManager.OnSwitchEvent(switch_req.scene);
+	g_VideoManager->OnSwitchEvent(switch_req.scene);
 	ResponseOK(req);
 }
 
 static void StopRecordHandler(evhttp_request *req, void *arg)
 {
-	g_VideoManager.CloseRecord();
+	g_VideoManager->CloseRecord();
 	ResponseOK(req);
 }
 
@@ -155,19 +155,19 @@ static void ChangeMainScreenHandler(evhttp_request *req, void *arg)
 
 	if (Config::IsResourceMode(change_main_screen_req.scene.mode) != CONFIG->IsResourceMode())
 	{
-		g_VideoManager.CloseRecord();
-		g_VideoManager.CloseRemoteLive();
-		g_VideoManager.CloseLocalLive();
-		g_VideoManager.CloseVideoEncode();
-		g_VideoManager.CloseMainScreen();
+		g_VideoManager->CloseRecord();
+		g_VideoManager->CloseRemoteLive();
+		g_VideoManager->CloseLocalLive();
+		g_VideoManager->CloseVideoEncode();
+		g_VideoManager->CloseMainScreen();
 
-		g_VideoManager.StartMainScreen(change_main_screen_req.scene);
-		g_VideoManager.StartVideoEncode(CONFIG->video_);
+		g_VideoManager->StartMainScreen(change_main_screen_req.scene);
+		g_VideoManager->StartVideoEncode(CONFIG->video_);
 	}
 	else
 	{
-		g_VideoManager.CloseMainScreen();
-		g_VideoManager.StartMainScreen(change_main_screen_req.scene);
+		g_VideoManager->CloseMainScreen();
+		g_VideoManager->StartMainScreen(change_main_screen_req.scene);
 	}
 	ResponseOK(req);
 }
@@ -181,7 +181,7 @@ static void ChangePCCaptureModeHandler(evhttp_request *req, void *arg)
 	ChangePCCaptureReq change_pc_capture_req;
 	change_pc_capture_req = root;
 
-	g_VideoManager.ChangePCCaputreMode(change_pc_capture_req.adv7842);
+	g_VideoManager->ChangePCCaputreMode(change_pc_capture_req.adv7842);
 	ResponseOK(req);
 }
 
@@ -194,8 +194,8 @@ static void ChangeDisplayScreenHandler(evhttp_request *req, void *arg)
 	ChangeDisplayScreenReq change_display_screen_req;
 	change_display_screen_req = root;
 
-	g_VideoManager.CloseDisplayScreen();
-	g_VideoManager.StartDisplayScreen(change_display_screen_req.display);
+	g_VideoManager->CloseDisplayScreen();
+	g_VideoManager->StartDisplayScreen(change_display_screen_req.display);
 
 	ResponseOK(req);
 }
@@ -208,11 +208,11 @@ static void ChangeVideoHandler(evhttp_request *req, void *arg)
 	ChangeVideoReq change_video_req;
 	change_video_req = root;
 
-	g_VideoManager.CloseRecord();
-	g_VideoManager.CloseLocalLive();
-	g_VideoManager.CloseLocalLive();
-	g_VideoManager.CloseVideoEncode();
-	g_VideoManager.StartVideoEncode(change_video_req.video);
+	g_VideoManager->CloseRecord();
+	g_VideoManager->CloseLocalLive();
+	g_VideoManager->CloseLocalLive();
+	g_VideoManager->CloseVideoEncode();
+	g_VideoManager->StartVideoEncode(change_video_req.video);
 	ResponseOK(req);
 }
 
@@ -274,24 +274,24 @@ int32_t main(int32_t argc, char **argv)
 	MPPSystem::Instance()->Initialize();
 	HttpClient::Instance()->Initialize();
 
-	g_VideoManager.Initialize();
+	g_VideoManager->Initialize();
 
 	event_base *base = event_base_new();
-	g_Switch.Initialize(base);
-	g_Switch.SetEventListener(&g_VideoManager);
-	g_HttpServer.Initialize(ip, port, base);
-	g_HttpServer.RegisterURI("/start_local_live", StartLocalLiveHandler, nullptr);
-	g_HttpServer.RegisterURI("/stop_local_live", StopLocalLiveHandler, nullptr);
-	g_HttpServer.RegisterURI("/start_remote_live", StartRemoteLiveHandler, nullptr);
-	g_HttpServer.RegisterURI("/stop_remote_live", StopRemoteLiveHandler, nullptr);
-	g_HttpServer.RegisterURI("/start_record", StartRecordHandler, nullptr);
-	g_HttpServer.RegisterURI("/stop_record", StopRecordHandler, nullptr);
-	g_HttpServer.RegisterURI("/switch", SwitchHandler, nullptr);
-	g_HttpServer.RegisterURI("/change_main_screen", ChangeMainScreenHandler, nullptr);
-	g_HttpServer.RegisterURI("/change_pc_capture_mode", ChangePCCaptureModeHandler, nullptr);
-	g_HttpServer.RegisterURI("/change_display_screen", ChangeDisplayScreenHandler, nullptr);
-	g_HttpServer.RegisterURI("/change_video", ChangeVideoHandler, nullptr);
-	g_HttpServer.RegisterURI("/save_time", SaveTimeHandler, nullptr);
+	g_Switch->Initialize(base);
+	g_Switch->SetEventListener(g_VideoManager);
+	g_HttpServer->Initialize(ip, port, base);
+	g_HttpServer->RegisterURI("/start_local_live", StartLocalLiveHandler, nullptr);
+	g_HttpServer->RegisterURI("/stop_local_live", StopLocalLiveHandler, nullptr);
+	g_HttpServer->RegisterURI("/start_remote_live", StartRemoteLiveHandler, nullptr);
+	g_HttpServer->RegisterURI("/stop_remote_live", StopRemoteLiveHandler, nullptr);
+	g_HttpServer->RegisterURI("/start_record", StartRecordHandler, nullptr);
+	g_HttpServer->RegisterURI("/stop_record", StopRecordHandler, nullptr);
+	g_HttpServer->RegisterURI("/switch", SwitchHandler, nullptr);
+	g_HttpServer->RegisterURI("/change_main_screen", ChangeMainScreenHandler, nullptr);
+	g_HttpServer->RegisterURI("/change_pc_capture_mode", ChangePCCaptureModeHandler, nullptr);
+	g_HttpServer->RegisterURI("/change_display_screen", ChangeDisplayScreenHandler, nullptr);
+	g_HttpServer->RegisterURI("/change_video", ChangeVideoHandler, nullptr);
+	g_HttpServer->RegisterURI("/save_time", SaveTimeHandler, nullptr);
 
 	while (g_Run)
 	{
@@ -302,11 +302,11 @@ int32_t main(int32_t argc, char **argv)
 		event_base_dispatch(base);
 	}
 
-	g_Switch.Close();
-	g_HttpServer.Close();
+	g_Switch->Close();
+	g_HttpServer->Close();
 	event_base_free(base);
 
-	g_VideoManager.Close();
+	g_VideoManager->Close();
 	HttpClient::Instance()->Close();
 	MPPSystem::Instance()->Close();
 	return 0;

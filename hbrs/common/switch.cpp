@@ -163,7 +163,7 @@ void Switch::Close()
     init_ = false;
 }
 
-void Switch::SetEventListener(SwitchEventListener *listener)
+void Switch::SetEventListener(std::shared_ptr<SwitchEventListener> listener)
 {
     listener_ = listener;
 }

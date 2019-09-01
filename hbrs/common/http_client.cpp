@@ -1,5 +1,6 @@
 #include "common/http_client.h"
 #include "common/err_code.h"
+#include "common/config.h"
 
 namespace rs
 {
@@ -16,18 +17,18 @@ void HttpClient::HandleResponseCallBack(struct evhttp_request *req)
     if (!req)
     {
         log_e("http request failed,%s", strerror(errno));
-        return;
     }
-
-    switch (req->response_code)
+    else
     {
-    case HTTP_OK:
-        log_d("http request ok");
-        break;
-    default:
-        log_e("http reponse code:%d", req->response_code);
+        switch (req->response_code)
+        {
+        case HTTP_OK:
+            log_d("http request ok");
+            break;
+        default:
+            log_e("http reponse code:%d", req->response_code);
+        }
     }
-    event_base_loopexit(base_, 0);
 }
 
 HttpClient::HttpClient() : base_(nullptr),
@@ -38,6 +39,11 @@ HttpClient::HttpClient() : base_(nullptr),
 HttpClient::~HttpClient()
 {
     Close();
+}
+
+void HttpClient::Post(const std::string &data)
+{
+    Post(CONFIG->web_.ip, CONFIG->web_.port, CONFIG->web_.path, data);
 }
 
 void HttpClient::Post(const std::string ip, int port, const std::string &path, const std::string &data)
@@ -58,7 +64,7 @@ void HttpClient::Post(const std::string ip, int port, const std::string &path, c
         return;
     }
 
-    evhttp_connection_set_retries(conn, -1);
+    evhttp_connection_set_retries(conn, 1);
     evhttp_connection_set_timeout(conn, 1);
 
     evhttp_request *req = evhttp_request_new(HttpResponseCallBack<HttpClient>, static_cast<void *>(this));

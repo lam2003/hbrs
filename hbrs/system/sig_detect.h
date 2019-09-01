@@ -29,13 +29,13 @@ public:
 
     void RemoveAllVIFmtListener();
 
-    void SetSignalStatusListener(SignalStatusListener *listener);
+    void SetSignalStatusListener(std::shared_ptr<SignalStatusListener> listener);
 
 private:
     std::mutex mux_;
     std::vector<std::shared_ptr<VIFmtListener>> listeners_;
     std::vector<VideoInputFormat> fmts_;
-    SignalStatusListener *status_listeners_;
+    std::shared_ptr<SignalStatusListener> status_listeners_;
     std::shared_ptr<PCIVComm> pciv_comm_;
     std::atomic<bool> run_;
     std::unique_ptr<std::thread> thread_;

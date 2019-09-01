@@ -2,6 +2,7 @@
 
 #include "common/config.h"
 #include "common/switch.h"
+#include "system/sig_detect.h"
 
 namespace rs
 {
@@ -20,7 +21,7 @@ class AudioInput;
 class AudioEncode;
 class AudioOutput;
 
-class VideoManager : public SwitchEventListener
+class VideoManager : public SwitchEventListener, public std::enable_shared_from_this<VideoManager>, public SignalStatusListener
 {
 public:
     explicit VideoManager();
@@ -61,6 +62,7 @@ public:
 
     void ChangePCCaputreMode(Config::Adv7842 adv7842);
 
+    void OnUpdate(const std::vector<VideoInputFormat> &fmts) override;
 private:
     std::vector<std::shared_ptr<VIHelper>> vi_arr_;
     std::vector<std::shared_ptr<VideoProcess>> vpss_tmp_arr_;

@@ -74,6 +74,17 @@ struct VideoInputFormat
             return true;
         return false;
     }
+
+    operator Json::Value() const 
+    {
+        Json::Value root;
+        root["has_signal"] = has_signal;
+        root["width"] = width;
+        root["height"] = height;
+        root["interlaced"] = interlaced;
+        root["frame_rate"] = frame_rate;
+        return root;
+    }
 };
 
 struct VIFmtListener

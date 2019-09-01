@@ -9,10 +9,12 @@
 #include "system/ao.h"
 #include "system/pciv_comm.h"
 #include "system/pciv_trans.h"
-#include "system/sig_detect.h"
 #include "system/mpp.h"
 #include "common/err_code.h"
 #include "common/utils.h"
+#include "common/json.h"
+#include "common/http_client.h"
+#include "model/http_notify_req.h"
 
 namespace rs
 {
@@ -125,6 +127,7 @@ int VideoManager::Initialize()
 
     for (int i = 0; i < 2; i++)
         sig_detect_->AddVIFmtListener(vi_arr_[i]);
+    sig_detect_->SetSignalStatusListener(shared_from_this());
     sig_detect_->Initialize(pciv_comm_, CONFIG->adv7842_.pc_capture_mode);
 
     ai_->Initialize({4, 0});
@@ -220,6 +223,7 @@ void VideoManager::Close()
     ai_->Close();
 
     sig_detect_->Close();
+    sig_detect_->SetSignalStatusListener(nullptr);
     sig_detect_->RemoveAllVIFmtListener();
 
     pciv_trans_->Close();
@@ -660,5 +664,25 @@ void VideoManager::ChangePCCaputreMode(Config::Adv7842 adv7842)
     sig_detect_->SetPCCaptureMode(adv7842.pc_capture_mode);
     CONFIG->adv7842_ = adv7842;
     CONFIG->WriteToFile();
+}
+
+void VideoManager::OnUpdate(const std::vector<VideoInputFormat> &fmts)
+{
+    Json::Value root;
+
+    for (size_t i = 0; i < fmts.size(); i++)
+    {
+        Json::Value item = fmts[i];
+        root[std::to_string(i)] = item;
+    }
+
+    std::string msg = JsonUtils::toStr(root);
+
+    HttpNotifyReq req;
+    req.type = HttpNotifyReq::Type::SIGNAL_STATUS;
+    req.msg = msg;
+
+    std::string data = JsonUtils::toStr(req);
+    HttpClient::Instance()->Post(data);
 }
 } // namespace rs

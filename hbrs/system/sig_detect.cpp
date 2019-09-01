@@ -248,7 +248,7 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                 }
                 if (changed)
                     PrintSignal(fmts_);
-                    
+
                 {
                     std::unique_lock<std::mutex> lock(mux_);
                     if (status_listeners_ != nullptr)
@@ -300,7 +300,7 @@ void SigDetect::RemoveAllVIFmtListener()
     listeners_.clear();
 }
 
-void SigDetect::SetSignalStatusListener(SignalStatusListener *listener)
+void SigDetect::SetSignalStatusListener(std::shared_ptr<SignalStatusListener> listener)
 {
     std::unique_lock<std::mutex> lock(mux_);
     status_listeners_ = listener;
