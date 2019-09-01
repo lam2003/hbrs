@@ -265,7 +265,7 @@ static void ChangeSwitchCommandHandler(evhttp_request *req, void *arg)
 int32_t main(int32_t argc, char **argv)
 {
 	RTC::LoadTime();
-	ConfigLogger();
+	ConfigLogger("./rs.log", RS_VERSION);
 
 	signal(SIGINT, SignalHandler);
 	signal(SIGPIPE, SignalHandler);
