@@ -3,6 +3,7 @@
 #include "common/rtc.h"
 #include "common/logger.h"
 #include "common/http_server.h"
+#include "common/http_client.h"
 #include "common/switch.h"
 #include "common/json.h"
 
@@ -271,6 +272,7 @@ int32_t main(int32_t argc, char **argv)
 	}
 
 	MPPSystem::Instance()->Initialize();
+	HttpClient::Instance()->Initialize();
 
 	g_VideoManager.Initialize();
 
@@ -305,5 +307,7 @@ int32_t main(int32_t argc, char **argv)
 	event_base_free(base);
 
 	g_VideoManager.Close();
+	HttpClient::Instance()->Close();
+	MPPSystem::Instance()->Close();
 	return 0;
 }

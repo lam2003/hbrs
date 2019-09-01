@@ -78,7 +78,6 @@ public:
         Record &operator=(const Json::Value &root);
     };
 
-
     struct LocalLive
     {
         std::vector<std::pair<RS_SCENE, rtmp::Params>> lives;
@@ -111,6 +110,16 @@ public:
         SwitchCommand &operator=(const Json::Value &root);
     };
 
+    struct Web
+    {
+        std::string ip;
+        int port;
+        std::string path;
+        operator Json::Value() const;
+        static bool IsOk(const Json::Value &root);
+        Web &operator=(const Json::Value &root);
+    };
+
     static Config *Instance();
 
     virtual ~Config();
@@ -137,6 +146,7 @@ public:
     LocalLive local_lives_;
     Record records_;
     SwitchCommand switch_cmd_;
+    Web web_;
 
 private:
     std::string path_;

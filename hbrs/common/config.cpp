@@ -51,7 +51,9 @@ int Config::Initialize(const std::string &path)
         !root.isMember("adv7842") ||
         !root["adv7842"].isObject() ||
         !root.isMember("switch_cmd") ||
-        !root["switch_cmd"].isObject())
+        !root["switch_cmd"].isObject() ||
+        !root.isMember("web") ||
+        !root["web"].isObject())
     {
         log_e("check root format failed");
         return KParamsError;
@@ -82,12 +84,18 @@ int Config::Initialize(const std::string &path)
         log_e("check switch_cmd format failed");
         return KParamsError;
     }
+    if (!Config::Web::IsOk(root["web"]))
+    {
+        log_e("check web format failed");
+        return KParamsError;
+    }
 
     scene_ = root["scene"];
     display_ = root["display"];
     video_ = root["video"];
     adv7842_ = root["adv7842"];
     switch_cmd_ = root["switch_cmd"];
+    web_ = root["web"];
 
     init_ = true;
     return KSuccess;
@@ -151,6 +159,7 @@ int Config::WriteToFile()
     root["display"] = display_;
     root["adv7842"] = adv7842_;
     root["switch_cmd"] = switch_cmd_;
+    root["web"] = web_;
 
     ofs << root.toStyledString() << std::endl;
     ofs.close();
@@ -632,7 +641,7 @@ Config::SwitchCommand::operator Json::Value() const
     root["bb_fea"] = "";
     if (Utils::HexInt2String(bb_fea, str))
         root["bb_fea"] = str;
-    
+
     root["pc_capture"] = "";
     if (Utils::HexInt2String(pc_capture, str))
         root["pc_capture"] = str;
@@ -682,4 +691,33 @@ Config::SwitchCommand &Config::SwitchCommand::operator=(const Json::Value &root)
     return *this;
 }
 
+Config::Web::operator Json::Value() const
+{
+    Json::Value root;
+    root["ip"] = ip;
+    root["port"] = port;
+    root["path"] = path;
+    return root;
+}
+
+bool Config::Web::IsOk(const Json::Value &root)
+{
+    if (!root.isObject() ||
+        !root.isMember("ip") ||
+        !root["ip"].isString() ||
+        !root.isMember("port") ||
+        !root["port"].isInt() ||
+        !root.isMember("path") ||
+        !root["path"].isString())
+        return false;
+    return true;
+}
+
+Config::Web &Config::Web::operator=(const Json::Value &root)
+{
+    ip = root["ip"].asString();
+    port = root["port"].asInt();
+    path = root["path"].asString();
+    return *this;
+}
 } // namespace rs

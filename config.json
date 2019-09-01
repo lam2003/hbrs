@@ -109,12 +109,17 @@
    "adv7842": {
       "pc_capture_mode": 0
    },
-   "switch_cmd" : {
-      "bb_fea" : "FF 02 00 07 00 52 5B",
-      "pc_capture" : "FF 02 00 07 00 53 5C",
-      "stu_fea" : "FF 02 00 07 00 50 59",
-      "stu_full" : "FF 02 00 07 00 40 49",
-      "tea_fea" : "FF 02 00 07 00 51 5A",
-      "tea_full" : "FF 02 00 07 00 41 4A"
+   "switch_cmd": {
+      "bb_fea": "FF 02 00 07 00 52 5B",
+      "pc_capture": "FF 02 00 07 00 53 5C",
+      "stu_fea": "FF 02 00 07 00 50 59",
+      "stu_full": "FF 02 00 07 00 40 49",
+      "tea_fea": "FF 02 00 07 00 51 5A",
+      "tea_full": "FF 02 00 07 00 41 4A"
+   },
+   "web": {
+      "ip": "127.0.0.1",
+      "port": 80,
+      "path": "/videocontrol/other.php?action=recordHostInfo"
    }
 }
