@@ -6,13 +6,13 @@ namespace rs
 {
 
 template <typename T>
-void HttpResponseCallBack(struct evhttp_request *req, void *arg)
+void HttpRequestCallBack(struct evhttp_request *req, void *arg)
 {
     T *t = static_cast<T *>(arg);
-    t->HandleResponseCallBack(req);
+    t->HandleRequestCallBack(req);
 }
 
-void HttpClient::HandleResponseCallBack(struct evhttp_request *req)
+void HttpClient::HandleRequestCallBack(struct evhttp_request *req)
 {
     if (!req)
     {
@@ -67,7 +67,7 @@ void HttpClient::Post(const std::string ip, int port, const std::string &path, c
     evhttp_connection_set_retries(conn, 1);
     evhttp_connection_set_timeout(conn, 1);
 
-    evhttp_request *req = evhttp_request_new(HttpResponseCallBack<HttpClient>, static_cast<void *>(this));
+    evhttp_request *req = evhttp_request_new(HttpRequestCallBack<HttpClient>, static_cast<void *>(this));
     if (!req)
     {
         log_e("evhttp_request_new failed");

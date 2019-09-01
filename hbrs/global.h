@@ -74,6 +74,8 @@
 #include <srs_librtmp.h>
 //mp4v2
 #include <mp4v2/mp4v2.h>
+//visca
+#include <visca/libvisca.h>
 
 #define RS_ALIGN_WIDTH 64                               //图像对齐大小
 #define RS_PIXEL_FORMAT PIXEL_FORMAT_YUV_SEMIPLANAR_420 //图像像素格式

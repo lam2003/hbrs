@@ -17,6 +17,7 @@ libjpeg.a
 libpciv.a
 libevent.a
 libmp4v2.a
+libvisca.a
 ${CMAKE_SOURCE_DIR}/3rdparty/lib/srs_librtmp.a
 pthread
 dl

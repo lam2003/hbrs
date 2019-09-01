@@ -13,7 +13,7 @@ public:
 
     void Close();
 
-    void HandleResponseCallBack(struct evhttp_request *req);
+    void HandleRequestCallBack(struct evhttp_request *req);
 
     void Post(const std::string ip, int port, const std::string &path, const std::string &data);
 

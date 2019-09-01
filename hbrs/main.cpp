@@ -15,6 +15,7 @@
 #include "model/change_display_sceen_req.h"
 #include "model/switch_req.h"
 #include "model/change_video_req.h"
+#include "model/camera_control_req.h"
 
 using namespace rs;
 
@@ -237,6 +238,17 @@ static void ReBootHandler(evhttp_request *req, void *arg)
 	ResponseOK(req);
 }
 
+static void CameraControlHandler(evhttp_request *req, void *arg)
+{
+	Json::Value root;
+	if (!CheckReq<CameraControlReq>(req, root))
+		return;
+	CameraControlReq camera_control_req;
+	camera_control_req = root;
+	g_SerialManager->CameraControl(camera_control_req.camera_addr, camera_control_req.cmd, camera_control_req.value);
+	ResponseOK(req);
+}
+
 int32_t main(int32_t argc, char **argv)
 {
 	RTC::LoadTime();
@@ -309,6 +321,7 @@ int32_t main(int32_t argc, char **argv)
 	g_HttpServer->RegisterURI("/save_time", SaveTimeHandler, nullptr);
 	g_HttpServer->RegisterURI("/shutdown", ShutDownHandler, nullptr);
 	g_HttpServer->RegisterURI("/reboot", ReBootHandler, nullptr);
+	g_HttpServer->RegisterURI("/camera_control", CameraControlHandler, nullptr);
 
 	while (g_Run)
 	{
