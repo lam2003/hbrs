@@ -20,6 +20,7 @@ class MP4Record;
 class AudioInput;
 class AudioEncode;
 class AudioOutput;
+class FrameBuffer;
 
 class AVManager : public SwitchEventListener, public std::enable_shared_from_this<AVManager>, public SignalStatusListener
 {
@@ -52,6 +53,10 @@ public:
 
     void CloseDisplayScreen();
 
+    void StartSmallDisplayScreen();
+
+    void CloseSmallDisplayScreen();
+
     void StartVideoEncode(const Config::Video &video_conf);
 
     void CloseVideoEncode();
@@ -63,6 +68,7 @@ public:
     void ChangePCCaputreMode(Config::Adv7842 adv7842);
 
     void OnUpdate(const std::vector<VideoInputFormat> &fmts) override;
+
 private:
     std::vector<std::shared_ptr<VIHelper>> vi_arr_;
     std::vector<std::shared_ptr<VideoProcess>> vpss_tmp_arr_;
@@ -74,6 +80,9 @@ private:
     std::vector<std::shared_ptr<MP4Record>> record_arr_;
 
     std::shared_ptr<VideoOutput> display_vo_;
+    std::shared_ptr<FrameBuffer> display_fb_;
+    std::shared_ptr<VideoOutput> small_display_vo_;
+    std::shared_ptr<FrameBuffer> small_display_fb_;
     std::shared_ptr<VideoOutput> main_vo_;
     std::shared_ptr<AudioInput> ai_;
     std::shared_ptr<AudioEncode> aenc_;
@@ -86,6 +95,7 @@ private:
 
     bool encode_stared_;
     bool display_screen_started_;
+    bool small_display_screen_started_;
     bool main_screen_started_;
     bool local_live_started_;
     bool remote_live_started_;

@@ -10,6 +10,7 @@
 #include "system/pciv_comm.h"
 #include "system/pciv_trans.h"
 #include "system/mpp.h"
+#include "system/fb.h"
 #include "common/err_code.h"
 #include "common/utils.h"
 #include "common/json.h"
@@ -20,6 +21,9 @@ namespace rs
 {
 
 AVManager::AVManager() : display_vo_(nullptr),
+                         display_fb_(nullptr),
+                         small_display_vo_(nullptr),
+                         small_display_fb_(nullptr),
                          main_vo_(nullptr),
                          ai_(nullptr),
                          aenc_(nullptr),
@@ -79,6 +83,12 @@ int AVManager::Initialize()
         record_arr_[i] = std::make_shared<MP4Record>();
 
     display_vo_ = std::make_shared<VideoOutput>();
+
+    display_fb_ = std::make_shared<FrameBuffer>();
+
+    small_display_vo_ = std::make_shared<VideoOutput>();
+
+    small_display_fb_ = std::make_shared<FrameBuffer>();
 
     main_vo_ = std::make_shared<VideoOutput>();
 
@@ -168,6 +178,8 @@ int AVManager::Initialize()
 
     StartDisplayScreen(CONFIG->display_);
 
+    StartSmallDisplayScreen();
+
     StartVideoEncode(CONFIG->video_);
 
     return KSuccess;
@@ -183,6 +195,8 @@ void AVManager::Close(const std::string &opt)
     CloseRemoteLive();
 
     CloseVideoEncode();
+
+    CloseSmallDisplayScreen();
 
     CloseDisplayScreen();
 
@@ -286,6 +300,15 @@ void AVManager::Close(const std::string &opt)
 
     main_vo_.reset();
     main_vo_ = nullptr;
+
+    small_display_fb_.reset();
+    small_display_fb_ = nullptr;
+
+    small_display_vo_.reset();
+    small_display_vo_ = nullptr;
+
+    display_fb_.reset();
+    display_fb_ = nullptr;
 
     display_vo_.reset();
     display_vo_ = nullptr;
@@ -516,6 +539,7 @@ void AVManager::StartDisplayScreen(const Config::Display &display_conf)
         return;
 
     display_vo_->Initialize({0, VO_INTF_VGA | VO_INTF_HDMI, display_conf.disp_vo_intf_sync});
+    display_fb_->Initialize({"/dev/fb0", display_conf.disp_vo_intf_sync});
 
     std::map<int, RECT_S> display_pos = display_conf.display_pos;
     for (auto it = display_conf.mapping.begin(); it != display_conf.mapping.end(); it++)
@@ -547,8 +571,31 @@ void AVManager::CloseDisplayScreen()
         main_vo_->StopChannel(index);
     }
 
+    display_fb_->Close();
     display_vo_->Close();
     display_screen_started_ = false;
+}
+
+void AVManager::StartSmallDisplayScreen()
+{
+    if (!init_ || small_display_screen_started_)
+        return;
+
+    small_display_vo_->Initialize({0, VO_INTF_CVBS, VO_OUTPUT_PAL});
+    small_display_fb_->Initialize({"/dev/fb3", VO_OUTPUT_PAL});
+
+    small_display_screen_started_ = true;
+}
+
+void AVManager::CloseSmallDisplayScreen()
+{
+    if (!init_ || !small_display_screen_started_)
+        return;
+
+    small_display_fb_->Close();
+    small_display_vo_->Close();
+
+    small_display_screen_started_ = false;
 }
 
 void AVManager::StartVideoEncode(const Config::Video &video_conf)
