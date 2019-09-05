@@ -120,6 +120,17 @@ public:
         Web &operator=(const Json::Value &root);
     };
 
+    struct Logger
+    {
+        std::string dir_path;
+        bool auto_clean;
+        int clean_duration;
+
+        operator Json::Value() const;
+        static bool IsOk(const Json::Value &root);
+        Logger &operator=(const Json::Value &root);
+    };
+
     static Config *Instance();
 
     virtual ~Config();
@@ -147,6 +158,7 @@ public:
     Record records_;
     SwitchCommand switch_cmd_;
     Web web_;
+    Logger logger_;
 
 private:
     std::string path_;

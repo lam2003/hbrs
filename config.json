@@ -121,5 +121,10 @@
       "ip": "127.0.0.1",
       "port": 80,
       "path": "/videocontrol/other.php?action=recordHostInfo"
+   },
+   "logger": {
+      "dir_path": "/nand/log",
+      "auto_clean": true,
+      "clean_duration": "3600"
    }
 }

@@ -53,7 +53,9 @@ int Config::Initialize(const std::string &path)
         !root.isMember("switch_cmd") ||
         !root["switch_cmd"].isObject() ||
         !root.isMember("web") ||
-        !root["web"].isObject())
+        !root["web"].isObject() ||
+        !root.isMember("logger") ||
+        !root["logger"].isObject())
     {
         log_e("check root format failed");
         return KParamsError;
@@ -89,6 +91,11 @@ int Config::Initialize(const std::string &path)
         log_e("check web format failed");
         return KParamsError;
     }
+    if (!Config::Logger::IsOk(root["logger"]))
+    {
+        log_e("check logger format failed");
+        return KParamsError;
+    }
 
     scene_ = root["scene"];
     display_ = root["display"];
@@ -96,6 +103,7 @@ int Config::Initialize(const std::string &path)
     adv7842_ = root["adv7842"];
     switch_cmd_ = root["switch_cmd"];
     web_ = root["web"];
+    logger_ = root["logger"];
 
     init_ = true;
     return KSuccess;
@@ -160,6 +168,7 @@ int Config::WriteToFile()
     root["adv7842"] = adv7842_;
     root["switch_cmd"] = switch_cmd_;
     root["web"] = web_;
+    root["logger"] = logger_;
 
     ofs << root.toStyledString() << std::endl;
     ofs.close();
@@ -720,4 +729,35 @@ Config::Web &Config::Web::operator=(const Json::Value &root)
     path = root["path"].asString();
     return *this;
 }
+
+Config::Logger::operator Json::Value() const
+{
+    Json::Value root;
+    root["dir_path"] = dir_path;
+    root["auto_clean"] = auto_clean;
+    root["clean_duration"] = clean_duration;
+    return root;
+}
+
+bool Config::Logger::IsOk(const Json::Value &root)
+{
+    if (!root.isObject() ||
+        !root.isMember("dir_path") ||
+        !root["dir_path"].isString() ||
+        !root.isMember("auto_clean") ||
+        !root["auto_clean"].isBool() ||
+        !root.isMember("clean_duration") ||
+        !root["clean_duration"].isInt())
+        return false;
+    return true;
+}
+
+Config::Logger &Config::Logger::operator=(const Json::Value &root)
+{
+    dir_path = root["dir_path"].asString();
+    auto_clean = root["auto_clean"].asBool();
+    clean_duration = root["clean_duration"].asInt();
+    return *this;
+}
+
 } // namespace rs
