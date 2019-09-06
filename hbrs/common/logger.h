@@ -17,7 +17,7 @@ static void ConfigLogger()
 
     std::ostringstream oss;
     oss << Config::Instance()->logger_.dir_path << "/"
-        << "log_" << Utils::GetLocalTime() << ".log";
+        << "rs_" << Utils::GetLocalTime() << ".log";
     setbuf(stdout, NULL);
     elog_init(oss.str().c_str());
     elog_set_fmt(ELOG_LVL_ASSERT, ELOG_FMT_ALL);
