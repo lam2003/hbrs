@@ -125,6 +125,6 @@
    "logger": {
       "dir_path": "/nand/log",
       "auto_clean": true,
-      "clean_duration": "3600"
+      "clean_duration": 604800
    }
 }

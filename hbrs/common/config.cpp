@@ -30,7 +30,7 @@ int Config::Initialize(const std::string &path)
     std::ifstream ifs(path_);
     if (!ifs)
     {
-        log_e("open %s failed,%s", path_.c_str(), strerror(errno));
+        printf("open %s failed,%s\n", path_.c_str(), strerror(errno));
         return KParamsError;
     }
 
@@ -38,7 +38,7 @@ int Config::Initialize(const std::string &path)
     Json::Value root;
     if (!reader.parse(ifs, root))
     {
-        log_e("parse json root failed");
+        printf("parse json root failed\n");
         return KParamsError;
     }
 
@@ -57,43 +57,43 @@ int Config::Initialize(const std::string &path)
         !root.isMember("logger") ||
         !root["logger"].isObject())
     {
-        log_e("check root format failed");
+        printf("check root format failed\n");
         return KParamsError;
     }
 
     if (!Config::Scene::IsOk(root["scene"]))
     {
-        log_e("check scene format failed");
+        printf("check scene format failed\n");
         return KParamsError;
     }
     if (!Config::Display::IsOk(root["display"]))
     {
-        log_e("check display format failed");
+        printf("check display format failed\n");
         return KParamsError;
     }
     if (!Config::Video::IsOk(root["video"]))
     {
-        log_e("check video format failed");
+        printf("check video format failed\n");
         return KParamsError;
     }
     if (!Config::Adv7842::IsOk(root["adv7842"]))
     {
-        log_e("check adv7842 format failed");
+        printf("check adv7842 format failed\n");
         return KParamsError;
     }
     if (!Config::SwitchCommand::IsOk(root["switch_cmd"]))
     {
-        log_e("check switch_cmd format failed");
+        printf("check switch_cmd format failed\n");
         return KParamsError;
     }
     if (!Config::Web::IsOk(root["web"]))
     {
-        log_e("check web format failed");
+        printf("check web format failed\n");
         return KParamsError;
     }
     if (!Config::Logger::IsOk(root["logger"]))
     {
-        log_e("check logger format failed");
+        printf("check logger format failed\n");
         return KParamsError;
     }
 

@@ -1,8 +1,8 @@
 #pragma once
 
 //self
-#include "global.h"
 #include "common/av_define.h"
+#include "common/err_code.h"
 
 namespace rs
 {
@@ -434,6 +434,38 @@ public:
         str = str.substr(0, str.length() - 1);
 
         return true;
+    }
+
+    static int32_t CreateDir(const std::string &path)
+    {
+        size_t pos = 0;
+        while (true)
+        {
+            pos = path.find_first_of('/', pos);
+            std::string sub_str = path.substr(0, pos);
+            if (sub_str != "" && access(sub_str.c_str(), F_OK) != 0)
+            {
+                log_w("create dir %s", sub_str.c_str());
+                if (mkdir(sub_str.c_str(), 0777) != 0)
+                {
+                    log_e("mkdir failed,%s", strerror(errno));
+                    return static_cast<int>(KSystemError);
+                }
+            }
+            if (pos == std::string::npos)
+                break;
+            pos++;
+        }
+
+        return KSuccess;
+    }
+
+    static std::string GetLocalTime(const std::string &format = "%Y_%m_%d_%H_%M_%S")
+    {
+        time_t t = time(nullptr);
+        char buf[256];
+        strftime(buf, sizeof(buf), format.c_str(), localtime(&t));
+        return std::string(buf, strlen(buf));
     }
 };
 } // namespace rs

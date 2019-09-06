@@ -265,7 +265,6 @@ static void ChangeSwitchCommandHandler(evhttp_request *req, void *arg)
 int32_t main(int32_t argc, char **argv)
 {
 	RTC::LoadTime();
-	ConfigLogger("./rs.log", RS_VERSION);
 
 	signal(SIGINT, SignalHandler);
 	signal(SIGPIPE, SignalHandler);
@@ -298,7 +297,7 @@ int32_t main(int32_t argc, char **argv)
 		}
 		default:
 		{
-			log_e("unknow argument:%c", opt);
+			printf("unknow argument:%c\n", opt);
 			return 0;
 		}
 		}
@@ -306,11 +305,11 @@ int32_t main(int32_t argc, char **argv)
 
 	if (!got_config_file)
 	{
-		log_w("Usage:%s -c [conf_file_path] -i <http_listen_ip> -p <http_listen_port>", argv[0]);
-		usleep(100000); //100ms
+		printf("Usage:%s -c [conf_file_path] -i <http_listen_ip> -p <http_listen_port>\n", argv[0]);
 		return 0;
 	}
 
+	ConfigLogger();
 	MPPSystem::Instance()->Initialize();
 	HttpClient::Instance()->Initialize();
 

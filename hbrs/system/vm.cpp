@@ -581,7 +581,7 @@ void AVManager::StartSmallDisplayScreen()
     if (!init_ || small_display_screen_started_)
         return;
 
-    small_display_vo_->Initialize({0, VO_INTF_CVBS, VO_OUTPUT_PAL});
+    small_display_vo_->Initialize({3, VO_INTF_CVBS, VO_OUTPUT_PAL});
     small_display_fb_->Initialize({"/dev/fb3", VO_OUTPUT_PAL});
 
     small_display_screen_started_ = true;
