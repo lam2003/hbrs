@@ -139,14 +139,6 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                 }
 
                 tmp_fmts[Tw6874_1_DevChn2Scene[i]] = Utils::GetVIFmt(static_cast<hd_dis_resolution_e>(cur_chn));
-                if (!tmp_fmts[Tw6874_1_DevChn2Scene[i]].has_signal)
-                {
-                    no_signal_times[Tw6874_1_DevChn2Scene[i]]++;
-                }
-                else
-                {
-                    no_signal_times[Tw6874_1_DevChn2Scene[i]] = 0;
-                }
             }
             for (int i = RS_MASTER_SDI_BASE; i < RS_MASTER_SDI_NUM && run_; i++)
             {
@@ -159,14 +151,6 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                 }
 
                 tmp_fmts[Tw6874_2_DevChn2Scene[i]] = Utils::GetVIFmt(static_cast<hd_dis_resolution_e>(cur_chn));
-                if (!tmp_fmts[Tw6874_2_DevChn2Scene[i]].has_signal)
-                {
-                    no_signal_times[Tw6874_2_DevChn2Scene[i]]++;
-                }
-                else
-                {
-                    no_signal_times[Tw6874_2_DevChn2Scene[i]] = 0;
-                }
             }
             if (run_)
             {
@@ -188,22 +172,13 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                 }
 
                 memcpy(&tmp_fmts[PC_CAPTURE], msg.data, sizeof(tmp_fmts[PC_CAPTURE]));
-                if (!tmp_fmts[PC_CAPTURE].has_signal)
-                {
-                    no_signal_times[PC_CAPTURE]++;
-                }
-                else
-                {
-                    no_signal_times[PC_CAPTURE] = 0;
-                }
 
+                bool changed = false;
                 for (int i = TEA_FEA; i <= PC_CAPTURE; i++)
                 {
-                    if (!tmp_fmts[i].has_signal && no_signal_times[i] < 1)
-                        continue;
-
                     if (fmts_[i] != tmp_fmts[i])
                     {
+                        changed = true;
                         changes[i] = true;
                         fmts_[i] = tmp_fmts[i];
                     }
@@ -212,8 +187,7 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                         changes[i] = false;
                     }
                 }
-                bool changed = false;
-                ;
+
                 if (changes[TEA_FULL] || changes[STU_FULL] || changes[BB_FEA])
                 {
                     pciv::Tw6874Query query;
@@ -228,7 +202,6 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                         if (ret != KSuccess)
                             return;
                     }
-                    changed = true;
                 }
                 {
                     std::unique_lock<std::mutex> lock(mux_);
@@ -236,14 +209,12 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                     {
                         for (size_t i = 0; i < listeners_.size(); i++)
                             listeners_[i]->OnChange(fmts_[TEA_FEA], Scene2ViChn[TEA_FEA]);
-                        changed = true;
                     }
 
                     if (changes[STU_FEA])
                     {
                         for (size_t i = 0; i < listeners_.size(); i++)
                             listeners_[i]->OnChange(fmts_[STU_FEA], Scene2ViChn[STU_FEA]);
-                        changed = true;
                     }
                 }
                 if (changed)
