@@ -5,8 +5,10 @@ echo "max size:$MAX_SIZE MB"
 if [ $MAX_SIZE -lt 204800 ]
 then 
 	echo 'small than 204800 MB'
+elif
+	echo 'bigger than 204800 MB'
 fi
-echo 'bigger than 204800 MB'
+
 
 #获得最大磁盘UUID
 DISK_DEV=`df | sed -n '2,$p' | sort -n -r -k 2  | sed -n '1,1p' | awk '{print $1}'`
