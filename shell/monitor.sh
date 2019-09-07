@@ -5,7 +5,7 @@ echo "max size:$MAX_SIZE MB"
 if [ $MAX_SIZE -lt 204800 ]
 then 
 	echo 'small than 204800 MB'
-elif
+else
 	echo 'bigger than 204800 MB'
 fi
 
