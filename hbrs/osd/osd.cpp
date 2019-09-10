@@ -21,7 +21,7 @@ void Osd::Close()
 {
     if (!init_)
         return;
-
+    log_d("OSD stop,hdl:%d", params_.hdl);
     MPP_CHN_S mpp_chn;
     mpp_chn.enModId = HI_ID_GROUP;
     mpp_chn.s32DevId = params_.vpss_grp;
@@ -34,13 +34,14 @@ void Osd::Close()
 
 int Osd::Initialize(const Params &params)
 {
-    printf("##########\n");
     if (init_)
         return KInitialized;
 
     int ret;
 
     params_ = params;
+
+    log_d("OSD start,hdl:%d", params_.hdl);
 
     TTF_Init();
     font_ = TTF_OpenFont(params_.font_file.c_str(), params_.font_size);
@@ -109,7 +110,7 @@ int Osd::Initialize(const Params &params)
         return KSDKError;
     }
 
-    SDL_Surface *sdl_tmpsurface = SDL_CreateRGBSurface(SDL_SWSURFACE, sdl_txtsurface->w, sdl_txtsurface->h, 16,0x00007c00, 0x000003e0, 0x0000001f, 0x00008000);
+    SDL_Surface *sdl_tmpsurface = SDL_CreateRGBSurface(SDL_SWSURFACE, sdl_txtsurface->w, sdl_txtsurface->h, 16, 0x00007c00, 0x000003e0, 0x0000001f, 0x00008000);
     if (sdl_tmpsurface == nullptr)
     {
         log_d("SDL_CreateRGBSurface failed");
@@ -143,7 +144,6 @@ int Osd::Initialize(const Params &params)
     if (bitmap.pData != nullptr)
         free(bitmap.pData);
     SDL_FreeSurface(sdl_txtsurface);
-
 
     init_ = true;
     return KSuccess;

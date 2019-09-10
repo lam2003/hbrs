@@ -24,6 +24,8 @@ void OsdTs::Close()
     if (!init_)
         return;
 
+    log_d("OSD_TS stop,hdl:%d", params_.hdl);
+
     run_ = false;
     thread_->join();
     thread_.reset();
@@ -47,6 +49,8 @@ int OsdTs::Initialize(const Params &params)
     int ret;
 
     params_ = params;
+
+    log_d("OSD_TS start,hdl:%d", params_.hdl);
 
     TTF_Init();
     font_ = TTF_OpenFont(params_.font_file.c_str(), params_.font_size);
@@ -126,7 +130,6 @@ int OsdTs::Initialize(const Params &params)
                 log_e("TTF_RenderUTF8_Solid failed");
                 return;
             }
-
 
             SDL_Surface *sdl_tmpsurface = SDL_CreateRGBSurface(SDL_SWSURFACE, sdl_txtsurface->w, sdl_txtsurface->h, 16, 0x00007c00, 0x000003e0, 0x0000001f, 0x00008000);
             if (sdl_tmpsurface == nullptr)
