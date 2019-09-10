@@ -13,6 +13,7 @@
 #include <hi_comm_vpss.h>
 #include <hi_common.h>
 #include <hi_debug.h>
+#include <hi_comm_region.h>
 #include <hi_mcc_usrdev.h>
 #include <mpi_aenc.h>
 #include <mpi_ai.h>
@@ -26,6 +27,7 @@
 #include <mpi_vi.h>
 #include <mpi_vo.h>
 #include <mpi_vpss.h>
+#include <mpi_region.h>
 //system
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -77,6 +79,8 @@
 #include <mp4v2/mp4v2.h>
 //visca
 #include <visca/libvisca.h>
+//sdl ttf
+#include <SDL/SDL_ttf.h>
 
 #define RS_ALIGN_WIDTH 64                               //图像对齐大小
 #define RS_PIXEL_FORMAT PIXEL_FORMAT_YUV_SEMIPLANAR_420 //图像像素格式

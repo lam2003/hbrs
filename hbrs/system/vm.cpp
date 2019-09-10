@@ -16,6 +16,8 @@
 #include "common/json.h"
 #include "common/http_client.h"
 #include "model/http_notify_req.h"
+#include "osd/osd_ts.h"
+#include "osd/osd.h"
 
 namespace rs
 {
@@ -25,12 +27,13 @@ AVManager::AVManager() : display_vo_(nullptr),
                          small_display_vo_(nullptr),
                          small_display_fb_(nullptr),
                          main_vo_(nullptr),
-                         ai_(nullptr),
-                         aenc_(nullptr),
-                         ao_(nullptr),
                          pciv_comm_(nullptr),
                          pciv_trans_(nullptr),
                          sig_detect_(nullptr),
+                         osd_ts_(nullptr),
+                         ai_(nullptr),
+                         aenc_(nullptr),
+                         ao_(nullptr),
                          main_screen_(TEA_FEA),
                          encode_stared_(false),
                          display_screen_started_(false),
@@ -39,6 +42,7 @@ AVManager::AVManager() : display_vo_(nullptr),
                          remote_live_started_(false),
                          record_started_(false),
                          pip_changed_(false),
+                         osd_started_(false),
                          init_(false)
 {
 }
@@ -97,6 +101,8 @@ int AVManager::Initialize()
     pciv_trans_ = std::make_shared<PCIVTrans>();
 
     sig_detect_ = std::make_shared<SigDetect>();
+
+    osd_ts_ = std::make_shared<OsdTs>();
 
     ai_ = std::make_shared<AudioInput>();
 
@@ -182,6 +188,10 @@ int AVManager::Initialize()
 
     StartVideoEncode(CONFIG->video_);
 
+    StartOsdTs();
+
+    StartOsd(CONFIG->osd_);
+
     return KSuccess;
 }
 
@@ -193,6 +203,10 @@ void AVManager::Close(const std::string &opt)
     CloseLocalLive();
 
     CloseRemoteLive();
+
+    CloseOsd();
+
+    CloseOsdTs();
 
     CloseVideoEncode();
 
@@ -288,6 +302,9 @@ void AVManager::Close(const std::string &opt)
 
     ai_.reset();
     ai_ = nullptr;
+
+    osd_ts_.reset();
+    osd_ts_ = nullptr;
 
     sig_detect_.reset();
     sig_detect_ = nullptr;
@@ -747,4 +764,68 @@ void AVManager::OnUpdate(const std::vector<VideoInputFormat> &fmts)
     std::string data = JsonUtils::toStr(req);
     HttpClient::Instance()->Post(data);
 }
+
+void AVManager::StartOsdTs()
+{
+    if (!init_)
+        return;
+    if (CONFIG->osd_ts_.add_ts)
+    {
+        osd_ts_->Initialize({0,
+                             6,
+                             CONFIG->osd_ts_.font_file,
+                             CONFIG->osd_ts_.font_size,
+                             CONFIG->osd_ts_.color_r,
+                             CONFIG->osd_ts_.color_g,
+                             CONFIG->osd_ts_.color_b,
+                             CONFIG->osd_ts_.x,
+                             CONFIG->osd_ts_.y,
+                             CONFIG->osd_ts_.time_format});
+    }
+}
+
+void AVManager::CloseOsdTs()
+{
+    if (!init_)
+        return;
+    osd_ts_->Close();
+}
+
+void AVManager::StartOsd(const Config::Osd &osd)
+{
+    if (!init_ || osd_started_)
+        return;
+
+    int i = 1;
+    for (const Config::Osd::Item &item : osd.items)
+    {
+        std::shared_ptr<Osd> osd = std::make_shared<Osd>();
+        osd->Initialize({i,
+                         6,
+                         item.font_file,
+                         item.font_size,
+                         item.color_r,
+                         item.color_g,
+                         item.color_b,
+                         item.x,
+                         item.y,
+                         item.content});
+        osd_arr_.push_back(osd);
+        i++;
+    }
+
+    osd_started_ = true;
+}
+
+void AVManager::CloseOsd()
+{
+    if (!init_ || !osd_started_)
+        return;
+
+    for (size_t i = 0; i < osd_arr_.size(); i++)
+        osd_arr_[i]->Close();
+    osd_arr_.clear();
+    osd_started_ = false;
+}
+
 } // namespace rs

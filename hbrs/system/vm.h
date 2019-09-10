@@ -21,6 +21,8 @@ class AudioInput;
 class AudioEncode;
 class AudioOutput;
 class FrameBuffer;
+class OsdTs;
+class Osd;
 
 class AVManager : public SwitchEventListener, public std::enable_shared_from_this<AVManager>, public SignalStatusListener
 {
@@ -69,6 +71,14 @@ public:
 
     void OnUpdate(const std::vector<VideoInputFormat> &fmts) override;
 
+    void StartOsdTs();
+
+    void CloseOsdTs();
+
+    void StartOsd(const Config::Osd &osd);
+
+    void CloseOsd();
+
 private:
     std::vector<std::shared_ptr<VIHelper>> vi_arr_;
     std::vector<std::shared_ptr<VideoProcess>> vpss_tmp_arr_;
@@ -78,18 +88,20 @@ private:
     std::vector<std::shared_ptr<VideoEncode>> venc_arr_;
     std::vector<std::shared_ptr<RTMPLive>> live_arr_;
     std::vector<std::shared_ptr<MP4Record>> record_arr_;
+    std::vector<std::shared_ptr<Osd>> osd_arr_;
 
     std::shared_ptr<VideoOutput> display_vo_;
     std::shared_ptr<FrameBuffer> display_fb_;
     std::shared_ptr<VideoOutput> small_display_vo_;
     std::shared_ptr<FrameBuffer> small_display_fb_;
     std::shared_ptr<VideoOutput> main_vo_;
-    std::shared_ptr<AudioInput> ai_;
-    std::shared_ptr<AudioEncode> aenc_;
-    std::shared_ptr<AudioOutput> ao_;
     std::shared_ptr<PCIVComm> pciv_comm_;
     std::shared_ptr<PCIVTrans> pciv_trans_;
     std::shared_ptr<SigDetect> sig_detect_;
+    std::shared_ptr<OsdTs> osd_ts_;
+    std::shared_ptr<AudioInput> ai_;
+    std::shared_ptr<AudioEncode> aenc_;
+    std::shared_ptr<AudioOutput> ao_;
 
     RS_SCENE main_screen_;
 
@@ -101,6 +113,7 @@ private:
     bool remote_live_started_;
     bool record_started_;
     bool pip_changed_;
+    bool osd_started_;
     bool init_;
 };
 } // namespace rs

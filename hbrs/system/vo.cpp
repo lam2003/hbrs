@@ -127,7 +127,7 @@ int32_t VideoOutput::StartDevLayer(int32_t dev, VO_INTF_TYPE_E intf_type, VO_INT
     memset(&pub_attr, 0, sizeof(pub_attr));
     pub_attr.enIntfType = intf_type;
     pub_attr.enIntfSync = intf_sync;
-    pub_attr.u32BgColor = 0x00000;
+    pub_attr.u32BgColor = 0x00000000;
     pub_attr.bDoubleFrame = HI_FALSE;
     ret = HI_MPI_VO_SetPubAttr(dev, &pub_attr);
     if (ret != KSuccess)

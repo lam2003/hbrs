@@ -130,6 +130,42 @@ public:
         static bool IsOk(const Json::Value &root);
         Logger &operator=(const Json::Value &root);
     };
+    struct OsdTs
+    {
+        std::string font_file;
+        int font_size;
+        uint8_t color_r;
+        uint8_t color_g;
+        uint8_t color_b;
+        int x;
+        int y;
+        std::string time_format;
+        bool add_ts;
+        operator Json::Value() const;
+        static bool IsOk(const Json::Value &root);
+        OsdTs &operator=(const Json::Value &root);
+    };
+    struct Osd
+    {
+        struct Item
+        {
+            std::string font_file;
+            int font_size;
+            uint8_t color_r;
+            uint8_t color_g;
+            uint8_t color_b;
+            int x;
+            int y;
+            std::string content;
+            operator Json::Value() const;
+            static bool IsOk(const Json::Value &root);
+            Item &operator=(const Json::Value &root);
+        };
+        std::vector<Item> items;
+        operator Json::Value() const;
+        static bool IsOk(const Json::Value &root);
+        Osd &operator=(const Json::Value &root);
+    };
 
     static Config *Instance();
 
@@ -159,6 +195,8 @@ public:
     SwitchCommand switch_cmd_;
     Web web_;
     Logger logger_;
+    OsdTs osd_ts_;
+    Osd osd_;
 
 private:
     std::string path_;

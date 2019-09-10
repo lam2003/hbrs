@@ -126,5 +126,48 @@
       "dir_path": "/nand/log",
       "auto_clean": true,
       "clean_duration": 604800
-   }
+   },
+   "osd_ts": {
+      "font_file": "/nand/msyh.ttc",
+      "font_size": 12,
+      "color_r": 255,
+      "color_g": 255,
+      "color_b": 255,
+      "x": 0,
+      "y": 0,
+      "time_format": "%Y/%m/%d %H:%M:%S",
+      "add_ts": true
+   },
+   "osd": [
+      {
+         "font_file": "/nand/msyh.ttc",
+         "font_size": 48,
+         "color_r": 255,
+         "color_g": 255,
+         "color_b": 255,
+         "x": 64,
+         "y": 64,
+         "content": "测试OSD叠屏1"
+      },
+      {
+         "font_file": "/nand/msyh.ttc",
+         "font_size": 48,
+         "color_r": 255,
+         "color_g": 0,
+         "color_b": 0,
+         "x": 564,
+         "y": 564,
+         "content": "测试OSD叠屏2"
+      },
+      {
+         "font_file": "/nand/msyh.ttc",
+         "font_size": 48,
+         "color_r": 0,
+         "color_g": 0,
+         "color_b": 255,
+         "x": 264,
+         "y": 264,
+         "content": "测试OSD叠屏3"
+      }
+   ]
 }

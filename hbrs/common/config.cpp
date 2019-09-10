@@ -55,7 +55,11 @@ int Config::Initialize(const std::string &path)
         !root.isMember("web") ||
         !root["web"].isObject() ||
         !root.isMember("logger") ||
-        !root["logger"].isObject())
+        !root["logger"].isObject() ||
+        !root.isMember("osd_ts") ||
+        !root["osd_ts"].isObject() ||
+        !root.isMember("osd") ||
+        !root["osd"].isArray())
     {
         printf("check root format failed\n");
         return KParamsError;
@@ -96,6 +100,16 @@ int Config::Initialize(const std::string &path)
         printf("check logger format failed\n");
         return KParamsError;
     }
+    if (!Config::OsdTs::IsOk(root["osd_ts"]))
+    {
+        printf("check osd_ts format failed\n");
+        return KParamsError;
+    }
+    if (!Config::Osd::IsOk(root["osd"]))
+    {
+        printf("check osd format failed\n");
+        return KParamsError;
+    }
 
     scene_ = root["scene"];
     display_ = root["display"];
@@ -104,6 +118,8 @@ int Config::Initialize(const std::string &path)
     switch_cmd_ = root["switch_cmd"];
     web_ = root["web"];
     logger_ = root["logger"];
+    osd_ts_ = root["osd_ts"];
+    osd_ = root["osd"];
 
     init_ = true;
     return KSuccess;
@@ -169,6 +185,8 @@ int Config::WriteToFile()
     root["switch_cmd"] = switch_cmd_;
     root["web"] = web_;
     root["logger"] = logger_;
+    root["osd_ts"] = osd_ts_;
+    root["osd"] = osd_;
 
     ofs << root.toStyledString() << std::endl;
     ofs.close();
@@ -757,6 +775,146 @@ Config::Logger &Config::Logger::operator=(const Json::Value &root)
     dir_path = root["dir_path"].asString();
     auto_clean = root["auto_clean"].asBool();
     clean_duration = root["clean_duration"].asInt();
+    return *this;
+}
+
+Config::OsdTs::operator Json::Value() const
+{
+    Json::Value root;
+    root["font_file"] = font_file;
+    root["font_size"] = font_size;
+    root["color_r"] = color_r;
+    root["color_g"] = color_g;
+    root["color_b"] = color_b;
+    root["x"] = x;
+    root["y"] = y;
+    root["time_format"] = time_format;
+    root["add_ts"] = add_ts;
+    return root;
+}
+
+bool Config::OsdTs::IsOk(const Json::Value &root)
+{
+    if (!root.isObject() ||
+        !root.isMember("font_file") ||
+        !root["font_file"].isString() ||
+        !root.isMember("font_size") ||
+        !root["font_size"].isInt() ||
+        !root.isMember("color_r") ||
+        !root["color_r"].isInt() ||
+        !root.isMember("color_g") ||
+        !root["color_g"].isInt() ||
+        !root.isMember("color_b") ||
+        !root["color_b"].isInt() ||
+        !root.isMember("x") ||
+        !root["x"].isInt() ||
+        !root.isMember("y") ||
+        !root["y"].isInt() ||
+        !root.isMember("time_format") ||
+        !root["time_format"].isString() ||
+        !root.isMember("add_ts") ||
+        !root["add_ts"].isBool())
+        return false;
+    return true;
+}
+
+Config::OsdTs &Config::OsdTs::operator=(const Json::Value &root)
+{
+    font_file = root["font_file"].asString();
+    font_size = root["font_size"].asInt();
+    color_r = root["color_r"].asInt();
+    color_g = root["color_g"].asInt();
+    color_b = root["color_b"].asInt();
+    x = root["x"].asInt();
+    y = root["y"].asInt();
+    time_format = root["time_format"].asString();
+    add_ts = root["add_ts"].asBool();
+    return *this;
+}
+
+Config::Osd::Item::operator Json::Value() const
+{
+    Json::Value root;
+    root["font_file"] = font_file;
+    root["font_size"] = font_size;
+    root["color_r"] = color_r;
+    root["color_g"] = color_g;
+    root["color_b"] = color_b;
+    root["x"] = x;
+    root["y"] = y;
+    root["content"] = content;
+    return root;
+}
+
+bool Config::Osd::Item::IsOk(const Json::Value &root)
+{
+    if (!root.isObject() ||
+        !root.isMember("font_file") ||
+        !root["font_file"].isString() ||
+        !root.isMember("font_size") ||
+        !root["font_size"].isInt() ||
+        !root.isMember("color_r") ||
+        !root["color_r"].isInt() ||
+        !root.isMember("color_g") ||
+        !root["color_g"].isInt() ||
+        !root.isMember("color_b") ||
+        !root["color_b"].isInt() ||
+        !root.isMember("x") ||
+        !root["x"].isInt() ||
+        !root.isMember("y") ||
+        !root["y"].isInt() ||
+        !root.isMember("content") ||
+        !root["content"].isString())
+        return false;
+    return true;
+}
+
+Config::Osd::Item &Config::Osd::Item::operator=(const Json::Value &root)
+{
+    font_file = root["font_file"].asString();
+    font_size = root["font_size"].asInt();
+    color_r = root["color_r"].asInt();
+    color_g = root["color_g"].asInt();
+    color_b = root["color_b"].asInt();
+    x = root["x"].asInt();
+    y = root["y"].asInt();
+    content = root["content"].asString();
+    return *this;
+}
+
+Config::Osd::operator Json::Value() const
+{
+    Json::Value root = Json::arrayValue;
+    for (const Config::Osd::Item &item : items)
+    {
+        Json::Value item_json = item;
+        root.append(item_json);
+    }
+    return root;
+}
+
+bool Config::Osd::IsOk(const Json::Value &root)
+{
+    if (!root.isArray())
+        return false;
+
+    for (size_t i = 0; i < root.size(); i++)
+    {
+        if (!Config::Osd::Item::IsOk(root[i]))
+            return false;
+    }
+
+    return true;
+}
+
+Config::Osd &Config::Osd::operator=(const Json::Value &root)
+{
+    for (size_t i = 0; i < root.size(); i++)
+    {
+        Config::Osd::Item item;
+        item = root[i];
+        items.push_back(item);
+    }
     return *this;
 }
 
