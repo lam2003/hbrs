@@ -63,6 +63,16 @@ int Osd::Initialize(const Params &params)
     x = Utils::Align(x, 16);
     y = Utils::Align(y, 16);
 
+    if (x < 0 ||
+        y < 0 ||
+        x + font_w > RS_MAX_WIDTH ||
+        y + font_h > RS_MAX_HEIGHT)
+    {
+        TTF_CloseFont(font_);
+        log_e("position illegal");
+        return KParamsError;
+    }
+
     RGN_ATTR_S rgn_attr;
     memset(&rgn_attr, 0, sizeof(rgn_attr));
     rgn_attr.enType = OVERLAY_RGN;
