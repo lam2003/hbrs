@@ -177,9 +177,8 @@ int OsdTs::Initialize(const Params &params)
             SDL_FreeSurface(sdl_txtsurface);
 
             //快速退出
-            int sleep_time = 10;
-            while (run_ && sleep_time--)
-                usleep(100000);
+            if (run_)
+                usleep(500000);
         }
     }));
 

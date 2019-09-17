@@ -562,9 +562,8 @@ void AVManager::StartDisplayScreen(const Config::Display &display_conf)
     {
         int index = it->first;
         RS_SCENE scene = it->second;
-
         RECT_S rect = display_pos[index];
-        main_vo_->StartChannel(index, rect, 0);
+        display_vo_->StartChannel(index, rect, 0);
         MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(scene, 2, 0, index);
     }
 
@@ -584,7 +583,7 @@ void AVManager::CloseDisplayScreen()
         RS_SCENE scene = it->second;
 
         MPPSystem::UnBind<HI_ID_VPSS, HI_ID_VOU>(scene, 2, 0, index);
-        main_vo_->StopChannel(index);
+        display_vo_->StopChannel(index);
     }
 
     display_fb_->Close();
