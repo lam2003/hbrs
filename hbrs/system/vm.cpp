@@ -507,7 +507,6 @@ void AVManager::StartMainScreen(const Config::Scene &scene_conf)
         {
             MPPSystem::Bind<HI_ID_VPSS, HI_ID_VOU>(scene, 4, 12, index);
         }
-
         else
         {
             vpss_arr_[scene]->StartUserChannel(3, rect);

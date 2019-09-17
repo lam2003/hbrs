@@ -392,7 +392,6 @@ Config::Display &Config::Display::operator=(const Json::Value &root)
         for (auto it = members.begin(); it != members.end(); it++)
         {
             int no = std::stoi(*it);
-
             Json::Value rect_json = item_json[*it];
             RECT_S rect;
             rect.s32X = rect_json["x"].asInt();
