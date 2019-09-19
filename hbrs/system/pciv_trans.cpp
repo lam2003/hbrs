@@ -6,7 +6,7 @@ namespace rs
 {
 using namespace pciv;
 
-static int Recv(std::shared_ptr<PCIVComm> pciv_comm, int remote_id, int port, uint8_t *tmp_buf, int32_t buf_len, Buffer<allocator_1k> &msg_buf, const std::atomic<bool> &run, pciv::Msg &msg)
+static int Recv(std::shared_ptr<PCIVComm> pciv_comm, int remote_id, int port, uint8_t *tmp_buf, int32_t buf_len, Buffer<allocator_1k> &msg_buf, const std::atomic<bool> &run, pciv::Msg &msg, bool only_once = false)
 {
     int ret;
     do
@@ -23,7 +23,7 @@ static int Recv(std::shared_ptr<PCIVComm> pciv_comm, int remote_id, int port, ui
         else if (ret < 0)
             return ret;
 
-    } while (run && msg_buf.Size() < sizeof(msg));
+    } while (!only_once && run && msg_buf.Size() < sizeof(msg));
 
     if (msg_buf.Size() >= sizeof(msg))
     {
@@ -132,17 +132,38 @@ int32_t PCIVTrans::Initialize(std::shared_ptr<PCIVComm> pciv_comm)
             return KSDKError;
         }
 
-        //发送pciv主片内存信息
-        Msg msg;
-        msg.type = Msg::Type::START_TRANS;
-        MemoryInfo *mem_info = reinterpret_cast<MemoryInfo *>(msg.data);
-        mem_info->phy_addr = buf.phy_addr[0];
+        int try_time = 20;
+        bool ready = false;
+        while (!ready && try_time--)
+        {
+            //发送pciv主片内存信息
+            Msg msg;
+            uint8_t tmp_buf[1024];
+            Buffer<allocator_1k> msg_buf;
+            msg.type = Msg::Type::START_TRANS;
+            MemoryInfo *mem_info = reinterpret_cast<MemoryInfo *>(msg.data);
+            mem_info->phy_addr = buf.phy_addr[0];
+
+            ret = pciv_comm_->Send(remote_id, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+            if (ret != KSuccess)
+                return ret;
+            ret = Recv(pciv_comm_, remote_id, RS_PCIV_CMD_PORT, tmp_buf, sizeof(tmp_buf), msg_buf, run_, msg, true);
+            if (ret != KSuccess)
+                return ret;
+            if (msg.type == Msg::Type::ACK)
+                ready = true;
+        }
+
         bufs_.push_back(buf);
 
-        ret = pciv_comm_->Send(remote_id, RS_PCIV_CMD_PORT, reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
-        if (ret != KSuccess)
-            return ret;
-
+        if (ready)
+        {
+            log_d("REMOTE_CHIP[%d] ready", remote_id);
+        }
+        else
+        {
+            log_e("REMOTE_CHIP[%d] unready", remote_id);
+        }
         std::shared_ptr<std::thread> thr = std::make_shared<std::thread>([this, buf, remote_id]() {
             int32_t ret;
             Msg msg;
