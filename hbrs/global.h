@@ -98,7 +98,7 @@
 #define RS_SLAVE_SDI_BASE 1                             //从片SDI通道起始偏移
 #define RS_SLAVE_SDI_NUM 4                              //从片SDI通道的数量
 
-#define RS_VERSION "v2.0.3"
+#define RS_VERSION "v2.0.5"
 
 #define RS_ASSERT(cond)     \
     while (!(cond))         \
