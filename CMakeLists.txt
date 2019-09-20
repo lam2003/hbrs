@@ -17,12 +17,12 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-lib
 
 if(DEBUG)
     message(STATUS "BUILD DEBUG")
-    set(CMAKE_CXX_FLAGS "-g -Wall -Wno-deprecated-declarations ${CMAKE_CXX_FLAGS}")
-    set(CMAKE_C_FLAGS "-g -Wall -Wno-deprecated-declarations ${CMAKE_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-g -Wall -Wno-deprecated-declarations -DUINT64_C=uint64_t -DDEBUG -Dhi3531 -DHICHIP=0x35310100 -DSENSOR_TYPE= -DHI_DEBUG -DHI_XXXX -DCHIP_TYPE_hi3531v100 -march=armv7-a -mcpu=cortex-a9 -mfloat-abi=softfp -mfpu=vfpv3-d16 ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_C_FLAGS "-g -Wall -Wno-deprecated-declarations -DUINT64_C=uint64_t -DDEBUG -Dhi3531 -DHICHIP=0x35310100 -DSENSOR_TYPE= -DHI_DEBUG -DHI_XXXX -DCHIP_TYPE_hi3531v100 -march=armv7-a -mcpu=cortex-a9 -mfloat-abi=softfp -mfpu=vfpv3-d16 ${CMAKE_C_FLAGS}")
 else()
     message(STATUS "BUILD RELEASE")
-    set(CMAKE_CXX_FLAGS "-Wall -Wno-deprecated-declarations ${CMAKE_CXX_FLAGS}")
-    set(CMAKE_C_FLAGS "-Wall -Wno-deprecated-declarations ${CMAKE_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-Wall -Wno-deprecated-declarations -DUINT64_C=uint64_t -Dhi3531 -DHICHIP=0x35310100 -DSENSOR_TYPE= -DHI_XXXX -DCHIP_TYPE_hi3531v100 -march=armv7-a -mcpu=cortex-a9 -mfloat-abi=softfp -mfpu=vfpv3-d16 ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_C_FLAGS "-Wall -Wno-deprecated-declarations -DUINT64_C=uint64_t -Dhi3531 -DHICHIP=0x35310100 -DSENSOR_TYPE= -DHI_XXXX -DCHIP_TYPE_hi3531v100 -march=armv7-a -mcpu=cortex-a9 -mfloat-abi=softfp -mfpu=vfpv3-d16 ${CMAKE_C_FLAGS}")
 endif()
 
 include_directories(

@@ -17,6 +17,7 @@
 #include "model/change_video_req.h"
 #include "model/camera_control_req.h"
 #include "model/change_switch_command_req.h"
+#include "model/change_record_mode_req.h"
 
 using namespace rs;
 
@@ -155,23 +156,25 @@ static void ChangeMainScreenHandler(evhttp_request *req, void *arg)
 
 	ChangeMainScreenReq change_main_screen_req;
 	change_main_screen_req = root;
+	g_AVManager->CloseMainScreen();
+	g_AVManager->StartMainScreen(change_main_screen_req.scene);
+	ResponseOK(req);
+}
 
-	if (Config::IsResourceMode(change_main_screen_req.scene.mode) != CONFIG->IsResourceMode())
-	{
-		g_AVManager->CloseRecord();
-		g_AVManager->CloseRemoteLive();
-		g_AVManager->CloseLocalLive();
-		g_AVManager->CloseVideoEncode();
-		g_AVManager->CloseMainScreen();
+static void ChangeRecordModeHandler(evhttp_request *req, void *arg)
+{
+	Json::Value root;
+	if (!CheckReq<ChangeRecordModeReq>(req, root))
+		return;
 
-		g_AVManager->StartMainScreen(change_main_screen_req.scene);
-		g_AVManager->StartVideoEncode(CONFIG->video_);
-	}
-	else
-	{
-		g_AVManager->CloseMainScreen();
-		g_AVManager->StartMainScreen(change_main_screen_req.scene);
-	}
+	ChangeRecordModeReq change_record_mode_req;
+	change_record_mode_req = root;
+	CONFIG->record_mode_ = change_record_mode_req.record_mode;
+	g_AVManager->CloseRecord();
+	g_AVManager->CloseRemoteLive();
+	g_AVManager->CloseLocalLive();
+	g_AVManager->CloseVideoEncode();
+	g_AVManager->StartVideoEncode(CONFIG->video_);
 	ResponseOK(req);
 }
 
@@ -335,7 +338,7 @@ int32_t main(int32_t argc, char **argv)
 	g_HttpServer->RegisterURI("/reboot", ReBootHandler, nullptr);
 	g_HttpServer->RegisterURI("/camera_control", CameraControlHandler, nullptr);
 	g_HttpServer->RegisterURI("/change_switch_command", ChangeSwitchCommandHandler, nullptr);
-
+	g_HttpServer->RegisterURI("/change_record_mode", ChangeRecordModeHandler, nullptr);
 	while (g_Run)
 	{
 		struct timeval tv;

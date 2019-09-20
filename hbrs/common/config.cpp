@@ -59,7 +59,9 @@ int Config::Initialize(const std::string &path)
         !root.isMember("osd_ts") ||
         !root["osd_ts"].isObject() ||
         !root.isMember("osd") ||
-        !root["osd"].isArray())
+        !root["osd"].isArray() ||
+        !root.isMember("record_mode") ||
+        !root["record_mode"].isObject())
     {
         printf("check root format failed\n");
         return KParamsError;
@@ -110,6 +112,11 @@ int Config::Initialize(const std::string &path)
         printf("check osd format failed\n");
         return KParamsError;
     }
+    if (!Config::RecordMode::IsOk(root["record_mode"]))
+    {
+        printf("check record mode failed\n");
+        return KParamsError;
+    }
 
     scene_ = root["scene"];
     display_ = root["display"];
@@ -120,6 +127,7 @@ int Config::Initialize(const std::string &path)
     logger_ = root["logger"];
     osd_ts_ = root["osd_ts"];
     osd_ = root["osd"];
+    record_mode_ = root["record_mode"];
 
     init_ = true;
     return KSuccess;
@@ -129,46 +137,9 @@ bool Config::IsResourceMode()
 {
     if (!init_)
         return false;
-
-    switch (scene_.mode)
-    {
-    case Scene::Mode::NORMAL_MODE:
-    case Scene::Mode::PIP_MODE:
-        return false;
-    case Scene::Mode::TWO:
-    case Scene::Mode::THREE:
-    case Scene::Mode::FOUR:
-    case Scene::Mode::FOUR1:
-    case Scene::Mode::FIVE:
-    case Scene::Mode::SIX:
-    case Scene::Mode::SIX1:
-        return true;
-
-    default:
-        RS_ASSERT(0);
-    }
+    return record_mode_.is_resource_mode;
 }
 
-bool Config::IsResourceMode(Config::Scene::Mode mode)
-{
-    switch (mode)
-    {
-    case Scene::Mode::NORMAL_MODE:
-    case Scene::Mode::PIP_MODE:
-        return false;
-    case Scene::Mode::TWO:
-    case Scene::Mode::THREE:
-    case Scene::Mode::FOUR:
-    case Scene::Mode::FOUR1:
-    case Scene::Mode::FIVE:
-    case Scene::Mode::SIX:
-    case Scene::Mode::SIX1:
-        return true;
-
-    default:
-        RS_ASSERT(0);
-    }
-}
 
 int Config::WriteToFile()
 {
@@ -187,6 +158,7 @@ int Config::WriteToFile()
     root["logger"] = logger_;
     root["osd_ts"] = osd_ts_;
     root["osd"] = osd_;
+    root["record_mode"] = record_mode_;
 
     ofs << root.toStyledString() << std::endl;
     ofs.close();
@@ -914,6 +886,26 @@ Config::Osd &Config::Osd::operator=(const Json::Value &root)
         item = root[i];
         items.push_back(item);
     }
+    return *this;
+}
+
+Config::RecordMode::operator Json::Value() const
+{
+    Json::Value root;
+    root["is_resource_mode"] = is_resource_mode;
+    return root;
+}
+bool Config::RecordMode::IsOk(const Json::Value &root)
+{
+    if (!root["is_resource_mode"].isObject() ||
+        !root.isMember("is_resource_mode") ||
+        !root["is_resource_mode"].isBool())
+        return false;
+    return true;
+}
+Config::RecordMode &Config::RecordMode::operator=(const Json::Value &root)
+{
+    is_resource_mode = root["is_resource_mode"].asBool();
     return *this;
 }
 

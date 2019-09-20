@@ -149,5 +149,8 @@
          "y": 100,
          "content": "未激活"
       }
-   ]
+   ],
+   "record_mode": {
+      "is_resource_mode": false
+   }
 }

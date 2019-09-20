@@ -166,6 +166,13 @@ public:
         static bool IsOk(const Json::Value &root);
         Osd &operator=(const Json::Value &root);
     };
+    struct RecordMode
+    {
+        bool is_resource_mode;
+        operator Json::Value() const;
+        static bool IsOk(const Json::Value &root);
+        RecordMode &operator=(const Json::Value &root);
+    };
 
     static Config *Instance();
 
@@ -178,8 +185,6 @@ public:
     int WriteToFile();
 
     bool IsResourceMode();
-
-    static bool IsResourceMode(Config::Scene::Mode mode);
 
 protected:
     explicit Config();
@@ -197,6 +202,7 @@ public:
     Logger logger_;
     OsdTs osd_ts_;
     Osd osd_;
+    RecordMode record_mode_;
 
 private:
     std::string path_;
