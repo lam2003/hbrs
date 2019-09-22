@@ -2,10 +2,25 @@
    "scene": {
       "mapping": [
          {
-            "0": 3
+            "0": 6
+         },
+         {
+            "1": 1
+         },
+         {
+            "2": 2
+         },
+         {
+            "3": 3
+         },
+         {
+            "4": 4
+         },
+         {
+            "5": 5
          }
       ],
-      "mode": 0
+      "mode": 8
    },
    "display": {
       "disp_vo_intf_sync": 10,
@@ -123,8 +138,7 @@
       "time_format": "%Y/%m/%d %H:%M:%S",
       "add_ts": false
    },
-   "osd": [
-   ],
+   "osd": [],
    "record_mode": {
       "is_resource_mode": true
    }

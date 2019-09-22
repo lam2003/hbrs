@@ -226,9 +226,9 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                         status_listeners_->OnUpdate(fmts_);
                 }
 
-                int wait_time = 10;
-                while (run_ && wait_time--)
-                    usleep(500000); //500ms
+                int wait_time = 20;
+                while (run_ && wait_time--) //休眠10秒
+                    usleep(500000); //500ms,快速退出
             }
         }
     }));

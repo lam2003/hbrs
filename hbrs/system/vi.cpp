@@ -191,10 +191,9 @@ int32_t VideoInput::Initialize(const Params &params)
             }
 
             int_cnt = stat.u32IntCnt;
-            int wait_time = 10;
-
+            int wait_time = 20; //休眠10秒
             while (run_ && wait_time--)
-                usleep(500000); //500ms
+                usleep(500000); //500ms,快速推出
         }
 
         ret = HI_MPI_VI_DisableChn(params_.chn);
