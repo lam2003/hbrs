@@ -200,6 +200,8 @@ void AVManager::Close(const std::string &opt)
     if (!init_)
         return;
 
+    CloseRecord();
+
     CloseLocalLive();
 
     CloseRemoteLive();
@@ -624,13 +626,13 @@ void AVManager::StartVideoEncode(const Config::Video &video_conf)
         {
             if (i == 7)
             {
-                venc_arr_[i]->Initialize({i, i, video_conf.normal_record_width, video_conf.normal_record_height, 25, 25, 0, video_conf.normal_record_bitrate, VENC_RC_MODE_H264CBR, true});
+                venc_arr_[i]->Initialize({i, i, video_conf.normal_record_width, video_conf.normal_record_height, 25, 25, 2, video_conf.normal_record_bitrate, VENC_RC_MODE_H264CBR, true});
                 vpss_arr_[6]->StartUserChannel(3, {0, 0, (HI_U32)video_conf.normal_record_width, (HI_U32)video_conf.normal_record_height});
                 MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(6, 3, i, 0);
             }
             else
             {
-                venc_arr_[i]->Initialize({i, i, video_conf.normal_live_width, video_conf.normal_live_height, 25, 25, 0, video_conf.normal_live_bitrate, VENC_RC_MODE_H264CBR, true});
+                venc_arr_[i]->Initialize({i, i, video_conf.normal_live_width, video_conf.normal_live_height, 25, 25, 2, video_conf.normal_live_bitrate, VENC_RC_MODE_H264CBR, true});
                 vpss_arr_[i]->StartUserChannel(1, {0, 0, (HI_U32)video_conf.normal_live_width, (HI_U32)video_conf.normal_live_height});
                 MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(i, 1, i, 0);
             }
@@ -640,7 +642,7 @@ void AVManager::StartVideoEncode(const Config::Video &video_conf)
     {
         for (int i = 0; i < 7; i++)
         {
-            venc_arr_[i]->Initialize({i, i, video_conf.res_width, video_conf.res_height, 25, 25, 0, video_conf.res_bitrate, VENC_RC_MODE_H264CBR, true});
+            venc_arr_[i]->Initialize({i, i, video_conf.res_width, video_conf.res_height, 25, 25, 2, video_conf.res_bitrate, VENC_RC_MODE_H264CBR, true});
             vpss_arr_[i]->StartUserChannel(1, {0, 0, (HI_U32)video_conf.res_width, (HI_U32)video_conf.res_height});
             MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(i, 1, i, 0);
         }

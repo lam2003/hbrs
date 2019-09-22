@@ -897,7 +897,7 @@ Config::RecordMode::operator Json::Value() const
 }
 bool Config::RecordMode::IsOk(const Json::Value &root)
 {
-    if (!root["is_resource_mode"].isObject() ||
+    if (!root.isObject() ||
         !root.isMember("is_resource_mode") ||
         !root["is_resource_mode"].isBool())
         return false;
