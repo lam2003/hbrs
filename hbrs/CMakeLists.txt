@@ -22,6 +22,10 @@ libSDL_ttf.a
 libSDL.a
 libfreetype.a
 ${CMAKE_SOURCE_DIR}/3rdparty/lib/srs_librtmp.a
+librtmp.a
+libssl.a
+libcrypto.a
+libz.a
 pthread
 dl
 rt

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "live/rtmp_streamer.h"
-// #include "live/vrtmp_streamer.h"
+#include "live/vrtmp_streamer.h"
 #include "common/buffer.h"
 
 namespace rs
@@ -44,6 +44,7 @@ protected:
 private:
     rtmp::Params params_;
     std::mutex mux_;
+    std::condition_variable cond_;
     Buffer<allocator_2048k> buffer_;
     std::atomic<bool> run_;
     std::unique_ptr<std::thread> thread_;

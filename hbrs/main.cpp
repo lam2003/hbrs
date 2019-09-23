@@ -346,7 +346,6 @@ int32_t main(int32_t argc, char **argv)
 		tv.tv_usec = 500000; //500ms
 		event_base_loopexit(base, &tv);
 		event_base_dispatch(base);
-		usleep(0);
 	}
 
 	g_SerialManager->Close();

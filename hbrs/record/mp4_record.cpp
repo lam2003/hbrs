@@ -72,29 +72,33 @@ int MP4Record::Initialize(const Params &params)
                 init = true;
             }
 
-            mux_.lock();
-            if (buffer_.Get(reinterpret_cast<uint8_t *>(&frame), sizeof(frame)))
             {
-
-                if (frame.type == Frame::AUDIO)
+                std::unique_lock<std::mutex> lock(mux_);
+                if (buffer_.Get(reinterpret_cast<uint8_t *>(&frame), sizeof(frame)))
                 {
-                    memcpy(mmz_buffer.vir_addr, buffer_.GetCurrentPos(), frame.data.aframe.len);
-                    frame.data.aframe.data = mmz_buffer.vir_addr;
-                    buffer_.Consume(frame.data.aframe.len);
+
+                    if (frame.type == Frame::AUDIO)
+                    {
+                        memcpy(mmz_buffer.vir_addr, buffer_.GetCurrentPos(), frame.data.aframe.len);
+                        frame.data.aframe.data = mmz_buffer.vir_addr;
+                        buffer_.Consume(frame.data.aframe.len);
+                    }
+                    else
+                    {
+                        memcpy(mmz_buffer.vir_addr, buffer_.GetCurrentPos(), frame.data.vframe.len);
+                        frame.data.vframe.data = mmz_buffer.vir_addr;
+                        buffer_.Consume(frame.data.vframe.len);
+                    }
+                }
+                else if (run_)
+                {
+                    cond_.wait(lock);
+                    continue;
                 }
                 else
                 {
-                    memcpy(mmz_buffer.vir_addr, buffer_.GetCurrentPos(), frame.data.vframe.len);
-                    frame.data.vframe.data = mmz_buffer.vir_addr;
-                    buffer_.Consume(frame.data.vframe.len);
+                    continue;
                 }
-                mux_.unlock();
-            }
-            else
-            {
-                mux_.unlock();
-                usleep(0);
-                continue;
             }
 
             if (frame.type == Frame::VIDEO && frame.data.vframe.type == H264E_NALU_SPS)
@@ -129,7 +133,6 @@ int MP4Record::Initialize(const Params &params)
                 muxer.Close();
                 init = false;
             }
-            usleep(0);
         }
 
         muxer.Close();
@@ -147,6 +150,7 @@ void MP4Record::Close()
 
     log_d("MP4REC stop,filename:%s", params_.filename.c_str());
     run_ = false;
+    cond_.notify_all();
     thread_->join();
     thread_.reset();
     thread_ = nullptr;
@@ -158,14 +162,10 @@ void MP4Record::OnFrame(const VENCFrame &video_frame)
 {
     if (!init_)
         return;
-    mux_.lock();
 
+    std::unique_lock<std::mutex> lock(mux_);
     if (buffer_.FreeSpace() < sizeof(Frame) + video_frame.len)
-    {
-        mux_.unlock();
-        // log_e("buffer fill");
         return;
-    }
 
     Frame frame;
     frame.type = Frame::VIDEO;
@@ -173,22 +173,17 @@ void MP4Record::OnFrame(const VENCFrame &video_frame)
 
     buffer_.Append(reinterpret_cast<uint8_t *>(&frame), sizeof(frame));
     buffer_.Append(video_frame.data, video_frame.len);
-
-    mux_.unlock();
+    cond_.notify_one();
 }
 
 void MP4Record::OnFrame(const AENCFrame &audio_frame)
 {
     if (!init_)
         return;
-    mux_.lock();
 
+    std::unique_lock<std::mutex> lock(mux_);
     if (buffer_.FreeSpace() < sizeof(Frame) + audio_frame.len)
-    {
-        mux_.unlock();
-        // log_e("buffer fill");
         return;
-    }
 
     Frame frame;
     frame.type = Frame::AUDIO;
@@ -196,8 +191,7 @@ void MP4Record::OnFrame(const AENCFrame &audio_frame)
 
     buffer_.Append(reinterpret_cast<uint8_t *>(&frame), sizeof(frame));
     buffer_.Append(audio_frame.data, audio_frame.len);
-
-    mux_.unlock();
+    cond_.notify_one();
 }
 
 Params::operator Json::Value() const

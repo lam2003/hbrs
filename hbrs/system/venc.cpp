@@ -225,7 +225,6 @@ int32_t VideoEncode::Initialize(const Params &params)
             log_e("HI_MPI_VENC_StopRecvPic failed with %#x", ret);
             return;
         }
-        usleep(0);
     }));
 
     init_ = true;

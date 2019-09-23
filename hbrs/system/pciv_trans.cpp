@@ -22,7 +22,6 @@ static int Recv(std::shared_ptr<PCIVComm> pciv_comm, int remote_id, int port, ui
         }
         else if (ret < 0)
             return ret;
-        usleep(0);
     } while (!only_once && run && msg_buf.Size() < sizeof(msg));
 
     if (msg_buf.Size() >= sizeof(msg))
@@ -199,7 +198,6 @@ int32_t PCIVTrans::Initialize(std::shared_ptr<PCIVComm> pciv_comm)
                     log_e("unknow msg type:%d", msg.type);
                     continue;
                 }
-                usleep(0);
             }
         });
 

@@ -52,6 +52,7 @@
 #include <system_error>
 #include <sstream>
 #include <iomanip>
+#include <condition_variable>
 //stdlib
 #include <stdlib.h>
 #include <stdio.h>
@@ -83,7 +84,7 @@
 //aacenc
 #include <aacenc.h>
 //librtmp
-// #include <librtmp/rtmp.h>
+#include <librtmp/rtmp.h>
 
 #define RS_ALIGN_WIDTH 64                               //图像对齐大小
 #define RS_PIXEL_FORMAT PIXEL_FORMAT_YUV_SEMIPLANAR_420 //图像像素格式

@@ -24,12 +24,14 @@ public:
 
     void RemoveAllAudioSink();
 
-    void OnFrame(const AIFrame &frame) override;
+    // void OnFrame(const AIFrame &frame) override;
+    void OnFrame(uint8_t *data, uint32_t len) override;
 
 private:
     std::mutex sinks_mux_;
     std::vector<std::shared_ptr<AudioSink<AENCFrame>>> sinks_;
     std::mutex mux_;
+    std::condition_variable cond_;
     Buffer<allocator_512k> buffer_;
     std::atomic<bool> run_;
     std::unique_ptr<std::thread> thread_;

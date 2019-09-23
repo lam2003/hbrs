@@ -24,7 +24,6 @@ static int Recv(std::shared_ptr<PCIVComm> pciv_comm, int remote_id, int port, ui
         }
         else if (ret < 0)
             return ret;
-        usleep(0);
     }
 
     if (msg_buf.Size() >= sizeof(msg))

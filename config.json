@@ -102,9 +102,9 @@
       "normal_record_bitrate": 6000,
       "normal_record_height": 1080,
       "normal_record_width": 1920,
-      "res_bitrate": 1000,
-      "res_height": 540,
-      "res_width": 960
+      "res_bitrate": 2000,
+      "res_height": 720,
+      "res_width": 1280
    },
    "adv7842": {
       "pc_capture_mode": 0
@@ -125,7 +125,7 @@
    "logger": {
       "dir_path": "/nand/log",
       "auto_clean": true,
-      "clean_duration": 604800
+      "clean_duration": 10
    },
    "osd_ts": {
       "font_file": "/nand/msyh.ttc",
