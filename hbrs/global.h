@@ -37,7 +37,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <termios.h>
- #include <dirent.h>
+#include <dirent.h>
 //stl
 #include <string>
 #include <fstream>
@@ -50,7 +50,6 @@
 #include <memory>
 #include <chrono>
 #include <system_error>
-#include <condition_variable>
 #include <sstream>
 #include <iomanip>
 //stdlib
@@ -81,6 +80,10 @@
 #include <visca/libvisca.h>
 //sdl ttf
 #include <SDL/SDL_ttf.h>
+//aacenc
+#include <aacenc.h>
+//librtmp
+// #include <librtmp/rtmp.h>
 
 #define RS_ALIGN_WIDTH 64                               //图像对齐大小
 #define RS_PIXEL_FORMAT PIXEL_FORMAT_YUV_SEMIPLANAR_420 //图像像素格式
@@ -98,7 +101,7 @@
 #define RS_SLAVE_SDI_BASE 1                             //从片SDI通道起始偏移
 #define RS_SLAVE_SDI_NUM 4                              //从片SDI通道的数量
 
-#define RS_VERSION "v2.0.8"
+#define RS_VERSION "v2.1.0_beta"
 
 #define RS_ASSERT(cond)     \
     while (!(cond))         \

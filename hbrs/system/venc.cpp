@@ -154,7 +154,7 @@ int32_t VideoEncode::Initialize(const Params &params)
             FD_SET(fd, &fds);
 
             tv.tv_sec = 0;
-            tv.tv_usec = 100000; //100ms
+            tv.tv_usec = 100000;
 
             ret = select(fd + 1, &fds, NULL, NULL, &tv);
             if (ret <= 0)
@@ -184,33 +184,32 @@ int32_t VideoEncode::Initialize(const Params &params)
                 log_e("HI_MPI_VENC_GetStream failed with %#x", ret);
                 return;
             }
+            sinks_mux_.lock();
+            for (uint32_t i = 0; i < stream.u32PackCount; i++)
             {
-                std::unique_lock<std::mutex> lock(sinks_mux_);
-                for (uint32_t i = 0; i < stream.u32PackCount; i++)
+                uint32_t len = stream.pstPack[i].u32Len[0] + stream.pstPack[i].u32Len[1];
+                memcpy(mmz_buffer.vir_addr, stream.pstPack[i].pu8Addr[0], stream.pstPack[i].u32Len[0]);
+                memcpy(mmz_buffer.vir_addr + stream.pstPack[i].u32Len[0], stream.pstPack[i].pu8Addr[1], stream.pstPack[i].u32Len[1]);
+
+                VENCFrame frame;
+                frame.len = len;
+                frame.data = mmz_buffer.vir_addr;
+                frame.type = stream.pstPack[i].DataType.enH264EType;
+                frame.ts = stream.pstPack[i].u64PTS;
+
+                if (params_.set_ts)
                 {
-                    uint32_t len = stream.pstPack[i].u32Len[0] + stream.pstPack[i].u32Len[1];
-                    memcpy(mmz_buffer.vir_addr, stream.pstPack[i].pu8Addr[0], stream.pstPack[i].u32Len[0]);
-                    memcpy(mmz_buffer.vir_addr + stream.pstPack[i].u32Len[0], stream.pstPack[i].pu8Addr[1], stream.pstPack[i].u32Len[1]);
-
-                    VENCFrame frame;
-                    frame.len = len;
-                    frame.data = mmz_buffer.vir_addr;
-                    frame.type = stream.pstPack[i].DataType.enH264EType;
-                    frame.ts = stream.pstPack[i].u64PTS;
-
-                    if (params_.set_ts)
-                    {
-                        frame.ts = frame_index * duration;
-                        if (frame.type != H264E_NALU_SPS &&
-                            frame.type != H264E_NALU_PPS &&
-                            frame.type != H264E_NALU_SEI)
-                            frame_index++;
-                    }
-
-                    for (std::shared_ptr<VideoSink<VENCFrame>> sink : sinks_)
-                        sink->OnFrame(frame);
+                    frame.ts = frame_index * duration;
+                    if (frame.type != H264E_NALU_SPS &&
+                        frame.type != H264E_NALU_PPS &&
+                        frame.type != H264E_NALU_SEI)
+                        frame_index++;
                 }
+
+                for (std::shared_ptr<VideoSink<VENCFrame>> sink : sinks_)
+                    sink->OnFrame(frame);
             }
+            sinks_mux_.unlock();
 
             ret = HI_MPI_VENC_ReleaseStream(params_.chn, &stream);
             if (HI_SUCCESS != ret)
@@ -226,6 +225,7 @@ int32_t VideoEncode::Initialize(const Params &params)
             log_e("HI_MPI_VENC_StopRecvPic failed with %#x", ret);
             return;
         }
+        usleep(0);
     }));
 
     init_ = true;

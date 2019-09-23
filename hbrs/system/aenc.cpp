@@ -1,7 +1,6 @@
 #include "system/aenc.h"
 #include "common/err_code.h"
 
-#include <aacenc.h>
 
 namespace rs
 {
@@ -61,19 +60,19 @@ int AudioEncode::Initialize()
         int out_len;
         while (run_)
         {
+            mux_.lock();
+            if (buffer_.Get(reinterpret_cast<uint8_t *>(&frame), sizeof(frame)))
             {
-                std::unique_lock<std::mutex> lock(mux_);
-                if (buffer_.Get(reinterpret_cast<uint8_t *>(&frame), sizeof(frame)))
-                {
-                    memcpy(tmp_buf, buffer_.GetCurrentPos(), frame.len);
-                    frame.data = tmp_buf;
-                    buffer_.Consume(frame.len);
-                }
-                else if (run_)
-                {
-                    cond_.wait(lock);
-                    continue;
-                }
+                memcpy(tmp_buf, buffer_.GetCurrentPos(), frame.len);
+                frame.data = tmp_buf;
+                buffer_.Consume(frame.len);
+                mux_.unlock();
+            }
+            else
+            {
+                mux_.unlock();
+                usleep(0);
+                continue;
             }
 
             if (run_)
@@ -112,7 +111,6 @@ void AudioEncode::Close()
 
     log_d("AENC stop");
     run_ = false;
-    cond_.notify_all();
     thread_->join();
     thread_.reset();
     thread_ = nullptr;
@@ -135,7 +133,6 @@ void AudioEncode::OnFrame(const AIFrame &frame)
     buffer_.Append(const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(&frame)), sizeof(frame));
     buffer_.Append(frame.data, frame.len);
 
-    cond_.notify_one();
 }
 
 void AudioEncode::AddAudioSink(std::shared_ptr<AudioSink<AENCFrame>> sink)

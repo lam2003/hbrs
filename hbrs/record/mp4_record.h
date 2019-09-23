@@ -41,7 +41,6 @@ public:
 private:
     mp4::Params params_;
     std::mutex mux_;
-    std::condition_variable cond_;
     Buffer<allocator_2048k> buffer_;
 
     std::atomic<bool> run_;

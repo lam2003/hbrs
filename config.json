@@ -96,13 +96,13 @@
       ]
    },
    "video": {
-      "normal_live_bitrate": 2000,
+      "normal_live_bitrate": 1000,
       "normal_live_height": 540,
       "normal_live_width": 960,
       "normal_record_bitrate": 6000,
       "normal_record_height": 1080,
       "normal_record_width": 1920,
-      "res_bitrate": 2000,
+      "res_bitrate": 1000,
       "res_height": 540,
       "res_width": 960
    },

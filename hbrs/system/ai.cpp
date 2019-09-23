@@ -33,7 +33,7 @@ int AudioInput::Initialize(const Params &params)
     attr.enWorkmode = AIO_MODE_I2S_SLAVE;
     attr.u32EXFlag = 1;
     attr.u32FrmNum = 30;
-    attr.u32PtNumPerFrm = 1024;
+    attr.u32PtNumPerFrm = 480;
     attr.u32ChnCnt = 2;
     attr.u32ClkSel = 1;
     attr.enSoundmode = AUDIO_SOUND_MODE_STEREO;
@@ -62,7 +62,7 @@ int AudioInput::Initialize(const Params &params)
     AI_CHN_PARAM_S param;
     memset(&param, 0, sizeof(param));
 
-    param.u32UsrFrmDepth = 20;
+    param.u32UsrFrmDepth = 30;
     ret = HI_MPI_AI_SetChnParam(params_.dev, params_.chn, &param);
     if (ret != HI_SUCCESS)
     {
@@ -139,6 +139,7 @@ int AudioInput::Initialize(const Params &params)
                     log_e("HI_MPI_AI_ReleaseFrame failed with %#x", ret);
                     return;
                 }
+                usleep(0);
             }
         }
     }));

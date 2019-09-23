@@ -24,6 +24,7 @@ static int Recv(std::shared_ptr<PCIVComm> pciv_comm, int remote_id, int port, ui
         }
         else if (ret < 0)
             return ret;
+        usleep(0);
     }
 
     if (msg_buf.Size() >= sizeof(msg))
@@ -163,7 +164,10 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
 
                     ret = Recv(pciv_comm_, RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, tmp_buf, sizeof(tmp_buf), msg_buf, msg, 3);
                     if (ret != KSuccess)
-                        return;
+                    {
+                        memset(&msg, 0, sizeof(msg));
+                        msg.type = pciv::Msg::Type::ACK;
+                    }
                 }
                 if (msg.type != pciv::Msg::Type::ACK)
                 {
@@ -228,7 +232,7 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
 
                 int wait_time = 20;
                 while (run_ && wait_time--) //休眠10秒
-                    usleep(500000); //500ms,快速退出
+                    usleep(500000);         //500ms,快速退出
             }
         }
     }));

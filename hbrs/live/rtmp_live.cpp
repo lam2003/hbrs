@@ -19,6 +19,7 @@ RTMPLive::~RTMPLive()
 
 void RTMPLive::HandleVideoOnly()
 {
+    // VRtmpStreamer streamer;
     RTMPStreamer streamer;
     Frame frame;
     MMZBuffer mmz_buffer(2 * 1024 * 1024);
@@ -33,7 +34,9 @@ void RTMPLive::HandleVideoOnly()
 
         if (!init)
         {
-            ret = streamer.Initialize(params_.url, params_.has_audio);
+            // ret = streamer.Initialize(params_.url);
+
+            ret = streamer.Initialize(params_.url, false);
             if (ret != KSuccess)
             {
                 if (params_.only_try_once)
@@ -57,25 +60,25 @@ void RTMPLive::HandleVideoOnly()
 
         if (init)
         {
-            {
-                std::unique_lock<std::mutex> lock(mux_);
-                if (buffer_.Get(reinterpret_cast<uint8_t *>(&frame), sizeof(frame)))
-                {
-                    if (vts_base == 0)
-                        vts_base = frame.data.vframe.ts;
-                    ts = frame.data.vframe.ts - vts_base;
-                    frame.data.vframe.ts = ts / 1000;
 
-                    memcpy(mmz_buffer.vir_addr, buffer_.GetCurrentPos(), frame.data.vframe.len);
-                    frame.data.vframe.data = mmz_buffer.vir_addr;
-                    buffer_.Consume(frame.data.vframe.len);
-                }
-                else
-                {
-                    if (run_)
-                        cond_.wait(lock);
-                    continue;
-                }
+            mux_.lock();
+            if (buffer_.Get(reinterpret_cast<uint8_t *>(&frame), sizeof(frame)))
+            {
+                if (vts_base == 0)
+                    vts_base = frame.data.vframe.ts;
+                ts = frame.data.vframe.ts - vts_base;
+                frame.data.vframe.ts = ts / 1000;
+
+                memcpy(mmz_buffer.vir_addr, buffer_.GetCurrentPos(), frame.data.vframe.len);
+                frame.data.vframe.data = mmz_buffer.vir_addr;
+                buffer_.Consume(frame.data.vframe.len);
+                mux_.unlock();
+            }
+            else
+            {
+                mux_.unlock();
+                usleep(0);
+                continue;
             }
 
             ret = streamer.WriteVideoFrame(frame.data.vframe);
@@ -90,6 +93,7 @@ void RTMPLive::HandleVideoOnly()
                     usleep(500000); //500ms
             }
         }
+        usleep(0);
     }
 
     streamer.Close();
@@ -140,51 +144,53 @@ void RTMPLive::HandleAV()
 
         if (init)
         {
+
+            mux_.lock();
+            if (buffer_.Get(reinterpret_cast<uint8_t *>(&frame), sizeof(frame)))
             {
-                std::unique_lock<std::mutex> lock(mux_);
-                if (buffer_.Get(reinterpret_cast<uint8_t *>(&frame), sizeof(frame)))
+                if (frame.type == Frame::AUDIO)
                 {
-                    if (frame.type == Frame::AUDIO)
-                    {
-                        if (ats_base == 0)
-                            ats_base = frame.data.aframe.ts;
-                        ts = frame.data.aframe.ts - ats_base;
-                        frame.data.aframe.ts = ts / 1000;
+                    if (ats_base == 0)
+                        ats_base = frame.data.aframe.ts;
+                    ts = frame.data.aframe.ts - ats_base;
+                    frame.data.aframe.ts = ts / 1000;
 
-                        std::shared_ptr<uint8_t> data(new uint8_t[frame.data.aframe.len](), std::default_delete<uint8_t[]>());
-                        memcpy(data.get(), buffer_.GetCurrentPos(), frame.data.aframe.len);
-                        frms.insert(std::make_pair(frame.data.aframe.ts, std::make_pair(frame, data)));
-                        nb_audios++;
-                        buffer_.Consume(frame.data.aframe.len);
-                    }
-                    else
-                    {
-                        if (vts_base == 0)
-                            vts_base = frame.data.vframe.ts;
-                        ts = frame.data.vframe.ts - vts_base;
-                        frame.data.vframe.ts = ts / 1000;
-
-                        std::shared_ptr<uint8_t> data(new uint8_t[frame.data.vframe.len](), std::default_delete<uint8_t[]>());
-                        memcpy(data.get(), buffer_.GetCurrentPos(), frame.data.vframe.len);
-                        frms.insert(std::make_pair(frame.data.vframe.ts, std::make_pair(frame, data)));
-                        nb_videos++;
-                        buffer_.Consume(frame.data.vframe.len);
-                    }
-
-                    if (nb_videos >= 50 || nb_audios >= 50)
-                    {
-                        log_w("RTMP warn,url:%s,nb_videos:%d,nb_audios:%d,clear buffer", params_.url.c_str(), nb_videos, nb_audios);
-                        nb_videos = 0;
-                        nb_audios = 0;
-                        frms.clear();
-                        continue;
-                    }
+                    std::shared_ptr<uint8_t> data(new uint8_t[frame.data.aframe.len](), std::default_delete<uint8_t[]>());
+                    memcpy(data.get(), buffer_.GetCurrentPos(), frame.data.aframe.len);
+                    frms.insert(std::make_pair(frame.data.aframe.ts, std::make_pair(frame, data)));
+                    nb_audios++;
+                    buffer_.Consume(frame.data.aframe.len);
                 }
-                else if (run_)
+                else
                 {
-                    cond_.wait(lock);
+                    if (vts_base == 0)
+                        vts_base = frame.data.vframe.ts;
+                    ts = frame.data.vframe.ts - vts_base;
+                    frame.data.vframe.ts = ts / 1000;
+
+                    std::shared_ptr<uint8_t> data(new uint8_t[frame.data.vframe.len](), std::default_delete<uint8_t[]>());
+                    memcpy(data.get(), buffer_.GetCurrentPos(), frame.data.vframe.len);
+                    frms.insert(std::make_pair(frame.data.vframe.ts, std::make_pair(frame, data)));
+                    nb_videos++;
+                    buffer_.Consume(frame.data.vframe.len);
+                }
+
+                if (nb_videos >= 50 || nb_audios >= 50)
+                {
+                    log_w("RTMP warn,url:%s,nb_videos:%d,nb_audios:%d,clear buffer", params_.url.c_str(), nb_videos, nb_audios);
+                    nb_videos = 0;
+                    nb_audios = 0;
+                    frms.clear();
+                    mux_.unlock();
                     continue;
                 }
+                mux_.unlock();
+            }
+            else if (run_)
+            {
+                mux_.unlock();
+                usleep(0);
+                continue;
             }
 
             while (nb_audios > 1 && nb_videos > 1)
@@ -227,6 +233,7 @@ void RTMPLive::HandleAV()
                 frms.erase(it);
             }
         }
+        usleep(0);
     }
 
     streamer.Close();
@@ -265,7 +272,6 @@ void RTMPLive::Close()
     log_d("RTMP stop,url:%s", params_.url.c_str());
 
     run_ = false;
-    cond_.notify_all();
     thread_->join();
     thread_.reset();
     thread_ = nullptr;
@@ -288,8 +294,6 @@ void RTMPLive::OnFrame(const VENCFrame &video_frame)
 
     buffer_.Append(reinterpret_cast<uint8_t *>(&frame), sizeof(frame));
     buffer_.Append(video_frame.data, video_frame.len);
-
-    cond_.notify_one();
 }
 
 void RTMPLive::OnFrame(const AENCFrame &audio_frame)
@@ -307,8 +311,6 @@ void RTMPLive::OnFrame(const AENCFrame &audio_frame)
 
     buffer_.Append(reinterpret_cast<uint8_t *>(&frame), sizeof(frame));
     buffer_.Append(audio_frame.data, audio_frame.len);
-
-    cond_.notify_one();
 }
 
 Params::operator Json::Value() const

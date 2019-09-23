@@ -30,7 +30,6 @@ private:
     std::mutex sinks_mux_;
     std::vector<std::shared_ptr<AudioSink<AENCFrame>>> sinks_;
     std::mutex mux_;
-    std::condition_variable cond_;
     Buffer<allocator_512k> buffer_;
     std::atomic<bool> run_;
     std::unique_ptr<std::thread> thread_;

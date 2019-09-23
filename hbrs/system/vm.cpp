@@ -188,9 +188,9 @@ int AVManager::Initialize()
 
     StartVideoEncode(CONFIG->video_);
 
-    StartOsdTs();
+    // StartOsdTs();
 
-    StartOsd(CONFIG->osd_);
+    // StartOsd(CONFIG->osd_);
 
     return KSuccess;
 }
