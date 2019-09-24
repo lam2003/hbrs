@@ -2,6 +2,7 @@
 #include "system/venc.h"
 #include "common/err_code.h"
 #include "common/buffer.h"
+#include "common/bind_cpu.h"
 
 namespace rs
 {
@@ -118,6 +119,7 @@ int32_t VideoEncode::Initialize(const Params &params)
 
     run_ = true;
     thread_ = std::unique_ptr<std::thread>(new std::thread([this]() {
+        CPUBind::SetCPU(0);
         int32_t ret;
 
         MMZBuffer mmz_buffer(2 * 1024 * 1024);

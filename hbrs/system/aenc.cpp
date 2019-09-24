@@ -1,5 +1,6 @@
 #include "system/aenc.h"
 #include "common/err_code.h"
+#include "common/bind_cpu.h"
 
 namespace rs
 {
@@ -21,6 +22,7 @@ int AudioEncode::Initialize()
     log_d("AENC start");
     run_ = true;
     thread_ = std::unique_ptr<std::thread>(new std::thread([this]() {
+        CPUBind::SetCPU(0);
         int ret;
 
         AACENC_CONFIG config;

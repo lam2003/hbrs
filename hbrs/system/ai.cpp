@@ -1,6 +1,7 @@
 #include "system/ai.h"
 #include "common/err_code.h"
 #include "common/buffer.h"
+#include "common/bind_cpu.h"
 
 namespace rs
 {
@@ -73,6 +74,7 @@ int AudioInput::Initialize(const Params &params)
 
     run_ = true;
     thread_ = std::unique_ptr<std::thread>(new std::thread([this]() {
+        CPUBind::SetCPU(0);
         int ret;
 
         int fd = HI_MPI_AI_GetFd(params_.dev, params_.chn);

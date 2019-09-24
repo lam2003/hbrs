@@ -1,5 +1,6 @@
 #include "live/rtmp_live.h"
 #include "common/err_code.h"
+#include "common/bind_cpu.h"
 
 namespace rs
 {
@@ -8,6 +9,7 @@ using namespace rtmp;
 
 RTMPLive::RTMPLive() : run_(false),
                        thread_(nullptr),
+                       use_srs_(false),
                        init_(false)
 {
 }
@@ -19,8 +21,8 @@ RTMPLive::~RTMPLive()
 
 void RTMPLive::HandleVideoOnly()
 {
-    VRtmpStreamer streamer;
-    // RTMPStreamer streamer;
+    NormalRtmpStreamer streamer;
+    // SRSRtmpStreamer streamer;
     Frame frame;
     MMZBuffer mmz_buffer(2 * 1024 * 1024);
     uint64_t vts_base = 0;
@@ -34,7 +36,7 @@ void RTMPLive::HandleVideoOnly()
 
         if (!init)
         {
-            ret = streamer.Initialize(params_.url);
+            ret = streamer.Initialize(params_.url, false);
 
             // ret = streamer.Initialize(params_.url, false);
             if (ret != KSuccess)
@@ -102,9 +104,11 @@ void RTMPLive::HandleVideoOnly()
     streamer.Close();
 }
 #if 0
+
+template<typename T>
 void RTMPLive::HandleAV()
 {
-    RTMPStreamer streamer;
+    T streamer;
     Frame frame;
     std::multimap<uint64_t, std::pair<Frame, std::shared_ptr<uint8_t>>> frms;
     uint32_t nb_videos, nb_audios;
@@ -245,9 +249,11 @@ void RTMPLive::HandleAV()
 }
 
 #else
+
+template <typename T>
 void RTMPLive::HandleAV()
 {
-    RTMPStreamer streamer;
+    T streamer;
     Frame frame;
     MMZBuffer mmz_buffer(2 * 1024 * 1024);
     uint64_t ats_base, vts_base;
@@ -362,21 +368,31 @@ void RTMPLive::HandleAV()
 }
 
 #endif
-int RTMPLive::Initialize(const Params &params)
+int RTMPLive::Initialize(const Params &params, bool use_srs)
 {
     if (init_)
         return KInitialized;
 
-    log_d("RTMP start,url:%s,has_audio:%d", params.url.c_str(), params.has_audio);
+    log_d("RTMP start,url:%s,has_audio:%d,use_srs", params.url.c_str(), params.has_audio, use_srs);
 
     params_ = params;
+    use_srs_ = use_srs;
 
     run_ = true;
     thread_ = std::unique_ptr<std::thread>(new std::thread([this]() {
+        CPUBind::SetCPU(1);
         if (params_.has_audio)
         {
-            HandleAV();
+            if (use_srs_)
+            {
+                HandleAV<SRSRtmpStreamer>();
+            }
+            else
+            {
+                HandleAV<NormalRtmpStreamer>();
+            }
         }
+
         else
         {
             HandleVideoOnly();

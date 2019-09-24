@@ -1,6 +1,7 @@
 #include "record/mp4_record.h"
 #include "common/err_code.h"
 #include "common/utils.h"
+#include "common/bind_cpu.h"
 
 namespace rs
 {
@@ -32,6 +33,7 @@ int MP4Record::Initialize(const Params &params)
 
     run_ = true;
     thread_ = std::unique_ptr<std::thread>(new std::thread([this]() {
+        CPUBind::SetCPU(1);
         std::string filename;
         MP4Muxer muxer;
         Frame frame;

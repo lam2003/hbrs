@@ -2,6 +2,7 @@
 #include "system/vi.h"
 #include "system/vo.h"
 #include "common/err_code.h"
+#include "common/bind_cpu.h"
 
 namespace rs
 {
@@ -145,6 +146,7 @@ int32_t VideoInput::Initialize(const Params &params)
 
     run_ = true;
     thread_ = std::unique_ptr<std::thread>(new std::thread([this]() {
+        CPUBind::SetCPU(0);
         int ret;
     again:
         ret = StartDev(params_.dev, params_.width, params_.height, params_.interlaced);

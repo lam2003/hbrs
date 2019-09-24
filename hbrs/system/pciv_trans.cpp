@@ -1,6 +1,7 @@
 #include "system/pciv_trans.h"
 #include "common/err_code.h"
 #include "common/buffer.h"
+#include "common/bind_cpu.h"
 
 namespace rs
 {
@@ -164,6 +165,7 @@ int32_t PCIVTrans::Initialize(std::shared_ptr<PCIVComm> pciv_comm)
             log_e("REMOTE_CHIP[%d] unready", remote_id);
         }
         std::shared_ptr<std::thread> thr = std::make_shared<std::thread>([this, buf, remote_id]() {
+            CPUBind::SetCPU(0);
             int32_t ret;
             Msg msg;
             uint8_t tmp_buf[1024];

@@ -188,9 +188,9 @@ int AVManager::Initialize()
 
     StartVideoEncode(CONFIG->video_);
 
-    // StartOsdTs();
+    StartOsdTs();
 
-    // StartOsd(CONFIG->osd_);
+    StartOsd(CONFIG->osd_);
 
     return KSuccess;
 }
@@ -426,7 +426,7 @@ void AVManager::StartRemoteLive(const Config::RemoteLive &remote_live)
     if (!init_ || remote_live_started_)
         return;
 
-    live_arr_[MAIN2]->Initialize(remote_live.live);
+    live_arr_[MAIN2]->Initialize(remote_live.live,true);
     venc_arr_[MAIN]->AddVideoSink(live_arr_[MAIN2]);
     if (remote_live.live.has_audio)
         aenc_->AddAudioSink(live_arr_[MAIN2]);

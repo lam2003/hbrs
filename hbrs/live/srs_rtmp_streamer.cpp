@@ -1,24 +1,24 @@
-#include "live/rtmp_streamer.h"
+#include "live/srs_rtmp_streamer.h"
 #include "common/err_code.h"
 #include "common/utils.h"
 
 namespace rs
 {
 
-const int RTMPStreamer::DefaultTimeOut = 1000;
+const int SRSRtmpStreamer::DefaultTimeOut = 1000;
 
-RTMPStreamer::RTMPStreamer() : url_(""),
+SRSRtmpStreamer::SRSRtmpStreamer() : url_(""),
                                rtmp_(nullptr),
                                init_(false)
 {
 }
 
-RTMPStreamer::~RTMPStreamer()
+SRSRtmpStreamer::~SRSRtmpStreamer()
 {
     Close();
 }
 
-int RTMPStreamer::Initialize(const std::string &url, bool has_audio)
+int SRSRtmpStreamer::Initialize(const std::string &url, bool has_audio)
 {
     if (init_)
         return KInitialized;
@@ -70,7 +70,7 @@ int RTMPStreamer::Initialize(const std::string &url, bool has_audio)
     return KSuccess;
 }
 
-void RTMPStreamer::Close()
+void SRSRtmpStreamer::Close()
 {
     if (!init_)
         return;
@@ -79,7 +79,7 @@ void RTMPStreamer::Close()
     init_ = false;
 }
 
-int RTMPStreamer::WriteAudioFrame(const AENCFrame &frame)
+int SRSRtmpStreamer::WriteAudioFrame(const AENCFrame &frame)
 {
     if (!init_)
         return KUnInitialized;
@@ -94,7 +94,7 @@ int RTMPStreamer::WriteAudioFrame(const AENCFrame &frame)
     return KSuccess;
 }
 
-int RTMPStreamer::WriteVideoFrame(const VENCFrame &frame)
+int SRSRtmpStreamer::WriteVideoFrame(const VENCFrame &frame)
 {
 #define ERROR_H264_DROP_BEFORE_SPS_PPS 3043
 #define ERROR_H264_DUPLICATED_SPS 3044

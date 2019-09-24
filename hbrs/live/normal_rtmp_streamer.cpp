@@ -1,25 +1,26 @@
-#include "live/vrtmp_streamer.h"
+#include "live/normal_rtmp_streamer.h"
 #include "common/err_code.h"
 
 #define RTMP_HEAD_SIZE (sizeof(RTMPPacket) + RTMP_MAX_HEADER_SIZE)
 
 namespace rs
 {
-VRtmpStreamer::VRtmpStreamer() : buffer_(2 * 1024 * 1024),
+NormalRtmpStreamer::NormalRtmpStreamer() : buffer_(2 * 1024 * 1024),
                                  rtmp_(nullptr),
                                  sps_(""),
                                  pps_(""),
                                  send_sps_pps_(false),
+                                 has_audio_(false),
                                  init_(false)
 {
 }
 
-VRtmpStreamer::~VRtmpStreamer()
+NormalRtmpStreamer::~NormalRtmpStreamer()
 {
     Close();
 }
 
-bool VRtmpStreamer::SendSpsPps(const std::string &sps, const std::string &pps)
+bool NormalRtmpStreamer::SendSpsPps(const std::string &sps, const std::string &pps)
 {
     RTMPPacket *packet;
     uint8_t *body;
@@ -65,7 +66,7 @@ bool VRtmpStreamer::SendSpsPps(const std::string &sps, const std::string &pps)
     return RTMP_SendPacket(rtmp_, packet, true);
 }
 
-bool VRtmpStreamer::SendVideoData(const VENCFrame &frame)
+bool NormalRtmpStreamer::SendVideoData(const VENCFrame &frame)
 {
     RTMPPacket *packet;
     uint8_t *body;
@@ -106,13 +107,59 @@ bool VRtmpStreamer::SendVideoData(const VENCFrame &frame)
     return RTMP_SendPacket(rtmp_, packet, true);
 }
 
-int VRtmpStreamer::Initialize(const std::string &url)
+uint16_t GetAACMeta()
+{
+    uint16_t res;
+    uint16_t *p;
+
+    p = &res;
+
+    *p = 0;
+    *p |= (2 << 11);
+    *p |= (3 << 7);
+    *p |= (2 << 3);
+
+    uint8_t temp = *p >> 8;
+    *p <<= 8;
+    *p |= temp;
+
+    return res;
+}
+
+bool NormalRtmpStreamer::SendAACMeta()
+{
+    RTMPPacket *packet;
+    uint8_t *body;
+
+    packet = (RTMPPacket *)buffer_.vir_addr;
+    packet->m_body = (char *)packet + RTMP_HEAD_SIZE;
+    body = (uint8_t *)packet->m_body;
+
+    body[0] = 0xAF;
+    body[1] = 0x00;
+
+    uint16_t aac_meta = GetAACMeta();
+    memcpy(&body[2], &aac_meta, sizeof(uint16_t));
+
+    packet->m_packetType = RTMP_PACKET_TYPE_AUDIO;
+    packet->m_nBodySize = 4;
+    packet->m_nChannel = 0x04;
+    packet->m_nTimeStamp = 0;
+    packet->m_hasAbsTimestamp = 0;
+    packet->m_headerType = RTMP_PACKET_SIZE_LARGE;
+    packet->m_nInfoField2 = rtmp_->m_stream_id;
+
+    return RTMP_SendPacket(rtmp_, packet, true);
+}
+
+int NormalRtmpStreamer::Initialize(const std::string &url, bool has_audio)
 {
 
     if (init_)
         return KInitialized;
 
     url_ = url;
+    has_audio_ = has_audio;
 
     static std::mutex g_Mux;
     g_Mux.lock();
@@ -150,7 +197,7 @@ int VRtmpStreamer::Initialize(const std::string &url)
     return KSuccess;
 }
 
-int VRtmpStreamer::WriteVideoFrame(const VENCFrame &frame)
+int NormalRtmpStreamer::WriteVideoFrame(const VENCFrame &frame)
 {
     if (!init_)
         return KUnInitialized;
@@ -166,6 +213,14 @@ int VRtmpStreamer::WriteVideoFrame(const VENCFrame &frame)
 
     if (!send_sps_pps_ && sps_ != "" && pps_ != "")
     {
+        if (has_audio_)
+        {
+            if (!SendAACMeta())
+            {
+                log_e("[%s]SendAACMeta failed", url_.c_str());
+                return KSDKError;
+            }
+        }
         if (!SendSpsPps(sps_, pps_))
         {
             log_e("[%s]SendSpsPps failed", url_.c_str());
@@ -186,7 +241,51 @@ int VRtmpStreamer::WriteVideoFrame(const VENCFrame &frame)
     return KSuccess;
 }
 
-void VRtmpStreamer::Close()
+bool NormalRtmpStreamer::SendAudioData(const AENCFrame &frame)
+{
+    RTMPPacket *packet;
+    uint8_t *body;
+
+    packet = (RTMPPacket *)buffer_.vir_addr;
+    packet->m_body = (char *)(packet + RTMP_HEAD_SIZE);
+    body = (uint8_t *)packet->m_body;
+
+    int i = 0;
+    body[i++] = 0xAF;
+    body[i++] = 0x01;
+
+    memcpy(&body[i], frame.data + 7, frame.len - 7);
+    i += (frame.len - 7);
+
+    packet->m_nBodySize = i;
+    packet->m_hasAbsTimestamp = 0;
+    packet->m_packetType = RTMP_PACKET_TYPE_AUDIO;
+    packet->m_nInfoField2 = rtmp_->m_stream_id;
+    packet->m_nChannel = 0x04;
+    packet->m_nTimeStamp = frame.ts;
+    packet->m_headerType = RTMP_PACKET_SIZE_MEDIUM;
+
+    return RTMP_SendPacket(rtmp_, packet, true);
+}
+
+int NormalRtmpStreamer::WriteAudioFrame(const AENCFrame &frame)
+{
+    if (!init_)
+        return KUnInitialized;
+
+    if (!send_sps_pps_)
+        return KSuccess;
+
+    if (!SendAudioData(frame))
+    {
+        log_e("[%s]SendAudioData failed", url_.c_str());
+        return KSDKError;
+    }
+
+    return KSuccess;
+}
+
+void NormalRtmpStreamer::Close()
 {
     if (!init_)
         return;
