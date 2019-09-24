@@ -131,6 +131,7 @@ int VRtmpStreamer::Initialize(const std::string &url)
 
     if (!RTMP_Connect(rtmp_, NULL))
     {
+        RTMP_Close(rtmp_);
         RTMP_Free(rtmp_);
         log_e("[%s]RTMP_EnableWrite failed", url.c_str());
         return KSDKError;
@@ -138,6 +139,7 @@ int VRtmpStreamer::Initialize(const std::string &url)
 
     if (!RTMP_ConnectStream(rtmp_, 0))
     {
+        RTMP_Close(rtmp_);
         RTMP_Free(rtmp_);
         log_e("[%s]RTMP_ConnectStream failed", url.c_str());
         return KSDKError;
