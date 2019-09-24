@@ -1,6 +1,7 @@
 #include "osd/osd_ts.h"
 #include "common/err_code.h"
 #include "common/utils.h"
+#include "common/bind_cpu.h"
 
 namespace rs
 {
@@ -127,6 +128,7 @@ int OsdTs::Initialize(const Params &params)
 
     run_ = true;
     thread_ = std::unique_ptr<std::thread>(new std::thread([this]() {
+        CPUBind::SetCPU(1);
         int ret;
         //osd text color 1:R 2:G 3:B 4:no use
         SDL_Color forecol = {params_.font_color_r, params_.font_color_g, params_.font_color_b, 0};
