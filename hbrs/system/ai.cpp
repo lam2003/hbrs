@@ -86,9 +86,7 @@ int AudioInput::Initialize(const Params &params)
         timeval tv;
         AUDIO_FRAME_S frame;
 
-        // uint8_t *buf = reinterpret_cast<uint8_t *>(malloc(BufferLen));
-        // uint32_t buf_len = BufferLen;
-        MMZBuffer buffer(BufferLen);
+        uint8_t buf[BufferLen];
 
         while (run_)
         {
@@ -108,15 +106,7 @@ int AudioInput::Initialize(const Params &params)
                     return;
                 }
 
-                // if (frame.u32Len * 2 > buf_len)
-                // {
-                //     free(buf);
-                //     buf = reinterpret_cast<uint8_t *>(malloc(frame.u32Len * 2));
-                //     buf_len = frame.u32Len * 2;
-                // }
-
-                // uint8_t *cur_pos = buf;
-                uint8_t *cur_pos = buffer.vir_addr;
+                uint8_t *cur_pos = buf;
                 for (uint32_t i = 0; i < frame.u32Len; i += 2)
                 {
                     cur_pos[0] = *reinterpret_cast<uint8_t *>((uint32_t)frame.pVirAddr[0] + i);
@@ -126,15 +116,10 @@ int AudioInput::Initialize(const Params &params)
                     cur_pos += 4;
                 }
 
-                // AIFrame ai_frame;
-                // ai_frame.data = buf;
-                // ai_frame.ts = frame.u64TimeStamp;
-                // ai_frame.len = frame.u32Len * 2;
                 {
                     std::unique_lock<std::mutex> lock;
                     for (size_t i = 0; i < sinks_.size(); i++)
-                        // sinks_[i]->OnFrame(ai_frame);
-                        sinks_[i]->OnFrame(buffer.vir_addr, frame.u32Len * 2);
+                        sinks_[i]->OnFrame(buf, frame.u32Len * 2);
                 }
 
                 ret = HI_MPI_AI_ReleaseFrame(params_.dev, params_.chn, &frame, nullptr);
