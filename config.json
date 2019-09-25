@@ -125,7 +125,7 @@
    "logger": {
       "dir_path": "/nand/log",
       "auto_clean": true,
-      "clean_duration": 10
+      "clean_duration": 86400
    },
    "osd_ts": {
       "font_file": "/nand/msyh.ttc",
