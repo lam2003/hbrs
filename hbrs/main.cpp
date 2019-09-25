@@ -272,7 +272,7 @@ static void ChangeSwitchCommandHandler(evhttp_request *req, void *arg)
 
 int32_t main(int32_t argc, char **argv)
 {
-	CPUBind::SetCPU(0);
+	CPUBind::SetCPU(1);
 	RTC::LoadTime();
 
 	signal(SIGINT, SignalHandler);
