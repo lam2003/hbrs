@@ -102,7 +102,6 @@
 #define RS_SLAVE_SDI_BASE 1                             //从片SDI通道起始偏移
 #define RS_SLAVE_SDI_NUM 4                              //从片SDI通道的数量
 
-#define RS_VERSION "v2.1.1_stable_2019_9_25"
 
 #define RS_ASSERT(cond)     \
     while (!(cond))         \
@@ -110,6 +109,9 @@
         log_e("%s", #cond); \
         exit(1);            \
     }
+
+#define STRINGIZE(x) #x
+#define STRINGIZE_VALUE_OF(x) STRINGIZE(x)
 
 enum RS_SCENE
 {

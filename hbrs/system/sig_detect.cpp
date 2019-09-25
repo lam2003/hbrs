@@ -81,7 +81,7 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
 
     run_ = true;
     thread_ = std::unique_ptr<std::thread>(new std::thread([this, mode]() {
-        CPUBind::SetCPU(0);
+        CPUBind::SetCPU(1);
         int ret;
 
         const char *tw6874_1_dev = "/dev/tw6874_driver_1";

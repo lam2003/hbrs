@@ -1,6 +1,10 @@
-mkdir build 
-cd ./build/
+CUR_PATH=/3531
+rm ${CUR_PATH}/build -r
+mkdir ${CUR_PATH}/build
+cd ${CUR_PATH}/build/
 cmake ../
 make -j4
-cp ./hbrs/3531 /nfs
+make install
+cd ${CUR_PATH}/bin
+cp ./3531 /nfs
 cp ../config.json /nfs
