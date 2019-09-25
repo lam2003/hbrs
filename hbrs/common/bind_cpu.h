@@ -20,7 +20,7 @@ public:
         }
         else
         {
-            log_d("%d set thread affinity successfully", pthread_self());
+            // log_d("%d set thread affinity successfully", pthread_self());
         }
 
         CPU_ZERO(&get);
@@ -31,7 +31,7 @@ public:
 
         if (CPU_ISSET(no, &get))
         {
-            log_d("%d is running in processor %d", pthread_self(), no);
+            // log_d("%d is running in processor %d", pthread_self(), no);
         }
     }
     static void SetCPUAuto()
@@ -40,7 +40,7 @@ public:
         static std::mutex g_Mux;
 
         int cpus = sysconf(_SC_NPROCESSORS_CONF);
-        log_d("%d has %d processor(s)", pthread_self(), cpus);
+        // log_d("%d has %d processor(s)", pthread_self(), cpus);
 
         g_Mux.lock();
         int no = g_InvokeTime++ % cpus;

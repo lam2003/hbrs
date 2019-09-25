@@ -138,7 +138,18 @@
       "time_format": "%Y/%m/%d %H:%M:%S",
       "add_ts": false
    },
-   "osd": [],
+   "osd": [
+      {
+         "font_file": "/nand/msyh.ttc",
+         "font_size": 64,
+         "color_r": 255,
+         "color_g": 0,
+         "color_b": 0,
+         "x": 100,
+         "y": 100,
+         "content": "测试版"
+      }
+   ],
    "record_mode": {
       "is_resource_mode": true
    }
