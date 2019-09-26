@@ -96,15 +96,15 @@
       ]
    },
    "video": {
-      "normal_live_bitrate": 2000,
-      "normal_live_height": 720,
-      "normal_live_width": 1280,
+      "normal_live_bitrate": 1000,
+      "normal_live_height": 540,
+      "normal_live_width": 960,
       "normal_record_bitrate": 6000,
       "normal_record_height": 1080,
       "normal_record_width": 1920,
-      "res_bitrate": 2000,
-      "res_height": 720,
-      "res_width": 1280
+      "res_bitrate": 1000,
+      "res_height": 540,
+      "res_width": 960
    },
    "adv7842": {
       "pc_capture_mode": 0
@@ -125,7 +125,7 @@
    "logger": {
       "dir_path": "/nand/log",
       "auto_clean": true,
-      "clean_duration": 604800
+      "clean_duration": 86400
    },
    "osd_ts": {
       "font_file": "/nand/msyh.ttc",
@@ -147,10 +147,10 @@
          "color_b": 0,
          "x": 100,
          "y": 100,
-         "content": "未激活"
+         "content": "测试版"
       }
    ],
    "record_mode": {
-      "is_resource_mode": false
+      "is_resource_mode": true
    }
 }

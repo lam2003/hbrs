@@ -24,7 +24,8 @@ public:
 
     void RemoveAllAudioSink();
 
-    void OnFrame(const AIFrame &frame) override;
+    // void OnFrame(const AIFrame &frame) override;
+    void OnFrame(uint8_t *data, uint32_t len) override;
 
 private:
     std::mutex sinks_mux_;

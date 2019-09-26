@@ -1,6 +1,7 @@
 #include "record/mp4_record.h"
 #include "common/err_code.h"
 #include "common/utils.h"
+#include "common/bind_cpu.h"
 
 namespace rs
 {
@@ -32,6 +33,7 @@ int MP4Record::Initialize(const Params &params)
 
     run_ = true;
     thread_ = std::unique_ptr<std::thread>(new std::thread([this]() {
+        CPUBind::SetCPU(1);
         std::string filename;
         MP4Muxer muxer;
         Frame frame;
@@ -71,6 +73,7 @@ int MP4Record::Initialize(const Params &params)
                 cur_frame_num = 0;
                 init = true;
             }
+
             {
                 std::unique_lock<std::mutex> lock(mux_);
                 if (buffer_.Get(reinterpret_cast<uint8_t *>(&frame), sizeof(frame)))
@@ -89,10 +92,13 @@ int MP4Record::Initialize(const Params &params)
                         buffer_.Consume(frame.data.vframe.len);
                     }
                 }
+                else if (run_)
+                {
+                    cond_.wait(lock);
+                    continue;
+                }
                 else
                 {
-                    if (run_)
-                        cond_.wait(lock);
                     continue;
                 }
             }
@@ -158,14 +164,10 @@ void MP4Record::OnFrame(const VENCFrame &video_frame)
 {
     if (!init_)
         return;
-    mux_.lock();
 
+    std::unique_lock<std::mutex> lock(mux_);
     if (buffer_.FreeSpace() < sizeof(Frame) + video_frame.len)
-    {
-        mux_.unlock();
-        // log_e("buffer fill");
         return;
-    }
 
     Frame frame;
     frame.type = Frame::VIDEO;
@@ -173,23 +175,17 @@ void MP4Record::OnFrame(const VENCFrame &video_frame)
 
     buffer_.Append(reinterpret_cast<uint8_t *>(&frame), sizeof(frame));
     buffer_.Append(video_frame.data, video_frame.len);
-
     cond_.notify_one();
-    mux_.unlock();
 }
 
 void MP4Record::OnFrame(const AENCFrame &audio_frame)
 {
     if (!init_)
         return;
-    mux_.lock();
 
+    std::unique_lock<std::mutex> lock(mux_);
     if (buffer_.FreeSpace() < sizeof(Frame) + audio_frame.len)
-    {
-        mux_.unlock();
-        // log_e("buffer fill");
         return;
-    }
 
     Frame frame;
     frame.type = Frame::AUDIO;
@@ -197,9 +193,7 @@ void MP4Record::OnFrame(const AENCFrame &audio_frame)
 
     buffer_.Append(reinterpret_cast<uint8_t *>(&frame), sizeof(frame));
     buffer_.Append(audio_frame.data, audio_frame.len);
-
     cond_.notify_one();
-    mux_.unlock();
 }
 
 Params::operator Json::Value() const

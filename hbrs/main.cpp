@@ -1,11 +1,13 @@
 #include "system/mpp.h"
 #include "system/vm.h"
+
 #include "common/rtc.h"
 #include "common/logger.h"
 #include "common/http_server.h"
 #include "common/http_client.h"
 #include "common/switch.h"
 #include "common/json.h"
+#include "common/bind_cpu.h"
 
 #include "model/record_req.h"
 #include "model/local_live_req.h"
@@ -25,6 +27,7 @@ static std::shared_ptr<AVManager> g_AVManager = std::make_shared<AVManager>();
 static std::shared_ptr<HttpServer> g_HttpServer = std::make_shared<HttpServer>();
 static std::shared_ptr<SerialManager> g_SerialManager = std::make_shared<SerialManager>();
 static std::string g_Opt = "";
+static event_base *g_Base = event_base_new();
 
 static const char *g_Opts = "c:i:p:";
 
@@ -37,10 +40,13 @@ static bool g_Run = true;
 
 static void SignalHandler(int signo)
 {
-	if (signo == SIGINT || signo == SIGTERM)
+	if ((signo == SIGINT || signo == SIGTERM))
 	{
 		log_w("recive signal SIGINT,going to shutdown");
+		if (!g_Run)
+			return;
 		g_Run = false;
+		event_base_loopexit(g_Base, nullptr);
 	}
 	else if (signo == SIGPIPE)
 	{
@@ -267,6 +273,7 @@ static void ChangeSwitchCommandHandler(evhttp_request *req, void *arg)
 
 int32_t main(int32_t argc, char **argv)
 {
+	CPUBind::SetCPU(1);
 	RTC::LoadTime();
 
 	signal(SIGINT, SignalHandler);
@@ -318,10 +325,9 @@ int32_t main(int32_t argc, char **argv)
 
 	g_AVManager->Initialize();
 
-	event_base *base = event_base_new();
-	g_SerialManager->Initialize(base);
+	g_SerialManager->Initialize(g_Base);
 	g_SerialManager->SetEventListener(g_AVManager);
-	g_HttpServer->Initialize(ip, port, base);
+	g_HttpServer->Initialize(ip, port, g_Base);
 	g_HttpServer->RegisterURI("/start_local_live", StartLocalLiveHandler, nullptr);
 	g_HttpServer->RegisterURI("/stop_local_live", StopLocalLiveHandler, nullptr);
 	g_HttpServer->RegisterURI("/start_remote_live", StartRemoteLiveHandler, nullptr);
@@ -339,18 +345,12 @@ int32_t main(int32_t argc, char **argv)
 	g_HttpServer->RegisterURI("/camera_control", CameraControlHandler, nullptr);
 	g_HttpServer->RegisterURI("/change_switch_command", ChangeSwitchCommandHandler, nullptr);
 	g_HttpServer->RegisterURI("/change_record_mode", ChangeRecordModeHandler, nullptr);
-	while (g_Run)
-	{
-		struct timeval tv;
-		tv.tv_sec = 0;
-		tv.tv_usec = 500000; //500ms
-		event_base_loopexit(base, &tv);
-		event_base_dispatch(base);
-	}
+
+	event_base_dispatch(g_Base);
 
 	g_SerialManager->Close();
 	g_HttpServer->Close();
-	event_base_free(base);
+	event_base_free(g_Base);
 
 	g_AVManager->Close(g_Opt);
 	HttpClient::Instance()->Close();

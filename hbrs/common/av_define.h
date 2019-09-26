@@ -25,6 +25,7 @@ class AudioSink
 public:
     virtual ~AudioSink() {}
     virtual void OnFrame(const FrameT &) {}
+    virtual void OnFrame(uint8_t *data, uint32_t len) {}
 };
 
 struct AIFrame
@@ -75,7 +76,7 @@ struct VideoInputFormat
         return false;
     }
 
-    operator Json::Value() const 
+    operator Json::Value() const
     {
         Json::Value root;
         root["has_signal"] = has_signal;

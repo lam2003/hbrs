@@ -8,18 +8,35 @@ namespace rs
 
 struct MMZBuffer
 {
-    explicit MMZBuffer(int requested_size)
+    explicit MMZBuffer(int requested_size, bool is_hisi_mem = true):is_hisi_mem(is_hisi_mem)
     {
-        int ret = HI_MPI_SYS_MmzAlloc(&phy_addr, reinterpret_cast<void **>(&vir_addr), nullptr, "ddr1", requested_size);
-        RS_ASSERT(ret == 0);
+        if (is_hisi_mem)
+        {
+            // int ret = HI_MPI_SYS_MmzAlloc(&phy_addr, reinterpret_cast<void **>(&vir_addr), nullptr, "ddr1", requested_size);
+            int ret =HI_MPI_SYS_MmzAlloc_Cached(&phy_addr, reinterpret_cast<void **>(&vir_addr), nullptr, "ddr1", requested_size);
+            RS_ASSERT(ret == 0);
+        }
+        else
+        {
+            vir_addr = (uint8_t *)malloc(requested_size);
+            RS_ASSERT(vir_addr)
+        }
     }
     virtual ~MMZBuffer()
     {
-        int ret = HI_MPI_SYS_MmzFree(phy_addr, vir_addr);
-        RS_ASSERT(ret == 0);
+        if (is_hisi_mem)
+        {
+            int ret = HI_MPI_SYS_MmzFree(phy_addr, vir_addr);
+            RS_ASSERT(ret == 0);
+        }
+        else
+        {
+            free(vir_addr);
+        }
     }
     uint8_t *vir_addr;
     uint32_t phy_addr;
+    bool is_hisi_mem;
 };
 
 template <unsigned BlockSize>

@@ -1,6 +1,7 @@
 #include "system/pciv_trans.h"
 #include "common/err_code.h"
 #include "common/buffer.h"
+#include "common/bind_cpu.h"
 
 namespace rs
 {
@@ -11,7 +12,7 @@ static int Recv(std::shared_ptr<PCIVComm> pciv_comm, int remote_id, int port, ui
     int ret;
     do
     {
-        ret = pciv_comm->Recv(remote_id, port, tmp_buf, buf_len, 500000); //500ms
+        ret = pciv_comm->Recv(remote_id, port, tmp_buf, buf_len, 500000);
         if (ret > 0)
         {
             if (!msg_buf.Append(tmp_buf, ret))
@@ -22,7 +23,6 @@ static int Recv(std::shared_ptr<PCIVComm> pciv_comm, int remote_id, int port, ui
         }
         else if (ret < 0)
             return ret;
-
     } while (!only_once && run && msg_buf.Size() < sizeof(msg));
 
     if (msg_buf.Size() >= sizeof(msg))
@@ -165,6 +165,7 @@ int32_t PCIVTrans::Initialize(std::shared_ptr<PCIVComm> pciv_comm)
             log_e("REMOTE_CHIP[%d] unready", remote_id);
         }
         std::shared_ptr<std::thread> thr = std::make_shared<std::thread>([this, buf, remote_id]() {
+            CPUBind::SetCPU(0);
             int32_t ret;
             Msg msg;
             uint8_t tmp_buf[1024];

@@ -18,17 +18,6 @@ void HttpClient::HandleRequestCallBack(struct evhttp_request *req)
     {
         log_e("http request failed,%s", strerror(errno));
     }
-    else
-    {
-        switch (req->response_code)
-        {
-        case HTTP_OK:
-            log_d("http request ok");
-            break;
-        default:
-            log_e("http reponse code:%d", req->response_code);
-        }
-    }
 }
 
 HttpClient::HttpClient() : base_(nullptr),
@@ -55,7 +44,7 @@ void HttpClient::Post(const std::string ip, int port, const std::string &path, c
 
     std::unique_lock<std::mutex> lock(mux_);
 
-    log_d("[post]ip:%s,port:%d,path:%s,data:%s", ip.c_str(), port, path.c_str(), data.c_str());
+    // log_d("[post]ip:%s,port:%d,path:%s,data:%s", ip.c_str(), port, path.c_str(), data.c_str());
 
     evhttp_connection *conn = evhttp_connection_base_new(base_, nullptr, ip.c_str(), port);
     if (!conn)

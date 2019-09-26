@@ -1,6 +1,7 @@
 #pragma once
 
-#include "live/rtmp_streamer.h"
+#include "live/normal_rtmp_streamer.h"
+#include "live/srs_rtmp_streamer.h"
 #include "common/buffer.h"
 
 namespace rs
@@ -27,7 +28,7 @@ public:
 
     virtual ~RTMPLive();
 
-    int Initialize(const rtmp::Params &params);
+    int Initialize(const rtmp::Params &params, bool use_srs = false);
 
     void Close();
 
@@ -38,6 +39,7 @@ public:
 protected:
     void HandleVideoOnly();
 
+    template <typename T>
     void HandleAV();
 
 private:
@@ -45,9 +47,9 @@ private:
     std::mutex mux_;
     std::condition_variable cond_;
     Buffer<allocator_2048k> buffer_;
-
     std::atomic<bool> run_;
     std::unique_ptr<std::thread> thread_;
+    bool use_srs_;
     bool init_;
 };
 } // namespace rs

@@ -2,6 +2,7 @@
 #include "system/vi.h"
 #include "system/vo.h"
 #include "common/err_code.h"
+#include "common/bind_cpu.h"
 
 namespace rs
 {
@@ -145,6 +146,7 @@ int32_t VideoInput::Initialize(const Params &params)
 
     run_ = true;
     thread_ = std::unique_ptr<std::thread>(new std::thread([this]() {
+        CPUBind::SetCPU(0);
         int ret;
     again:
         ret = StartDev(params_.dev, params_.width, params_.height, params_.interlaced);
@@ -191,10 +193,9 @@ int32_t VideoInput::Initialize(const Params &params)
             }
 
             int_cnt = stat.u32IntCnt;
-            int wait_time = 10;
-
+            int wait_time = 20; //休眠10秒
             while (run_ && wait_time--)
-                usleep(500000); //500ms
+                usleep(500000); //500ms,快速推出
         }
 
         ret = HI_MPI_VI_DisableChn(params_.chn);

@@ -4,6 +4,7 @@
 #include "common/buffer.h"
 #include "common/err_code.h"
 #include "common/utils.h"
+#include "common/bind_cpu.h"
 
 namespace rs
 {
@@ -80,6 +81,7 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
 
     run_ = true;
     thread_ = std::unique_ptr<std::thread>(new std::thread([this, mode]() {
+        CPUBind::SetCPU(1);
         int ret;
 
         const char *tw6874_1_dev = "/dev/tw6874_driver_1";
@@ -163,7 +165,10 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
 
                     ret = Recv(pciv_comm_, RS_PCIV_SLAVE1_ID, RS_PCIV_CMD_PORT, tmp_buf, sizeof(tmp_buf), msg_buf, msg, 3);
                     if (ret != KSuccess)
-                        return;
+                    {
+                        memset(&msg, 0, sizeof(msg));
+                        msg.type = pciv::Msg::Type::ACK;
+                    }
                 }
                 if (msg.type != pciv::Msg::Type::ACK)
                 {
@@ -226,9 +231,9 @@ int SigDetect::Initialize(std::shared_ptr<PCIVComm> pciv_comm, ADV7842_MODE mode
                         status_listeners_->OnUpdate(fmts_);
                 }
 
-                int wait_time = 10;
-                while (run_ && wait_time--)
-                    usleep(500000); //500ms
+                int wait_time = 20;
+                while (run_ && wait_time--) //休眠10秒
+                    usleep(500000);         //500ms,快速退出
             }
         }
     }));

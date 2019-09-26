@@ -6,12 +6,12 @@
 namespace rs
 {
 
-class RTMPStreamer
+class SRSRtmpStreamer
 {
 public:
-    explicit RTMPStreamer();
+    explicit SRSRtmpStreamer();
 
-    virtual ~RTMPStreamer();
+    virtual ~SRSRtmpStreamer();
 
     int Initialize(const std::string &url, bool has_audio);
 
