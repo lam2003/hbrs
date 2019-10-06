@@ -20,6 +20,8 @@
 #include "model/camera_control_req.h"
 #include "model/change_switch_command_req.h"
 #include "model/change_record_mode_req.h"
+#include "model/change_osd_ts_req.h"
+#include "model/change_osd_req.h"
 
 using namespace rs;
 
@@ -237,15 +239,15 @@ static void SaveTimeHandler(evhttp_request *req, void *arg)
 static void ShutDownHandler(evhttp_request *req, void *arg)
 {
 	g_Opt = "shutdown";
-	g_Run = false;
 	ResponseOK(req);
+	SignalHandler(SIGINT);
 }
 
 static void ReBootHandler(evhttp_request *req, void *arg)
 {
 	g_Opt = "reboot";
-	g_Run = false;
 	ResponseOK(req);
+	SignalHandler(SIGINT);
 }
 
 static void CameraControlHandler(evhttp_request *req, void *arg)
@@ -268,6 +270,34 @@ static void ChangeSwitchCommandHandler(evhttp_request *req, void *arg)
 	change_switch_command_req = root;
 	CONFIG->switch_cmd_ = change_switch_command_req.commands;
 	CONFIG->WriteToFile();
+	ResponseOK(req);
+}
+
+static void ChangeOsdTsHanlder(evhttp_request *req, void *arg)
+{
+	Json::Value root;
+	if (!CheckReq<ChangeOsdTsReq>(req, root))
+		return;
+	ChangeOsdTsReq change_osd_ts_req;
+	change_osd_ts_req = root;
+	CONFIG->osd_ts_ = change_osd_ts_req.osd_ts;
+	CONFIG->WriteToFile();
+	g_AVManager->CloseOsdTs();
+	g_AVManager->StartOsdTs();
+	ResponseOK(req);
+}
+
+static void ChangeOsdHandler(evhttp_request *req, void *arg)
+{
+	Json::Value root;
+	if (!CheckReq<ChangeOsdReq>(req, root))
+		return;
+	ChangeOsdReq change_osd_req;
+	change_osd_req = root;
+	CONFIG->osd_ = change_osd_req.osd;
+	CONFIG->WriteToFile();
+	g_AVManager->CloseOsd();
+	g_AVManager->StartOsd(CONFIG->osd_);
 	ResponseOK(req);
 }
 
@@ -345,6 +375,8 @@ int32_t main(int32_t argc, char **argv)
 	g_HttpServer->RegisterURI("/camera_control", CameraControlHandler, nullptr);
 	g_HttpServer->RegisterURI("/change_switch_command", ChangeSwitchCommandHandler, nullptr);
 	g_HttpServer->RegisterURI("/change_record_mode", ChangeRecordModeHandler, nullptr);
+	g_HttpServer->RegisterURI("/change_osd", ChangeOsdHandler, nullptr);
+	g_HttpServer->RegisterURI("/change_osd_ts", ChangeOsdTsHanlder, nullptr);
 
 	event_base_dispatch(g_Base);
 

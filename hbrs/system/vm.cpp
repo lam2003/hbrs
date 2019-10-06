@@ -30,7 +30,6 @@ AVManager::AVManager() : display_vo_(nullptr),
                          pciv_comm_(nullptr),
                          pciv_trans_(nullptr),
                          sig_detect_(nullptr),
-                         osd_ts_(nullptr),
                          ai_(nullptr),
                          aenc_(nullptr),
                          ao_(nullptr),
@@ -101,8 +100,6 @@ int AVManager::Initialize()
     pciv_trans_ = std::make_shared<PCIVTrans>();
 
     sig_detect_ = std::make_shared<SigDetect>();
-
-    osd_ts_ = std::make_shared<OsdTs>();
 
     ai_ = std::make_shared<AudioInput>();
 
@@ -188,10 +185,6 @@ int AVManager::Initialize()
 
     StartVideoEncode(CONFIG->video_);
 
-    StartOsdTs();
-
-    StartOsd(CONFIG->osd_);
-
     return KSuccess;
 }
 
@@ -205,10 +198,6 @@ void AVManager::Close(const std::string &opt)
     CloseLocalLive();
 
     CloseRemoteLive();
-
-    CloseOsd();
-
-    CloseOsdTs();
 
     CloseVideoEncode();
 
@@ -304,9 +293,6 @@ void AVManager::Close(const std::string &opt)
 
     ai_.reset();
     ai_ = nullptr;
-
-    osd_ts_.reset();
-    osd_ts_ = nullptr;
 
     sig_detect_.reset();
     sig_detect_ = nullptr;
@@ -426,7 +412,7 @@ void AVManager::StartRemoteLive(const Config::RemoteLive &remote_live)
     if (!init_ || remote_live_started_)
         return;
 
-    live_arr_[MAIN2]->Initialize(remote_live.live,true);
+    live_arr_[MAIN2]->Initialize(remote_live.live, true);
     venc_arr_[MAIN]->AddVideoSink(live_arr_[MAIN2]);
     if (remote_live.live.has_audio)
         aenc_->AddAudioSink(live_arr_[MAIN2]);
@@ -626,13 +612,13 @@ void AVManager::StartVideoEncode(const Config::Video &video_conf)
         {
             if (i == 7)
             {
-                venc_arr_[i]->Initialize({i, i, video_conf.normal_record_width, video_conf.normal_record_height, 25, 25, 0, video_conf.normal_record_bitrate, VENC_RC_MODE_H264CBR, true});
+                venc_arr_[i]->Initialize({i, i, video_conf.normal_record_width, video_conf.normal_record_height, 25, 25, 2, video_conf.normal_record_bitrate, VENC_RC_MODE_H264CBR, true});
                 vpss_arr_[6]->StartUserChannel(3, {0, 0, (HI_U32)video_conf.normal_record_width, (HI_U32)video_conf.normal_record_height});
                 MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(6, 3, i, 0);
             }
             else
             {
-                venc_arr_[i]->Initialize({i, i, video_conf.normal_live_width, video_conf.normal_live_height, 25, 25, 0, video_conf.normal_live_bitrate, VENC_RC_MODE_H264CBR, true});
+                venc_arr_[i]->Initialize({i, i, video_conf.normal_live_width, video_conf.normal_live_height, 25, 25, 2, video_conf.normal_live_bitrate, VENC_RC_MODE_H264CBR, true});
                 vpss_arr_[i]->StartUserChannel(1, {0, 0, (HI_U32)video_conf.normal_live_width, (HI_U32)video_conf.normal_live_height});
                 MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(i, 1, i, 0);
             }
@@ -642,11 +628,14 @@ void AVManager::StartVideoEncode(const Config::Video &video_conf)
     {
         for (int i = 0; i < 7; i++)
         {
-            venc_arr_[i]->Initialize({i, i, video_conf.res_width, video_conf.res_height, 25, 25, 0, video_conf.res_bitrate, VENC_RC_MODE_H264CBR, true});
+            venc_arr_[i]->Initialize({i, i, video_conf.res_width, video_conf.res_height, 25, 25, 2, video_conf.res_bitrate, VENC_RC_MODE_H264CBR, true});
             vpss_arr_[i]->StartUserChannel(1, {0, 0, (HI_U32)video_conf.res_width, (HI_U32)video_conf.res_height});
             MPPSystem::Bind<HI_ID_VPSS, HI_ID_GROUP>(i, 1, i, 0);
         }
     }
+
+    StartOsdTs();
+    StartOsd(CONFIG->osd_);
 
     CONFIG->video_ = video_conf;
     CONFIG->WriteToFile();
@@ -658,6 +647,9 @@ void AVManager::CloseVideoEncode()
 {
     if (!init_ || !encode_stared_)
         return;
+
+    CloseOsd();
+    CloseOsdTs();
 
     if (!CONFIG->IsResourceMode())
     {
@@ -771,7 +763,8 @@ void AVManager::StartOsdTs()
         return;
     if (CONFIG->osd_ts_.add_ts)
     {
-        osd_ts_->Initialize({0,
+        std::shared_ptr<OsdTs> osd_ts1 = std::make_shared<OsdTs>();
+        osd_ts1->Initialize({0,
                              6,
                              CONFIG->osd_ts_.font_file,
                              CONFIG->osd_ts_.font_size,
@@ -781,6 +774,23 @@ void AVManager::StartOsdTs()
                              CONFIG->osd_ts_.x,
                              CONFIG->osd_ts_.y,
                              CONFIG->osd_ts_.time_format});
+        osd_ts_arr_.push_back(osd_ts1);
+
+        if (!CONFIG->record_mode_.is_resource_mode)
+        {
+            std::shared_ptr<OsdTs> osd_ts2 = std::make_shared<OsdTs>();
+            osd_ts2->Initialize({1,
+                                 7,
+                                 CONFIG->osd_ts_.font_file,
+                                 CONFIG->osd_ts_.font_size,
+                                 CONFIG->osd_ts_.color_r,
+                                 CONFIG->osd_ts_.color_g,
+                                 CONFIG->osd_ts_.color_b,
+                                 CONFIG->osd_ts_.x,
+                                 CONFIG->osd_ts_.y,
+                                 CONFIG->osd_ts_.time_format});
+            osd_ts_arr_.push_back(osd_ts2);
+        }
     }
 }
 
@@ -788,7 +798,9 @@ void AVManager::CloseOsdTs()
 {
     if (!init_)
         return;
-    osd_ts_->Close();
+    for (size_t i = 0; i < osd_ts_arr_.size(); i++)
+        osd_ts_arr_[i]->Close();
+    osd_ts_arr_.clear();
 }
 
 void AVManager::StartOsd(const Config::Osd &osd)
@@ -796,22 +808,42 @@ void AVManager::StartOsd(const Config::Osd &osd)
     if (!init_ || osd_started_)
         return;
 
-    int i = 1;
+    int i = 2;
     for (const Config::Osd::Item &item : osd.items)
     {
-        std::shared_ptr<Osd> osd = std::make_shared<Osd>();
-        osd->Initialize({i,
-                         6,
-                         item.font_file,
-                         item.font_size,
-                         item.color_r,
-                         item.color_g,
-                         item.color_b,
-                         item.x,
-                         item.y,
-                         item.content});
-        osd_arr_.push_back(osd);
-        i++;
+        std::shared_ptr<Osd> osd1 = std::make_shared<Osd>();
+        osd1->Initialize({i,
+                          6,
+                          item.font_file,
+                          item.font_size,
+                          item.color_r,
+                          item.color_g,
+                          item.color_b,
+                          item.x,
+                          item.y,
+                          item.content});
+        osd_arr_.push_back(osd1);
+
+        if (!CONFIG->record_mode_.is_resource_mode)
+        {
+            std::shared_ptr<Osd> osd2 = std::make_shared<Osd>();
+            osd2->Initialize({i + 1,
+                              7,
+                              item.font_file,
+                              item.font_size,
+                              item.color_r,
+                              item.color_g,
+                              item.color_b,
+                              item.x,
+                              item.y,
+                              item.content});
+            osd_arr_.push_back(osd2);
+            i += 2;
+        }
+        else
+        {
+            i++;
+        }
     }
 
     osd_started_ = true;

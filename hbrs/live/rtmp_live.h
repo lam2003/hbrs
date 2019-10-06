@@ -49,7 +49,6 @@ private:
     Buffer<allocator_2048k> buffer_;
     std::atomic<bool> run_;
     std::unique_ptr<std::thread> thread_;
-    bool use_srs_;
     bool init_;
 };
 } // namespace rs
