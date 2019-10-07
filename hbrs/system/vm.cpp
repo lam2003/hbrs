@@ -412,7 +412,7 @@ void AVManager::StartRemoteLive(const Config::RemoteLive &remote_live)
     if (!init_ || remote_live_started_)
         return;
 
-    live_arr_[MAIN2]->Initialize(remote_live.live, true);
+    live_arr_[MAIN2]->Initialize(remote_live.live);
     venc_arr_[MAIN]->AddVideoSink(live_arr_[MAIN2]);
     if (remote_live.live.has_audio)
         aenc_->AddAudioSink(live_arr_[MAIN2]);

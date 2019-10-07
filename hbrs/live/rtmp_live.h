@@ -28,7 +28,7 @@ public:
 
     virtual ~RTMPLive();
 
-    int Initialize(const rtmp::Params &params, bool use_srs = false);
+    int Initialize(const rtmp::Params &params, bool use_srs = true);
 
     void Close();
 
