@@ -9,7 +9,6 @@ using namespace rtmp;
 
 RTMPLive::RTMPLive() : run_(false),
                        thread_(nullptr),
-                       use_srs_(false),
                        init_(false)
 {
 }
@@ -103,9 +102,9 @@ void RTMPLive::HandleVideoOnly()
 
     streamer.Close();
 }
-#if 0
+#if 1
 
-template<typename T>
+template <typename T>
 void RTMPLive::HandleAV()
 {
     T streamer;
@@ -183,7 +182,7 @@ void RTMPLive::HandleAV()
                         buffer_.Consume(frame.data.vframe.len);
                     }
 
-                    if (nb_videos >= 50 || nb_audios >= 50)
+                    if (nb_videos >= 100 || nb_audios >= 100)
                     {
                         log_w("RTMP warn,url:%s,nb_videos:%d,nb_audios:%d,clear buffer", params_.url.c_str(), nb_videos, nb_audios);
                         nb_videos = 0;
@@ -203,7 +202,7 @@ void RTMPLive::HandleAV()
                 }
             }
 
-            while (nb_audios > 1 && nb_videos > 1)
+            while (nb_audios >= 1 && nb_videos >= 1)
             {
                 std::multimap<uint64_t, std::pair<Frame, std::shared_ptr<uint8_t>>>::iterator it = frms.begin();
                 if (it->second.first.type == Frame::AUDIO)
@@ -373,17 +372,16 @@ int RTMPLive::Initialize(const Params &params, bool use_srs)
     if (init_)
         return KInitialized;
 
-    log_d("RTMP start,url:%s,has_audio:%d,use_srs", params.url.c_str(), params.has_audio, use_srs);
+    log_d("RTMP start,url:%s,has_audio:%d,use_srs:%d", params.url.c_str(), params.has_audio, use_srs);
 
     params_ = params;
-    use_srs_ = use_srs;
 
     run_ = true;
-    thread_ = std::unique_ptr<std::thread>(new std::thread([this]() {
+    thread_ = std::unique_ptr<std::thread>(new std::thread([this, use_srs]() {
         CPUBind::SetCPU(1);
         if (params_.has_audio)
         {
-            if (use_srs_)
+            if (use_srs)
             {
                 HandleAV<SRSRtmpStreamer>();
             }

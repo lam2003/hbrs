@@ -73,15 +73,15 @@ int OsdTs::Initialize(const Params &params)
     x = Utils::Align(x, 16);
     y = Utils::Align(y, 16);
 
-    if (x < 0 ||
-        y < 0 ||
-        x + font_w > RS_MAX_WIDTH ||
-        y + font_h > RS_MAX_HEIGHT)
-    {
-        TTF_CloseFont(font_);
-        log_e("position illegal");
-        return KParamsError;
-    }
+    // if (x < 0 ||
+    //     y < 0 ||
+    //     x + font_w > RS_MAX_WIDTH ||
+    //     y + font_h > RS_MAX_HEIGHT)
+    // {
+    //     TTF_CloseFont(font_);
+    //     log_e("position illegal");
+    //     return KParamsError;
+    // }
 
     RGN_ATTR_S rgn_attr;
     memset(&rgn_attr, 0, sizeof(rgn_attr));
@@ -94,6 +94,7 @@ int OsdTs::Initialize(const Params &params)
     ret = HI_MPI_RGN_Create(params_.hdl, &rgn_attr);
     if (ret != KSuccess)
     {
+        TTF_CloseFont(font_);
         log_e("HI_MPI_RGN_Create failed with %#x", ret);
         return KSDKError;
     }
@@ -109,11 +110,11 @@ int OsdTs::Initialize(const Params &params)
     chn_attr.unChnAttr.stOverlayChn.u32Layer = 7;
     chn_attr.unChnAttr.stOverlayChn.stQpInfo.bAbsQp = HI_FALSE;
     chn_attr.unChnAttr.stOverlayChn.stQpInfo.s32Qp = 0;
-    chn_attr.unChnAttr.stOverlayChn.stInvertColor.stInvColArea.u32Height = 16;
-    chn_attr.unChnAttr.stOverlayChn.stInvertColor.stInvColArea.u32Width = 16;
-    chn_attr.unChnAttr.stOverlayChn.stInvertColor.u32LumThresh = 128;
-    chn_attr.unChnAttr.stOverlayChn.stInvertColor.enChgMod = MORETHAN_LUM_THRESH;
-    chn_attr.unChnAttr.stOverlayChn.stInvertColor.bInvColEn = HI_TRUE;
+    // chn_attr.unChnAttr.stOverlayChn.stInvertColor.stInvColArea.u32Height = 16;
+    // chn_attr.unChnAttr.stOverlayChn.stInvertColor.stInvColArea.u32Width = 16;
+    // chn_attr.unChnAttr.stOverlayChn.stInvertColor.u32LumThresh = 128;
+    // chn_attr.unChnAttr.stOverlayChn.stInvertColor.enChgMod = MORETHAN_LUM_THRESH;
+    // chn_attr.unChnAttr.stOverlayChn.stInvertColor.bInvColEn = HI_TRUE;
 
     MPP_CHN_S mpp_chn;
     mpp_chn.enModId = HI_ID_GROUP;
@@ -122,6 +123,8 @@ int OsdTs::Initialize(const Params &params)
     ret = HI_MPI_RGN_AttachToChn(params_.hdl, &mpp_chn, &chn_attr);
     if (ret != HI_SUCCESS)
     {
+        HI_MPI_RGN_Destroy(params_.hdl);
+        TTF_CloseFont(font_);
         log_e("HI_MPI_RGN_AttachToChn failed with %#x", ret);
         return KSDKError;
     }
@@ -178,9 +181,8 @@ int OsdTs::Initialize(const Params &params)
                 free(bitmap.pData);
             SDL_FreeSurface(sdl_txtsurface);
 
-            //快速退出
             if (run_)
-                usleep(500000);
+                sleep(1);
         }
     }));
 

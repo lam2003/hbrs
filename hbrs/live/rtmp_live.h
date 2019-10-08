@@ -28,7 +28,7 @@ public:
 
     virtual ~RTMPLive();
 
-    int Initialize(const rtmp::Params &params, bool use_srs = false);
+    int Initialize(const rtmp::Params &params, bool use_srs = true);
 
     void Close();
 
@@ -49,7 +49,6 @@ private:
     Buffer<allocator_2048k> buffer_;
     std::atomic<bool> run_;
     std::unique_ptr<std::thread> thread_;
-    bool use_srs_;
     bool init_;
 };
 } // namespace rs

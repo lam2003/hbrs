@@ -88,6 +88,7 @@ private:
     std::vector<std::shared_ptr<VideoEncode>> venc_arr_;
     std::vector<std::shared_ptr<RTMPLive>> live_arr_;
     std::vector<std::shared_ptr<MP4Record>> record_arr_;
+    std::vector<std::shared_ptr<OsdTs>> osd_ts_arr_;
     std::vector<std::shared_ptr<Osd>> osd_arr_;
 
     std::shared_ptr<VideoOutput> display_vo_;
@@ -98,7 +99,6 @@ private:
     std::shared_ptr<PCIVComm> pciv_comm_;
     std::shared_ptr<PCIVTrans> pciv_trans_;
     std::shared_ptr<SigDetect> sig_detect_;
-    std::shared_ptr<OsdTs> osd_ts_;
     std::shared_ptr<AudioInput> ai_;
     std::shared_ptr<AudioEncode> aenc_;
     std::shared_ptr<AudioOutput> ao_;
