@@ -8,6 +8,7 @@
 #include "common/switch.h"
 #include "common/json.h"
 #include "common/bind_cpu.h"
+#include "common/daemon.h"
 
 #include "model/record_req.h"
 #include "model/local_live_req.h"
@@ -238,6 +239,7 @@ static void SaveTimeHandler(evhttp_request *req, void *arg)
 
 static void ShutDownHandler(evhttp_request *req, void *arg)
 {
+	log_d("going to shutdown...");
 	g_Opt = "shutdown";
 	ResponseOK(req);
 	SignalHandler(SIGINT);
@@ -245,6 +247,7 @@ static void ShutDownHandler(evhttp_request *req, void *arg)
 
 static void ReBootHandler(evhttp_request *req, void *arg)
 {
+	log_d("going to reboot...");
 	g_Opt = "reboot";
 	ResponseOK(req);
 	SignalHandler(SIGINT);
@@ -303,6 +306,7 @@ static void ChangeOsdHandler(evhttp_request *req, void *arg)
 
 int32_t main(int32_t argc, char **argv)
 {
+	Daemon();
 	CPUBind::SetCPU(1);
 	RTC::LoadTime();
 
