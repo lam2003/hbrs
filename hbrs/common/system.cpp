@@ -1,13 +1,40 @@
-#pragma once
-
 #include "global.h"
+#include "common/system.h"
 #include "common/utils.h"
 #include "common/config.h"
 #include "common/err_code.h"
 
 namespace rs
 {
-static void ConfigLogger()
+void Daemon()
+{
+    int pid;
+
+    if ((pid = fork()))
+    {
+        exit(0);
+    }
+    else if (pid < 0)
+    {
+        exit(1);
+    }
+
+    setsid();
+
+    if ((pid = fork()))
+    {
+        exit(0);
+    }
+    else if (pid < 0)
+    {
+        exit(1);
+    }
+
+    umask(0);
+    return;
+}
+
+void ConfigLogger()
 {
     if (KSuccess != Utils::CreateDir(Config::Instance()->logger_.dir_path))
     {

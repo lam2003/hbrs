@@ -2,13 +2,12 @@
 #include "system/vm.h"
 
 #include "common/rtc.h"
-#include "common/logger.h"
 #include "common/http_server.h"
 #include "common/http_client.h"
 #include "common/switch.h"
 #include "common/json.h"
 #include "common/bind_cpu.h"
-#include "common/daemon.h"
+#include "common/system.h"
 
 #include "model/record_req.h"
 #include "model/local_live_req.h"
