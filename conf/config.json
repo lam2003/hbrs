@@ -1,0 +1,146 @@
+{
+   "scene": {
+      "mapping": [
+         {
+            "0": 6
+         },
+         {
+            "1": 1
+         },
+         {
+            "2": 2
+         },
+         {
+            "3": 3
+         },
+         {
+            "4": 4
+         },
+         {
+            "5": 5
+         }
+      ],
+      "mode": 8
+   },
+   "display": {
+      "disp_vo_intf_sync": 10,
+      "display_pos": [
+         {
+            "0": {
+               "height": 720,
+               "width": 1280,
+               "x": 0,
+               "y": 0
+            }
+         },
+         {
+            "1": {
+               "height": 360,
+               "width": 640,
+               "x": 1280,
+               "y": 0
+            }
+         },
+         {
+            "2": {
+               "height": 360,
+               "width": 640,
+               "x": 1280,
+               "y": 360
+            }
+         },
+         {
+            "3": {
+               "height": 360,
+               "width": 640,
+               "x": 1280,
+               "y": 720
+            }
+         },
+         {
+            "4": {
+               "height": 360,
+               "width": 640,
+               "x": 640,
+               "y": 720
+            }
+         },
+         {
+            "5": {
+               "height": 360,
+               "width": 640,
+               "x": 0,
+               "y": 720
+            }
+         }
+      ],
+      "mapping": [
+         {
+            "0": 6
+         },
+         {
+            "1": 1
+         },
+         {
+            "2": 2
+         },
+         {
+            "3": 3
+         },
+         {
+            "4": 4
+         },
+         {
+            "5": 5
+         }
+      ]
+   },
+   "video": {
+      "normal_live_bitrate": 1000,
+      "normal_live_height": 540,
+      "normal_live_width": 960,
+      "normal_record_bitrate": 4000,
+      "normal_record_height": 1080,
+      "normal_record_width": 1920,
+      "res_bitrate": 1000,
+      "res_height": 540,
+      "res_width": 960
+   },
+   "adv7842": {
+      "pc_capture_mode": 0
+   },
+   "switch_cmd": {
+      "bb_fea": "FF 02 00 07 00 52 5B",
+      "pc_capture": "FF 02 00 07 00 53 5C",
+      "stu_fea": "FF 02 00 07 00 50 59",
+      "stu_full": "FF 02 00 07 00 40 49",
+      "tea_fea": "FF 02 00 07 00 51 5A",
+      "tea_full": "FF 02 00 07 00 41 4A"
+   },
+   "web": {
+      "ip": "127.0.0.1",
+      "port": 80,
+      "path": "/videocontrol/other.php?action=recordHostInfo"
+   },
+   "logger": {
+      "dir_path": "/nand/log",
+      "auto_clean": true,
+      "clean_duration": 86400
+   },
+   "osd_ts": {
+      "font_file": "/nand/fonts/msyh.ttc",
+      "font_size": 16,
+      "color_r": 255,
+      "color_g": 255,
+      "color_b": 255,
+      "x": 0,
+      "y": 0,
+      "time_format": "%Y/%m/%d %H:%M:%S",
+      "add_ts": false
+   },
+   "osd": [
+   ],
+   "record_mode": {
+      "is_resource_mode": true
+   }
+}
